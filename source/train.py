@@ -126,14 +126,15 @@ def main():
         optimizer.zero_grad()
         
         # validation
+        
         utils.model_test(model)
-        xyz_valid = (xyz + d_valid * normal).detach()
+        xyz_valid = (xyz + d_valid * normal).detach()[:1]
 
         loss_d, y = train_batch(device, model, xyz_valid, normal, bs, backward=False)
-        loss_d /= d_valid.shape[0]
+        loss_d /= xyz_valid.shape[0]
         
         writer.add_image("validation", y[0:1].repeat(1,3,1,1), epoch, dataformats="NCWH")
-
+        
 
         # normal test
         xyz.requires_grad = True
@@ -144,7 +145,7 @@ def main():
         # train
         utils.model_train(model)
         loss_t, _ = train_batch(device, model, xyz, normal, bs, backward=True)
-        loss_t /= d.shape[0]
+        loss_t /= xyz.shape[0]
 
         writer.add_scalars("loss", {'train': loss_t, 'validation': loss_d}, epoch)
         
