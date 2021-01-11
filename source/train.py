@@ -130,8 +130,9 @@ def main():
             writer.add_image("validation", y[0:1].repeat(1,3,1,1), epoch, dataformats="NCWH")
 
         # normal test
+        xyz.requires_grad = True
         writer.add_image("normals", utils.normal_from_y(model(xyz), xyz), epoch, dataformats="NCWH")
-                
+        xyz.requires_grad = False
         # train
         utils.model_train(model)
         loss_t, _ = train_batch(device, model, (xyz + d * normal).detach(), d, bs, backward=True)
