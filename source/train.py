@@ -51,7 +51,8 @@ parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE',
 
 def train_batch(model, x, y, batchsize, backward=True):
     loss_sum = 0
-    y_cat = torch.zeros_like(x)
+    y = y.to(model.device)
+    y_cat = torch.zeros_like(x).to(model.device)
 
     bs = batchsize
 
