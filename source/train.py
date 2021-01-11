@@ -28,17 +28,17 @@ parser.add_argument('--pretrained-weight', dest='weight', metavar='PATH', defaul
                         help='pretrained weight')
 
 
-parser.add_argument('--batchsize', dest='batchsize', metavar='BATCHSIZE', default=1,
+parser.add_argument('--batchsize', dest='batchsize', type=int, metavar='BATCHSIZE', default=1,
                         help='batch size')
-parser.add_argument('--epoch', dest='epoch', metavar='EPOCH', default=100, 
+parser.add_argument('--epoch', dest='epoch', type=int,metavar='EPOCH', default=100, 
                         help='epochs')
 
-parser.add_argument('--epsilon', dest='epsilon', metavar='EPSILON', default=0.1, 
+parser.add_argument('--epsilon', dest='epsilon', type=float, metavar='EPSILON', default=0.1, 
                         help='epsilon')
 
-parser.add_argument('--pe', dest='pe', metavar='PE', default=True, 
+parser.add_argument('--pe', dest='pe', metavar='PE', type=bool, default=True, 
                         help='positional encoding')
-parser.add_argument('--pedim', dest='pedim', metavar='PE_DIMENSIONS', default=60, 
+parser.add_argument('--pedim', dest='pedim', metavar='PE_DIMENSIONS', type=int, default=60, 
                         help='positional encoding dimension')
 
 parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE', 
@@ -70,7 +70,7 @@ def main():
 
     
     # create models
-    if False: #args.pe:
+    if args.pe:
         model = nn.Sequential(PositionalEncoding(args.pedim),
                                 DeepSDF(args.pedim, 1)).to(device)
     else:
