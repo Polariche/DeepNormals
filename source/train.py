@@ -70,8 +70,8 @@ def main():
                     y.to(device).unsqueeze(0).unsqueeze(0), 
                     depth], dim=1)
 
-    normal = Sobel(3).to(device).normal(xyz)
-    
+    normal = Sobel(3).to(device).normal(xyz).detach()
+
     writer.add_image("normal_GT", normal, 0, dataformats="NCWH")
     
     # create models
