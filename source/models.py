@@ -16,13 +16,17 @@ from typing import Type, Any, Callable, Union, List, Optional, Tuple
 
 
 class DeepSDF(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, mid_channels: int = 512, last_activation = None, kernel_size=1):
+    def __init__(self, in_channels: int, out_channels: int, mid_channels: int = 512, last_activation = None, kernel_size=1, activation = 'relu'):
         super(DeepSDF, self).__init__()
         
         c = [in_channels] + [mid_channels]*3 + [mid_channels - in_channels] + [mid_channels]*3 + [out_channels]
         
         if last_activation is None:
             last_activation = torch.tanh
+        if activation == 'relu':
+            self.activation = F.relu
+        elif activation == 'sin':
+            self.activation = torch.sin
             
         self.dropout = nn.Dropout(0.2)
         self.last_activation = last_activation
@@ -56,7 +60,7 @@ class DeepSDF(nn.Module):
             x = bn(x)
             
             if i < 8:
-                x = torch.sin(x) #x = F.relu(x)
+                x = self.activation(x) #x = F.relu(x)
                 x = self.dropout(x)
                 
         

@@ -27,6 +27,8 @@ parser.add_argument('--weight-save-path', dest='weight_save_path', metavar='PATH
 parser.add_argument('--pretrained-weight', dest='weight', metavar='PATH', default=None, 
                         help='pretrained weight')
 
+parser.add_argument('--activation', dest='activation', metavar='activation', default='relu', 
+                        help='activation of network; \'relu\' or \'sin\'')
 
 parser.add_argument('--batchsize', dest='batchsize', type=int, metavar='BATCHSIZE', default=1,
                         help='batch size')
@@ -72,9 +74,10 @@ def main():
     # create models
     if args.pe:
         model = nn.Sequential(PositionalEncoding(args.pedim),
-                                DeepSDF(args.pedim, 1)).to(device)
+                                DeepSDF(args.pedim, 1, activation=args.activation)).to(device)
     else:
-        model = DeepSDF(3, 1).to(device)
+        model = DeepSDF(3, 1, activation=args.activation).to(device)
+        
     optimizer = optim.Adam(model.parameters(), lr = 1e-3)
 
     if args.weight != None:
