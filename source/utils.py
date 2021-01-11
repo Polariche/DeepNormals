@@ -113,6 +113,7 @@ def writePLY_mesh(filename, X, color, eps=0.1):
 
 
 def normal_from_model(model, x):
+    x.requires_grad = True
     grad = torch.autograd.grad(model(x), [x], create_graph=True)[0]
     grad = grad / torch.norm(grad, dim=1)
 
