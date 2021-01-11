@@ -42,16 +42,15 @@ class DeepSDF(nn.Module):
             
             conv = nn.Conv2d(inc, ouc, k, dilation=d, padding=p, padding_mode='replicate')
 
-            # conv2d has no uniform init :(
-            """
+            # conv2d has no uniform init, so do it manually
             with torch.no_grad():
                 if i == 1:
-                    torch.nn.init.uniform_(conv, -1 / mid_channels, 
-                                                1 / mid_channels)
+                    const = 1 / mid_channels 
                 else:
-                    torch.nn.init.uniform_(conv,  -torch.sqrt(6 / mid_channels) / omega_0, 
-                                                torch.sqrt(6 / mid_channels) / omega_0)
-            """
+                    const = torch.sqrt(6/ mid_channels) / omega_0
+
+                conv.weight = const * (torch.rand(conv.weight.shape, dtype=conv.weight.dtype, requires_grad = True) * 2-1)
+                conv.bias = const * (torch.rand(conv.bias.shape, dtype=conv.bias.dtype, requires_grad = True) * 2-1)
 
             conv = nn.utils.weight_norm(conv)
             bn = nn.BatchNorm2d(c[i])
