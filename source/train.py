@@ -111,7 +111,7 @@ def main():
                 writer.add_image("validation", a.repeat(1,3,1,1), epoch, dataformats="NCWH")
 
         # normal test
-        writer.add_image("normals", utils.normal_from_model(model, xyz), epoch, dataformats="NCWH")
+        writer.add_image("normals", utils.normal_from_model(model, xyz)*128 + 128, epoch, dataformats="NCWH")
 
         # train
         utils.model_train(model)
