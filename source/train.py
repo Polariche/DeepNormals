@@ -22,7 +22,7 @@ parser.add_argument('--save-path', dest='save_path', metavar='PATH', default='..
 
 parser.add_argument('--batchsize', dest='batchsize', metavar='BATCHSIZE', default=1,
                         help='batch size')
-parser.add_argument('--epoch', dest='epoch', metavar='EPOCH', default=10, 
+parser.add_argument('--epoch', dest='epoch', metavar='EPOCH', default=100, 
                         help='epochs')
 
 parser.add_argument('--epsilon', dest='epsilon', metavar='EPSILON', default=0.1, 
@@ -47,6 +47,7 @@ def main():
 
     # read input depth
     depth = cv2.imread(args.data, -1).astype(np.float32) / 1000.
+    depth = cv2.resize(depth, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_CUBIC)
     depth = torch.tensor(depth.T, device=device).unsqueeze(0).unsqueeze(0)
 
     w,h = depth.shape[2:]
@@ -68,28 +69,49 @@ def main():
         model = DeepSDF(3, 1).to(device)
     optimizer = optim.Adam(model.parameters(), lr = 1e-3)
 
+    bs = args.batchsize
+    d = torch.arange(-1, 1, 0.2).view(-1,1,1,1) * args.epsilon
+    d_valid = (torch.rand(10, 1, *xyz.shape[2:]) * 2 - 1.) * args.epsilon
 
     for epoch in range(args.epoch):
-        loss_ = 0
+        loss_t = 0
+        loss_d = 0
 
         optimizer.zero_grad()
-        bs = args.batchsize
-        d = torch.arange(-1, 1, 0.2).view(-1,1,1,1).to(device) * args.epsilon
+        
+        # validation
+        with torch.no_grad():
+            for j in range(d_valid.shape[0] // bs):
+                d_bs_valid = d_valid[j*bs:(j+1)*bs].to(device)
+                data_valid = (xyz + d_bs_valid * normal)
+                y_valid = model(data_valid)
 
+                a = torch.norm(y_valid - d_bs_valid/args.epsilon, dim=1, keepdim=True)
+
+                loss = torch.sum(torch.mean(a, dim=(1,2,3)))
+                loss_d += loss
+
+                writer.add_image("validation", a.repeat(1,3,1,1), epoch, dataformats="NCWH")
+
+        # train
         for j in range(d.shape[0] // bs):
-            d_bs = d[j*bs:(j+1)*bs]
-            data = (xyz + d_bs * normal).detach().to(device)
-            y = model(data)
+            d_bs = d[j*bs:(j+1)*bs].to(device)
+            data = (xyz + d_bs * normal).detach()
 
-            writer.add_images('images', y.repeat(1,3,1,1), epoch)
+            y = model(data)
 
             loss = torch.sum(torch.mean(torch.norm(y - d_bs/args.epsilon, dim=1, keepdim=True), dim=(1,2,3)))
             loss.backward()
 
-            loss_ += loss.detach()
+            loss_t += loss.detach()
+
+        loss_t /= d.shape[0]
+        loss_d /= d_valid.shape[0]
+        writer.add_scalars("loss", {'train': loss_t, 'validation': loss_d}, epoch)
         
+        # update
         optimizer.step()
-        writer.add_scalar("loss", loss_, epoch)
+        
     
     writer.close()
 
