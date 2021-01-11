@@ -17,8 +17,15 @@ parser = argparse.ArgumentParser(description='Test',
 
 parser.add_argument('data', metavar='DATA', help='path to file')
 
-parser.add_argument('--save-path', dest='save_path', metavar='PATH', default='../checkpoints/', 
+parser.add_argument('--tb-save-path', dest='tb_save_path', metavar='PATH', default='../checkpoints/', 
                         help='tensorboard checkpoints path')
+
+parser.add_argument('--weight-save-path', dest='weight_save_path', metavar='PATH', default='../weights/', 
+                        help='weight checkpoints path')
+
+parser.add_argument('--pretrained-weight', dest='weight', metavar='PATH', default=None, 
+                        help='pretrained weight')
+
 
 parser.add_argument('--batchsize', dest='batchsize', metavar='BATCHSIZE', default=1,
                         help='batch size')
@@ -28,7 +35,7 @@ parser.add_argument('--epoch', dest='epoch', metavar='EPOCH', default=100,
 parser.add_argument('--epsilon', dest='epsilon', metavar='EPSILON', default=0.1, 
                         help='epsilon')
 
-parser.add_argument('--pe', dest='pe', metavar='PE', default=False, 
+parser.add_argument('--pe', dest='pe', metavar='PE', default=True, 
                         help='positional encoding')
 parser.add_argument('--pedim', dest='pedim', metavar='PE_DIMENSIONS', default=60, 
                         help='positional encoding dimension')
@@ -41,7 +48,7 @@ parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE',
 def main():
     args = parser.parse_args()
 
-    writer = SummaryWriter("../checkpoints/")
+    writer = SummaryWriter(args.tb_save_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
@@ -69,8 +76,16 @@ def main():
         model = DeepSDF(3, 1).to(device)
     optimizer = optim.Adam(model.parameters(), lr = 1e-3)
 
+    if args.weight != None:
+        try:
+            model.load_state_dict(torch.load(args.pretrained_weight))
+        except:
+            print("Couldn't load pretrained weight: " + args.pretrained_weight)
+
     bs = args.batchsize
     d = torch.arange(-1, 1, 0.2).view(-1,1,1,1) * args.epsilon
+    d += torch.rand(d.shape[0], 1, *xyz.shape[2:]) * 0.2 * args.epsilon
+
     d_valid = (torch.rand(10, 1, *xyz.shape[2:]) * 2 - 1.) * args.epsilon
 
     for epoch in range(args.epoch):
@@ -111,6 +126,8 @@ def main():
         
         # update
         optimizer.step()
+
+        torch.save(model.state_dict(), args.weight_save_path+'model_%03d.pth' % epoch)
         
     
     writer.close()
