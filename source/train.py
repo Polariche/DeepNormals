@@ -28,10 +28,11 @@ parser.add_argument('--epoch', dest='epoch', metavar='EPOCH', default=10,
 parser.add_argument('--epsilon', dest='epsilon', metavar='EPSILON', default=0.1, 
                         help='epsilon')
 
-parser.add_argument('--pe', dest='pe', metavar='PE', default=True, 
+parser.add_argument('--pe', dest='pe', metavar='PE', default=False, 
                         help='positional encoding')
-parser.add_argument('--pedim', dest='pedim', metavar='PE_DIMENSIONS', default=10, 
+parser.add_argument('--pedim', dest='pedim', metavar='PE_DIMENSIONS', default=60, 
                         help='positional encoding dimension')
+
 parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE', 
                         help='output file')
 
@@ -49,19 +50,22 @@ def main():
     depth = torch.tensor(depth.T, device=device).unsqueeze(0).unsqueeze(0)
 
     w,h = depth.shape[2:]
+    x,y = torch.meshgrid(torch.true_divide(torch.arange(w), w) - 0.5, 
+                         torch.true_divide(torch.arange(h), h) - 0.5)
 
-    xyz = torch.cat([torch.meshgrid(torch.arange(w) / w - 0.5, 
-                                    torch.arange(h) / h - 0.5, device=device), 
+    xyz = torch.cat([x.to(device).unsqueeze(0).unsqueeze(0),
+                    y.to(device).unsqueeze(0).unsqueeze(0), 
                     depth], dim=1)
-    normal = Sobel(3).normal(xyz)
+
+    normal = Sobel(3).to(device).normal(xyz)
 
     
     # create models
     if args.pe:
         model = nn.Sequential(PositionalEncoding(args.pedim),
-                                DeepSDF(args.pedim, 1), device=device)
+                                DeepSDF(args.pedim, 1)).to(device)
     else:
-        model = DeepSDF(3, 1, device=device)
+        model = DeepSDF(3, 1).to(device)
     optimizer = optim.Adam(model.parameters(), lr = 1e-3)
 
 
@@ -70,11 +74,11 @@ def main():
 
         optimizer.zero_grad()
         bs = args.batchsize
-        d = torch.arange(-1, 1, 0.2).view(-1,1,1,1) * args.epsilon
+        d = torch.arange(-1, 1, 0.2).view(-1,1,1,1).to(device) * args.epsilon
 
         for j in range(d.shape[0] // bs):
             d_bs = d[j*bs:(j+1)*bs]
-            data = (xyz + d_bs * normal).detach()
+            data = (xyz + d_bs * normal).detach().to(device)
             y = model(data)
 
             writer.add_images('images', y.repeat(1,3,1,1), epoch)
@@ -90,5 +94,5 @@ def main():
     writer.close()
 
 
-if __name__ == "__name__":
+if __name__ == "__main__":
     main()

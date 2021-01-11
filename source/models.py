@@ -66,7 +66,7 @@ class DeepSDF(nn.Module):
 
 class PositionalEncoding(nn.Module):
     def __init__(self, n):
-        assert n % 2 == 0
+        assert n % 6 == 0
         super(PositionalEncoding, self).__init__()
         self.pi = torch.acos(torch.zeros(1)).item()
         self.n = n
@@ -75,7 +75,7 @@ class PositionalEncoding(nn.Module):
         pi = self.pi
         n = self.n
         
-        x = torch.cat([x*(2**i)*pi for i in range(n//2)], dim=1)
+        x = torch.cat([x*(2**i)*pi for i in range(n//6)], dim=1)
         x = torch.cat([torch.cos(x), torch.sin(x)], dim=1)
         
         return x
