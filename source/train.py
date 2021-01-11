@@ -49,6 +49,25 @@ parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE',
                         help='output file')
 
 
+def train_batch(model, x, y, batchsize, backward=True):
+    loss_sum = 0
+    y_cat = torch.zeros_like(x)
+
+    bs = batchsize
+
+    for j in range(x.shape[0] // bs):
+        x_ = x[j*bs : (j+1)*bs].to(model.device)
+
+        y_ = model(x_)
+        y_cat[j*bs : (j+1)*bs] = y_
+
+        loss = torch.sum(torch.mean(torch.norm(y_ - y, dim=1, keepdim=True), dim=(1,2,3)))
+
+        if backward:
+            loss.backward()
+        loss_sum += loss.detach() 
+
+    return loss_sum, y_cat
 
 def main():
     args = parser.parse_args()
@@ -104,36 +123,18 @@ def main():
         # validation
         utils.model_test(model)
         with torch.no_grad():
-            for j in range(d_valid.shape[0] // bs):
-                d_bs_valid = d_valid[j*bs:(j+1)*bs].to(device)
-                data_valid = (xyz + d_bs_valid * normal)
-                y_valid = model(data_valid)
-
-                a = torch.norm(y_valid - d_bs_valid/args.epsilon, dim=1, keepdim=True)
-
-                loss = torch.sum(torch.mean(a, dim=(1,2,3)))
-                loss_d += loss
-
-                writer.add_image("validation", a.repeat(1,3,1,1), epoch, dataformats="NCWH")
+            loss_d, y = train_batch(model, (xyz + d_valid * normal).detach(), d_valid, bs, backward=False)
+            loss_d /= d_valid.shape[0]
+            writer.add_image("validation", y[0].repeat(1,3,1,1), epoch, dataformats="NCWH")
 
         # normal test
-        writer.add_image("normals", utils.normal_from_model(model, xyz), epoch, dataformats="NCWH")
-
+        writer.add_image("normals", utils.normal_from_model(model(xyz), xyz), epoch, dataformats="NCWH")
+                
         # train
         utils.model_train(model)
-        for j in range(d.shape[0] // bs):
-            d_bs = d[j*bs:(j+1)*bs].to(device)
-            data = (xyz + d_bs * normal).detach()
-
-            y = model(data)
-
-            loss = torch.sum(torch.mean(torch.norm(y - d_bs/args.epsilon, dim=1, keepdim=True), dim=(1,2,3)))
-            loss.backward()
-
-            loss_t += loss.detach()
-
+        loss_t, _ = train_batch(model, (xyz + d * normal).detach(), d, bs, backward=True)
         loss_t /= d.shape[0]
-        loss_d /= d_valid.shape[0]
+
         writer.add_scalars("loss", {'train': loss_t, 'validation': loss_d}, epoch)
         
         # update
