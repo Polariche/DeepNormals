@@ -96,7 +96,7 @@ def writePLY_mesh(filename, X, color, eps=0.1):
 
         ply_file.write("%f %f %f %f %f %f %d %d %d\n" % (X[:,0,u,v], X[:,1,u,v], X[:,2,u,v], 
                                                         normal[:,0,u,v], normal[:,1,u,v], normal[:,2,u,v], 
-                                                        color[:,0,u,v], color[:,0,u,v], color[:,0,u,v]))
+                                                        color[:,0,u,v], color[:,1,u,v], color[:,2,u,v]))
     
     for i in range((h-1)*(w-1)):
         u,v = i//(h-1), i%(h-1)
@@ -110,3 +110,25 @@ def writePLY_mesh(filename, X, color, eps=0.1):
             ply_file.write("3 %d %d %d\n" % (p0, p1, p3))
         if f2[u,v]:
             ply_file.write("3 %d %d %d\n" % (p0, p3, p2))
+
+
+def normal_from_model(model, x):
+    model_test(model)
+    x.requires_grad = True
+
+    y = model(x)
+    torch.sum(y).backward()
+
+    x_ = x.grad.data / torch.norm(x.grad.data, dim=1)
+    return x_
+
+
+def model_train(model):
+    model.train()
+    for param in model.parameters():
+        param.requires_grad = True
+
+def model_test(model):
+    model.eval()
+    for param in model.parameters():
+        param.requires_grad = False

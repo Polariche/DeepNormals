@@ -9,6 +9,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from models import DeepSDF, PositionalEncoding
 from utils import Sobel
+import utils
 
 import argparse
 
@@ -69,7 +70,7 @@ def main():
 
     
     # create models
-    if args.pe:
+    if False: #args.pe:
         model = nn.Sequential(PositionalEncoding(args.pedim),
                                 DeepSDF(args.pedim, 1)).to(device)
     else:
@@ -84,7 +85,7 @@ def main():
 
     bs = args.batchsize
     d = torch.arange(-1, 1, 0.2).view(-1,1,1,1) * args.epsilon
-    d += torch.rand(d.shape[0], 1, *xyz.shape[2:]) * 0.2 * args.epsilon
+    #d = d + torch.rand(d.shape[0], 1, *xyz.shape[2:]) * 0.2 * args.epsilon
 
     d_valid = (torch.rand(10, 1, *xyz.shape[2:]) * 2 - 1.) * args.epsilon
 
@@ -95,6 +96,7 @@ def main():
         optimizer.zero_grad()
         
         # validation
+        utils.model_test(model)
         with torch.no_grad():
             for j in range(d_valid.shape[0] // bs):
                 d_bs_valid = d_valid[j*bs:(j+1)*bs].to(device)
@@ -108,7 +110,11 @@ def main():
 
                 writer.add_image("validation", a.repeat(1,3,1,1), epoch, dataformats="NCWH")
 
+        # normal test
+        writer.add_image("normals", utils.normal_from_model(model, xyz), epoch, dataformats="NCWH")
+
         # train
+        utils.model_train(model)
         for j in range(d.shape[0] // bs):
             d_bs = d[j*bs:(j+1)*bs].to(device)
             data = (xyz + d_bs * normal).detach()
