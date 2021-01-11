@@ -8,6 +8,7 @@ import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 
 from models import DeepSDF, PositionalEncoding
+from utils import Sobel
 
 import argparse
 
@@ -50,7 +51,7 @@ def main():
     w,h = depth.shape[2:]
 
     xyz = torch.cat([torch.meshgrid(torch.arange(w) / w - 0.5, 
-                                    torch.arange(h) / h - 0.5), 
+                                    torch.arange(h) / h - 0.5, device=device), 
                     depth], dim=1)
     normal = Sobel(3).normal(xyz)
 
@@ -58,9 +59,9 @@ def main():
     # create models
     if args.pe:
         model = nn.Sequential(PositionalEncoding(args.pedim),
-                                DeepSDF(args.pedim, 1))
+                                DeepSDF(args.pedim, 1), device=device)
     else:
-        model = DeepSDF(3, 1)
+        model = DeepSDF(3, 1, device=device)
     optimizer = optim.Adam(model.parameters(), lr = 1e-3)
 
 
