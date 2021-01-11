@@ -50,7 +50,7 @@ parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE',
 
 
 def train_batch(device, model, x, y, batchsize, backward=True):
-    x.requires_grad= True
+    
     loss_sum = 0
     y_cat = torch.zeros_like(x).to(device)[:,:1]
 
@@ -58,6 +58,7 @@ def train_batch(device, model, x, y, batchsize, backward=True):
 
     for j in range(x.shape[0] // bs):
         x_ = x[j*bs : (j+1)*bs].to(device)
+        x_.requires_grad= True
 
         y_ = model(x_)
         y_cat[j*bs : (j+1)*bs] = y_
