@@ -1,4 +1,4 @@
-
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -47,7 +47,7 @@ class DeepSDF(nn.Module):
                 if i == 1:
                     const = 1 / mid_channels 
                 else:
-                    const = torch.sqrt(6/ mid_channels) / omega_0
+                    const = np.sqrt(6/ mid_channels) / omega_0
 
                 conv.weight.data = const * (torch.rand(conv.weight.shape, dtype=conv.weight.dtype, requires_grad = True) * 2-1)
                 conv.bias.data = const * (torch.rand(conv.bias.shape, dtype=conv.bias.dtype, requires_grad = True) * 2-1)
