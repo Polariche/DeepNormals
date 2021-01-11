@@ -51,7 +51,7 @@ parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE',
 
 def train_batch(device, model, x, y, batchsize, backward=True):
     loss_sum = 0
-    y_cat = torch.zeros_like(y).to(device)
+    y_cat = torch.zeros_like(x).to(device)[:,:1]
 
     bs = batchsize
 
@@ -60,8 +60,10 @@ def train_batch(device, model, x, y, batchsize, backward=True):
 
         y_ = model(x_)
         y_cat[j*bs : (j+1)*bs] = y_
-        
-        loss = torch.sum(torch.mean(torch.norm(y - y_, dim=1, keepdim=True), dim=(1,2,3)))
+
+        # fit gradient
+        y_ = utils.normal_from_y(y_, x_)
+        loss = torch.sum(torch.mean(torch.norm(y_ - y, dim=1, keepdim=True), dim=(1,2,3)))
 
         if backward:
             loss.backward()
@@ -124,7 +126,7 @@ def main():
         # validation
         utils.model_test(model)
         with torch.no_grad():
-            loss_d, y = train_batch(device, model, (xyz + d_valid * normal).detach(), d_valid, bs, backward=False)
+            loss_d, y = train_batch(device, model, (xyz + d_valid * normal).detach(), normal, bs, backward=False)
             loss_d /= d_valid.shape[0]
             print(y.shape)
             writer.add_image("validation", y[0:1].repeat(1,3,1,1), epoch, dataformats="NCWH")
@@ -135,7 +137,7 @@ def main():
         xyz.requires_grad = False
         # train
         utils.model_train(model)
-        loss_t, _ = train_batch(device, model, (xyz + d * normal).detach(), d, bs, backward=True)
+        loss_t, _ = train_batch(device, model, xyz, normal, bs, backward=True)
         loss_t /= d.shape[0]
 
         writer.add_scalars("loss", {'train': loss_t, 'validation': loss_d}, epoch)
