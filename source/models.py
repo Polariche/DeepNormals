@@ -58,8 +58,6 @@ class DeepSDF(nn.Module):
             
             setattr(self, f'conv{i}', conv)
             setattr(self, f'bn{i}', bn)
-        
-        self.init_weights()
             
     def forward(self, x):
         identity = x
