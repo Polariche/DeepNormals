@@ -4,15 +4,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable, grad
-import torch.sparse
-from torch import Tensor
-import torch.optim as optim
-from torch.utils.data import Dataset, ConcatDataset, Sampler, RandomSampler, BatchSampler
-
-from torch.hub import load_state_dict_from_url
-
-from torch.autograd import Variable, grad
-from typing import Type, Any, Callable, Union, List, Optional, Tuple
 
 
 class Sobel(nn.Module):
@@ -65,10 +56,10 @@ class Sobel(nn.Module):
             return x
 
 
-def writePLY_mesh(filename, X, normal, color, eps=0.1):
-
+def writePLY_mesh(filename, X, color, eps=0.1):
     w,h = X.shape[2:]
 
+    normal = Sobel(3).normal(X)
 
     norm = lambda x: torch.norm(x, dim=1)
 
@@ -79,7 +70,6 @@ def writePLY_mesh(filename, X, normal, color, eps=0.1):
     f1 = e1[:,:,:w-1] & e2[:,:,:,:,1:] & e3     # |\
     f2 = e3 & e1[:,:, 1:] & e2[:,:,:,:h-1]              # \|
 
-    #ecount = np.sum(e1) + np.sum(e2) + np.sum(e3)
     fcount = np.sum(f1) + np.sum(f2)
 
     ply_file = open(filename,'w')
@@ -99,7 +89,6 @@ def writePLY_mesh(filename, X, normal, color, eps=0.1):
     ply_file.write("element face %d\n"%(fcount))
     ply_file.write("property list uchar int vertex_index\n")
     
-    
     ply_file.write("end_header\n")
 
     for i in range(h*w):
@@ -112,13 +101,12 @@ def writePLY_mesh(filename, X, normal, color, eps=0.1):
     for i in range((h-1)*(w-1)):
         u,v = i//(h-1), i%(h-1)
                    
-        p0 = u*w+v
-        p1 = u*w+v+1
-        p2 = (u+1)*w+v
-        p3 = (u+1)*w+v+1
+        p0 = u*h+v
+        p1 = u*h+v+1
+        p2 = (u+1)*h+v
+        p3 = (u+1)*h+v+1
         
         if f1[u,v]:
             ply_file.write("3 %d %d %d\n" % (p0, p1, p3))
         if f2[u,v]:
             ply_file.write("3 %d %d %d\n" % (p0, p3, p2))
-            
