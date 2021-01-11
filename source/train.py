@@ -16,6 +16,9 @@ parser = argparse.ArgumentParser(description='Test',
 
 parser.add_argument('data', metavar='DATA', help='path to file')
 
+parser.add_argument('--save-path', dest='save_path', metavar='PATH', default='../checkpoints/', 
+                        help='tensorboard checkpoints path')
+
 parser.add_argument('--batchsize', dest='batchsize', metavar='BATCHSIZE', default=1,
                         help='batch size')
 parser.add_argument('--epoch', dest='epoch', metavar='EPOCH', default=10, 
@@ -36,7 +39,7 @@ parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE',
 def main():
     args = parser.parse_args()
 
-    writer = SummaryWriter(args.save_path)
+    writer = SummaryWriter("../checkpoints/")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
