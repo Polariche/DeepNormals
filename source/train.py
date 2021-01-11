@@ -71,7 +71,8 @@ def main():
                     depth], dim=1)
 
     normal = Sobel(3).to(device).normal(xyz)
-
+    
+    writer.add_image("normal_GT", normal, 0, dataformats="NCWH")
     
     # create models
     if args.pe:
