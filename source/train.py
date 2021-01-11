@@ -71,8 +71,6 @@ def train_batch(device, model, x, y, batchsize, backward=True):
             loss.backward()
         loss_sum += loss.detach() 
 
-    x.requires_grad=False
-
     return loss_sum, y_cat
 
 def main():
@@ -129,13 +127,12 @@ def main():
         
         # validation
         utils.model_test(model)
-        with torch.no_grad():
-            xyz_valid = (xyz + d_valid * normal).detach()
+        xyz_valid = (xyz + d_valid * normal).detach()
 
-            loss_d, y = train_batch(device, model, xyz_valid, normal, bs, backward=False)
-            loss_d /= d_valid.shape[0]
-            print(y.shape)
-            writer.add_image("validation", y[0:1].repeat(1,3,1,1), epoch, dataformats="NCWH")
+        loss_d, y = train_batch(device, model, xyz_valid, normal, bs, backward=False)
+        loss_d /= d_valid.shape[0]
+        
+        writer.add_image("validation", y[0:1].repeat(1,3,1,1), epoch, dataformats="NCWH")
 
 
         # normal test
