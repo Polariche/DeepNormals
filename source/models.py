@@ -23,7 +23,7 @@ class DeepSDF(nn.Module):
         
         if last_activation is None:
             last_activation = torch.tanh
-            
+
         if activation == 'relu':
             self.activation = F.relu
         elif activation == 'sin':
@@ -42,6 +42,8 @@ class DeepSDF(nn.Module):
             
             conv = nn.Conv2d(inc, ouc, k, dilation=d, padding=p, padding_mode='replicate')
 
+            # conv2d has no uniform init :(
+            """
             with torch.no_grad():
                 if i == 1:
                     torch.nn.init.uniform_(conv, -1 / mid_channels, 
@@ -49,6 +51,7 @@ class DeepSDF(nn.Module):
                 else:
                     torch.nn.init.uniform_(conv,  -torch.sqrt(6 / mid_channels) / omega_0, 
                                                 torch.sqrt(6 / mid_channels) / omega_0)
+            """
 
             conv = nn.utils.weight_norm(conv)
             bn = nn.BatchNorm2d(c[i])
