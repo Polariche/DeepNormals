@@ -85,7 +85,7 @@ def main():
 
     bs = args.batchsize
     d = torch.arange(-1, 1, 0.2).view(-1,1,1,1) * args.epsilon
-    #d = d + torch.rand(d.shape[0], 1, *xyz.shape[2:]) * 0.2 * args.epsilon
+    d = d + torch.rand(d.shape[0], 1, *xyz.shape[2:]) * 0.2 * args.epsilon
 
     d_valid = (torch.rand(10, 1, *xyz.shape[2:]) * 2 - 1.) * args.epsilon
 

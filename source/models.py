@@ -56,7 +56,7 @@ class DeepSDF(nn.Module):
             x = bn(x)
             
             if i < 8:
-                x = F.relu(x)
+                x = torch.sin(x) #x = F.relu(x)
                 x = self.dropout(x)
                 
         
@@ -75,7 +75,7 @@ class PositionalEncoding(nn.Module):
         pi = self.pi
         n = self.n
         
-        x = torch.cat([x*(2**i)*pi for i in range(n//6)], dim=1)
+        x = torch.cat([x/(2**i)*pi for i in range(n//6)], dim=1)
         x = torch.cat([torch.cos(x), torch.sin(x)], dim=1)
         
         return x
