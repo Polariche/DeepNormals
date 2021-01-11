@@ -49,8 +49,8 @@ class DeepSDF(nn.Module):
                 else:
                     const = torch.sqrt(6/ mid_channels) / omega_0
 
-                conv.weight = const * (torch.rand(conv.weight.shape, dtype=conv.weight.dtype, requires_grad = True) * 2-1)
-                conv.bias = const * (torch.rand(conv.bias.shape, dtype=conv.bias.dtype, requires_grad = True) * 2-1)
+                conv.weight.data = const * (torch.rand(conv.weight.shape, dtype=conv.weight.dtype, requires_grad = True) * 2-1)
+                conv.bias.data = const * (torch.rand(conv.bias.shape, dtype=conv.bias.dtype, requires_grad = True) * 2-1)
 
             conv = nn.utils.weight_norm(conv)
             bn = nn.BatchNorm2d(c[i])
