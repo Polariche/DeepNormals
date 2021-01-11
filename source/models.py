@@ -16,17 +16,18 @@ from typing import Type, Any, Callable, Union, List, Optional, Tuple
 
 
 class DeepSDF(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, mid_channels: int = 512, last_activation = None, kernel_size=1, activation = 'relu'):
+    def __init__(self, in_channels: int, out_channels: int, mid_channels: int = 512, last_activation = None, kernel_size=1, activation = 'relu', omega_0 = 30.):
         super(DeepSDF, self).__init__()
         
         c = [in_channels] + [mid_channels]*3 + [mid_channels - in_channels] + [mid_channels]*3 + [out_channels]
         
         if last_activation is None:
             last_activation = torch.tanh
+            
         if activation == 'relu':
             self.activation = F.relu
         elif activation == 'sin':
-            self.activation = torch.sin
+            self.activation = lambda x: omega_0*torch.sin(x)
             
         self.dropout = nn.Dropout(0.2)
         self.last_activation = last_activation
@@ -39,12 +40,23 @@ class DeepSDF(nn.Module):
             k = kernel_size
             p = d*(k//2)
             
-            conv = nn.utils.weight_norm(nn.Conv2d(inc, ouc, k, dilation=d, padding=p, padding_mode='replicate'))
+            conv = nn.Conv2d(inc, ouc, k, dilation=d, padding=p, padding_mode='replicate')
+
+            with torch.no_grad():
+                if i == 1:
+                    torch.nn.init.uniform_(conv, -1 / mid_channels, 
+                                                1 / mid_channels)
+                else:
+                    torch.nn.init.uniform_(conv,  -torch.sqrt(6 / mid_channels) / omega_0, 
+                                                torch.sqrt(6 / mid_channels) / omega_0)
+
+            conv = nn.utils.weight_norm(conv)
             bn = nn.BatchNorm2d(c[i])
             
             setattr(self, f'conv{i}', conv)
             setattr(self, f'bn{i}', bn)
-            
+        
+        self.init_weights()
             
     def forward(self, x):
         identity = x

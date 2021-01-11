@@ -37,6 +37,8 @@ parser.add_argument('--epoch', dest='epoch', type=int,metavar='EPOCH', default=1
 
 parser.add_argument('--epsilon', dest='epsilon', type=float, metavar='EPSILON', default=0.1, 
                         help='epsilon')
+parser.add_argument('--omega', dest='omega', type=float, metavar='OMEGA', default=10, 
+                        help='hyperparameter for periodic layer')
 
 parser.add_argument('--pe', dest='pe', metavar='PE', type=bool, default=True, 
                         help='positional encoding')
@@ -74,10 +76,10 @@ def main():
     # create models
     if args.pe:
         model = nn.Sequential(PositionalEncoding(args.pedim),
-                                DeepSDF(args.pedim, 1, activation=args.activation)).to(device)
+                                DeepSDF(args.pedim, 1, activation=args.activation, omega_0 = args.omega)).to(device)
     else:
-        model = DeepSDF(3, 1, activation=args.activation).to(device)
-        
+        model = DeepSDF(3, 1, activation=args.activation, omega_0 = args.omega).to(device)
+
     optimizer = optim.Adam(model.parameters(), lr = 1e-3)
 
     if args.weight != None:
