@@ -61,7 +61,7 @@ def writePLY_mesh(filename, X, color, eps=0.1):
 
     normal = Sobel(3).normal(X)
 
-    norm = lambda x: torch.norm(x, dim=1)
+    norm = lambda x: torch.norm(x, dim=1, keepdim=True)
 
     e1 = norm(X[:,:,:,:h-1] - X[:,:,:,1:]) < eps                # |
     e2 = norm(X[:,:,:w-1] - X[:,:,1:]) < eps                    # -
