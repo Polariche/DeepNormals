@@ -84,7 +84,13 @@ def train_batch(device, model, xy, z, n, h,w, batchsize, backward=True, lamb=0.0
         xy_ = xy[br]
         f_, xy_ = model(xy_)
         
-        loss = (1.-lamb)*z_loss(f_, z[br]) + lamb*tangent_loss(f_, xy_, n[br], h, w)
+        if lamb == 0.:
+            loss = z_loss(f_, z[br])
+        elif lamb == 1.:
+            loss = tangent_loss(f_, xy_, n[br], h, w)
+        else:
+            loss = (1.-lamb)*z_loss(f_, z[br]) + lamb*tangent_loss(f_, xy_, n[br], h, w)
+
         loss /= xy.shape[0]
 
         if backward:
@@ -159,12 +165,12 @@ def main():
 
             utils.writePLY_mesh("../../../data/data.ply", 
                                 torch.cat([xy1[:,:2], xyz[:,2:]], dim=1).reshape(1,w,h,3).permute(0,3,1,2).cpu(), 
-                                xyz.reshape(1,w,h,3).permute(0,3,1,2).cpu() * 128 + 128, 
+                                xy1.reshape(1,w,h,3).permute(0,3,1,2).cpu() * 128 + 128, 
                                 eps=100)
 
             utils.writePLY_mesh("../../../data/result.ply", 
                                 torch.cat([xy1[:,:2], f], dim=1).reshape(1,w,h,3).permute(0,3,1,2).cpu(), 
-                                xyz.reshape(1,w,h,3).permute(0,3,1,2).cpu() * 128 + 128, 
+                                xy1.reshape(1,w,h,3).permute(0,3,1,2).cpu() * 128 + 128, 
                                 eps=100)
         
     
