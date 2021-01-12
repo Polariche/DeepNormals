@@ -138,7 +138,7 @@ def main():
         
         # train
         utils.model_train(model)
-        loss_t, z_uv2 = train_batch(device, model, xyz, z_uv, h,w, z_uv, bs, backward=True)
+        loss_t, z_uv2 = train_batch(device, model, xyz, z_uv, h,w, bs, backward=True)
 
         writer.add_image("z_uv2", torch.cat([z_uv2.view(h,w,2), torch.zeros((h,w,1)).to(device)], dim=2), epoch, dataformats="HWC")
         writer.add_scalars("loss", {'train': loss_t}, epoch)
