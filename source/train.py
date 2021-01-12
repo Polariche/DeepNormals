@@ -57,8 +57,8 @@ def train_batch(device, model, x, z_uv, h,w, batchsize, backward=True):
 
     v,u = torch.meshgrid(torch.true_divide(torch.arange(h), h) - 0.5, 
                          torch.true_divide(torch.arange(w), w) - 0.5)
-    v = v.view(-1,1).to(device)
-    u = u.view(-1,1).to(device)
+    v = v.reshape(-1,1).to(device)
+    u = u.reshape(-1,1).to(device)
 
     for j in range(x.shape[0] // bs):
         br = torch.arange(j*bs, (j+1)*bs, dtype=torch.long)
