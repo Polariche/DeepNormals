@@ -54,7 +54,8 @@ class DeepSDF(nn.Module):
                 conv.bias.data = const * (torch.rand(conv.bias.shape, dtype=conv.bias.dtype, requires_grad = True) * 2-1)
 
             conv = nn.utils.weight_norm(conv)
-            bn = nn.BatchNorm2d(c[i])
+            #bn = nn.BatchNorm2d(c[i])
+            bn = nn.LayerNormal(c[i])
             
             setattr(self, f'conv{i}', conv)
             setattr(self, f'bn{i}', bn)
