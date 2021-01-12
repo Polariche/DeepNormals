@@ -40,7 +40,8 @@ class DeepSDF(nn.Module):
             k = kernel_size
             p = d*(k//2)
             
-            conv = nn.Conv2d(inc, ouc, k, dilation=d, padding=p, padding_mode='replicate')
+            #conv = nn.Conv2d(inc, ouc, k, dilation=d, padding=p, padding_mode='replicate')
+            conv = nn.Linear(inc, ouc)
 
             # conv2d has no uniform init, so do it manually
             with torch.no_grad():

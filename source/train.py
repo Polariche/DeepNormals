@@ -37,7 +37,7 @@ parser.add_argument('--epoch', dest='epoch', type=int,metavar='EPOCH', default=1
 
 parser.add_argument('--epsilon', dest='epsilon', type=float, metavar='EPSILON', default=0.1, 
                         help='epsilon')
-parser.add_argument('--omega', dest='omega', type=float, metavar='OMEGA', default=10, 
+parser.add_argument('--omega', dest='omega', type=float, metavar='OMEGA', default=30, 
                         help='hyperparameter for periodic layer')
 
 parser.add_argument('--pe', dest='pe', metavar='PE', type=bool, default=True, 
@@ -65,7 +65,7 @@ def train_batch(device, model, x, y, batchsize, backward=True):
 
         # fit gradient
         y_ = utils.normal_from_y(y_, x_)
-        loss = torch.sum(torch.mean(torch.norm(y_ - y, dim=1, keepdim=True), dim=(1,2,3)))
+        loss = torch.sum(torch.norm(y_ - y, dim=1, keepdim=True)) / x.shape[0]
 
         if backward:
             loss.backward()
@@ -96,6 +96,9 @@ def main():
     normal = Sobel(3).to(device).normal(xyz).detach()
 
     writer.add_image("normal_GT", normal, 0, dataformats="NCWH")
+
+    xyz = xyz.squeeze().view(3,-1).T
+    normal = normal.squeeze().view(3,-1).T
     
     # create models
     if args.pe:
@@ -113,12 +116,13 @@ def main():
             print("Couldn't load pretrained weight: " + args.pretrained_weight)
 
     bs = args.batchsize
-    d = torch.arange(-1, 1, 0.2).view(-1,1,1,1) * args.epsilon
-    d = d + torch.rand(d.shape[0], 1, *xyz.shape[2:]) * 0.2 * args.epsilon
-    d = d.to(device)
+    #d = torch.arange(-1, 1, 0.2).view(-1,1,1,1) * args.epsilon
+    #d = d + torch.rand(d.shape[0], 1, *xyz.shape[2:]) * 0.2 * args.epsilon
+    #d = d.to(device)
 
-    d_valid = (torch.rand(10, 1, *xyz.shape[2:]) * 2 - 1.) * args.epsilon
-    d_valid = d_valid.to(device)
+    #d_valid = (torch.rand(10, 1, *xyz.shape[2:]) * 2 - 1.) * args.epsilon
+    #d_valid = d_valid.to(device)
+
     for epoch in range(args.epoch):
         loss_t = 0
         loss_d = 0
@@ -126,7 +130,7 @@ def main():
         optimizer.zero_grad()
         
         # validation
-        
+        """
         utils.model_test(model)
         xyz_valid = (xyz + d_valid * normal).detach()[:1]
 
@@ -134,11 +138,11 @@ def main():
         loss_d /= xyz_valid.shape[0]
         
         writer.add_image("validation", y[0:1].repeat(1,3,1,1), epoch, dataformats="NCWH")
-        
+        """
 
         # normal test
         xyz.requires_grad = True
-        writer.add_image("normals", utils.normal_from_y(model(xyz), xyz), epoch, dataformats="NCWH")
+        writer.add_image("normals", utils.normal_from_y(model(xyz), xyz).view(h,w,3), epoch, dataformats="HWC")
         xyz.requires_grad = False
 
 
