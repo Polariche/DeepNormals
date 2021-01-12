@@ -16,7 +16,7 @@ from typing import Type, Any, Callable, Union, List, Optional, Tuple
 
 
 class DeepSDF(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, mid_channels: int = 512, last_activation = None, kernel_size=1, activation = 'relu', omega_0 = 30.):
+    def __init__(self, in_channels: int, out_channels: int, mid_channels: int = 512, last_activation = None, activation = 'relu', omega_0 = 30.):
         super(DeepSDF, self).__init__()
         
         c = [in_channels] + [mid_channels]*3 + [mid_channels - in_channels] + [mid_channels]*3 + [out_channels]
@@ -36,41 +36,35 @@ class DeepSDF(nn.Module):
             inc = c[i-1] if i!=5 else mid_channels
             ouc = c[i]
             
-            d = pow(2, (i-1)%4)
-            k = kernel_size
-            p = d*(k//2)
-            
-            #conv = nn.Conv2d(inc, ouc, k, dilation=d, padding=p, padding_mode='replicate')
-            conv = nn.Linear(inc, ouc)
+            fc = nn.Linear(inc, ouc)
 
-            # conv2d has no uniform init, so do it manually
+            # fc2d has no uniform init, so do it manually
             with torch.no_grad():
                 if i == 1:
                     const = 1 / mid_channels 
                 else:
                     const = np.sqrt(6/ mid_channels) / omega_0
 
-                conv.weight.data = const * (torch.rand(conv.weight.shape, dtype=conv.weight.dtype, requires_grad = True) * 2-1)
-                conv.bias.data = const * (torch.rand(conv.bias.shape, dtype=conv.bias.dtype, requires_grad = True) * 2-1)
+                fc.weight.data = const * (torch.rand(fc.weight.shape, dtype=fc.weight.dtype, requires_grad = True) * 2-1)
+                fc.bias.data = const * (torch.rand(fc.bias.shape, dtype=fc.bias.dtype, requires_grad = True) * 2-1)
 
-            conv = nn.utils.weight_norm(conv)
-            #bn = nn.BatchNorm2d(c[i])
+            fc = nn.utils.weight_norm(fc)
             bn = nn.LayerNorm(c[i])
 
-            setattr(self, f'conv{i}', conv)
+            setattr(self, f'fc{i}', fc)
             setattr(self, f'bn{i}', bn)
             
     def forward(self, x):
         identity = x
         
         for i in range(1,9):
-            conv = getattr(self, f'conv{i}')
+            fc = getattr(self, f'fc{i}')
             bn = getattr(self, f'bn{i}')
             
             if i==5:
                 x = torch.cat([x, identity], dim=1)
                 
-            x = conv(x)
+            x = fc(x)
             x = bn(x)
             
             if i < 8:
