@@ -53,7 +53,7 @@ def train_batch(device, model, x, z_uv, h,w, batchsize, backward=True):
     loss_sum = 0
     bs = batchsize
 
-    z_uv2 = torch.zeros(x.shape[0], 2)
+    z_uv2 = torch.zeros(x.shape[0], 2).to(device)
 
     u,v = torch.meshgrid(torch.true_divide(torch.arange(w), w) - 0.5, 
                          torch.true_divide(torch.arange(h), h) - 0.5)
