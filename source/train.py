@@ -39,7 +39,7 @@ parser.add_argument('--epsilon', dest='epsilon', type=float, metavar='EPSILON', 
                         help='epsilon')
 parser.add_argument('--omega', dest='omega', type=float, metavar='OMEGA', default=30, 
                         help='hyperparameter for periodic layer')
-parser.add_argument('--lambda', dest='omega', type=float, metavar='LAMBDA', default=0.9, 
+parser.add_argument('--lambda', dest='lamb', type=float, metavar='LAMBDA', default=0.9, 
                         help='hyperparameter for z : tangent loss ratio')
 
 
@@ -144,7 +144,7 @@ def main():
         
         # train
         utils.model_train(model)
-        loss_t, f = train_batch(device, model, xy1[:,:2], xyz[:,2:], n, h,w, bs, args.lambda)
+        loss_t, f = train_batch(device, model, xy1[:,:2], xyz[:,2:], n, h,w, bs, args.lamb)
 
         writer.add_image("result", f.reshape(w,h,1).repeat(1,1,3), epoch, dataformats='WHC')
 
