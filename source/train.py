@@ -74,7 +74,7 @@ def train_batch(device, model, xy, z, n, h,w, batchsize, backward=True):
     loss_sum = 0
     bs = batchsize
 
-    f = torch.zeros((xy.shape[0], 1))
+    f = torch.zeros((xy.shape[0], 1)).to(device)
 
     for j in range(xy.shape[0] // bs):
         br = torch.arange(j*bs, (j+1)*bs, dtype=torch.long)
@@ -149,7 +149,7 @@ def main():
         utils.model_train(model)
         loss_t, f = train_batch(device, model, xy1[:,:2], xyz[:,2:], n, h,w, bs)
 
-        writer.add_image("result", f.reshape(w,h,1).repeat(1,1,3), epoch, dataformats='WHC')
+        writer.add_image("result", ((f - torch.min(f)) / (torch.max(f) - torch.min(f))).reshape(w,h,1).repeat(1,1,3), epoch, dataformats='WHC')
 
         writer.add_scalars("loss", {'train': loss_t}, epoch)
         
