@@ -34,7 +34,7 @@ class Sobel(nn.Module):
             x = self(x)
             
             x = torch.cat([t.unsqueeze(0) for t in [x[:,2]*x[:,5] - x[:,4]*x[:,3], x[:,4]*x[:,1]-x[:,0]*x[:,5], x[:,0]*x[:,3] - x[:,2]*x[:,1]]], dim=1)
-            x = x / torch.norm(x, dim=1)
+            #x = x / torch.norm(x, dim=1)
             x[torch.isnan(x)] = 0
             
             return x
@@ -114,7 +114,7 @@ def writePLY_mesh(filename, X, color, eps=0.1):
 
 def normal_from_y(y, x):
     grad = torch.autograd.grad(torch.sum(y), [x], create_graph=True)[0]
-    grad = grad / torch.norm(grad, dim=1)
+    #grad = grad / torch.norm(grad, dim=1)
 
     return grad
 
