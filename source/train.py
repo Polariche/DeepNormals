@@ -65,7 +65,7 @@ def train_batch(device, model, x, y, batchsize, backward=True):
 
         # fit gradient
         y_ = utils.normal_from_y(y_, x_)
-        loss = torch.sum(torch.norm(y_ - y, dim=1, keepdim=True)) / x.shape[0]
+        loss = torch.sum(torch.norm(y_ - y[j*bs : (j+1)*bs], dim=1, keepdim=True)) / x.shape[0]
 
         if backward:
             loss.backward()
