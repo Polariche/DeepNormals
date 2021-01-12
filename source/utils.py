@@ -70,7 +70,7 @@ def writePLY_mesh(filename, X, color, eps=0.1):
     f1 = e1[:,:,:w-1] & e2[:,:,:,1:] & e3             # |\
     f2 = e3 & e1[:,:, 1:] & e2[:,:,:,:h-1]              # \|
 
-    fcount = np.sum(f1) + np.sum(f2)
+    fcount = (torch.sum(f1) + torch.sum(f2)).item()
 
     ply_file = open(filename,'w')
     ply_file.write("ply\n")
@@ -106,9 +106,9 @@ def writePLY_mesh(filename, X, color, eps=0.1):
         p2 = (u+1)*h+v
         p3 = (u+1)*h+v+1
         
-        if f1[u,v]:
+        if f1[:,:,u,v]:
             ply_file.write("3 %d %d %d\n" % (p0, p1, p3))
-        if f2[u,v]:
+        if f2[:,:,u,v]:
             ply_file.write("3 %d %d %d\n" % (p0, p3, p2))
 
 
