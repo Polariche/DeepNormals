@@ -34,7 +34,7 @@ class Sobel(nn.Module):
             x = self(x)
             
             x = torch.cat([t.unsqueeze(0) for t in [x[:,2]*x[:,5] - x[:,4]*x[:,3], x[:,4]*x[:,1]-x[:,0]*x[:,5], x[:,0]*x[:,3] - x[:,2]*x[:,1]]], dim=1)
-            #x = x / torch.norm(x, dim=1)
+            x = x / torch.norm(x, dim=1)
             x[torch.isnan(x)] = 0
             
             return x
@@ -49,7 +49,7 @@ class Sobel(nn.Module):
                         self(x)], dim=1)
 
             x = torch.cat([t.unsqueeze(0) for t in [x[:,2]*x[:,5] - x[:,4]*x[:,3], x[:,4]*x[:,1]-x[:,0]*x[:,5], x[:,0]*x[:,3] - x[:,2]*x[:,1]]], dim=1)
-            #x = x / torch.norm(x, dim=1)
+            x = x / torch.norm(x, dim=1)
 
             x[torch.isnan(x)] = 0
             

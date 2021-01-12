@@ -49,7 +49,7 @@ parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE',
                         help='output file')
 
 
-
+"""
 def z_uv_loss(f_, x_, z_uv_, h, w):
     n_ = utils.normal_from_y(f_, x_)
     
@@ -61,35 +61,39 @@ def z_uv_loss(f_, x_, z_uv_, h, w):
 
     loss = torch.sum(torch.norm(z_uv_ - z_uv2_, dim=1))
     return loss, z_uv2_
+"""
+def z_loss(f_, z_):
+    return torch.sum(torch.norm(f_ - z_, dim=1))
+
+#def tangent_loss(f_, x_, z_):
+#    tx_ =  
+#    ty_ =
 
 
-def train_batch(device, model, x, z_uv, h,w, batchsize, backward=True):
+def train_batch(device, model, xy, z, n, h,w, batchsize, backward=True):
     loss_sum = 0
     bs = batchsize
 
-    z_uv2 = torch.zeros(x.shape[0], 2).to(device)
+    f = torch.zeros((xy.shape[0], 1))
 
-    for j in range(x.shape[0] // bs):
+    for j in range(xy.shape[0] // bs):
         br = torch.arange(j*bs, (j+1)*bs, dtype=torch.long)
 
-        x_ = x[br].to(device)
-        x_.requires_grad= True
+        xy_ = xy[br]
+        xy_.requires_grad =True
 
-        z_uv_ = z_uv[br].to(device)
-
-        f_ = model(x_)
+        f_ = model(xy_)
         
-        loss, z_uv2_ = z_uv_loss(f_,x_,z_uv_,h,w)
-        loss /= x.shape[0]
+        loss = z_loss(f_, z[br])
+        loss /= xy.shape[0]
 
         if backward:
             loss.backward()
         loss_sum += loss.detach() 
 
-        z_uv2[br] = z_uv2_
+        f[br] = f_.detach()
 
-
-    return loss_sum, z_uv2
+    return loss_sum, f
 
 def main():
     args = parser.parse_args()
@@ -122,20 +126,20 @@ def main():
     x,y = torch.meshgrid(torch.true_divide(torch.arange(w), w) - 0.5, 
                          torch.true_divide(torch.arange(h), h) - 0.5)
 
-    xyz = torch.cat([x.to(device).unsqueeze(0).unsqueeze(0),
+    xy1 = torch.cat([x.to(device).unsqueeze(0).unsqueeze(0),
                     y.to(device).unsqueeze(0).unsqueeze(0), 
                     torch.ones((1,1,w,h)).to(device)], dim=1)
-    xyz *= depth
 
-    z_uv = Sobel(1).to(device)(depth)
+    xyz = xy1 * depth
+    n = Sobel(3).to(device).normal(xyz)
 
-    xyz = xyz.squeeze().view(3,-1).T.detach()
-    z_uv = z_uv.squeeze().view(2,-1).T.detach()
-
-    writer.add_image("z_uv", torch.cat([z_uv.view(w,h,2), torch.zeros((w,h,1)).to(device)], dim=2), 0, dataformats="WHC")
+    xy1 = xy1.squeeze().detach().view(3,-1).T
+    xyz = xyz.squeeze().detach().view(3,-1).T
+    n = n.squeeze().detach().view(3,-1).T
+    
+    writer.add_image("target", xyz[:,2:].reshape(w,h,1).repeat(1,1,3), 0, dataformats='WHC')
 
     bs = args.batchsize
-
     for epoch in range(args.epoch):
         loss_t = 0
 
@@ -143,9 +147,10 @@ def main():
         
         # train
         utils.model_train(model)
-        loss_t, z_uv2 = train_batch(device, model, xyz, z_uv, h,w, bs)
+        loss_t, f = train_batch(device, model, xy1[:,:2], xyz[:,2:], n, h,w, bs)
 
-        writer.add_image("z_uv2", torch.cat([z_uv2.view(w,h,2), torch.zeros((w,h,1)).to(device)], dim=2), epoch, dataformats="WHC")
+        writer.add_image("result", f.reshape(w,h,1).repeat(1,1,3), epoch, dataformats='WHC')
+
         writer.add_scalars("loss", {'train': loss_t}, epoch)
         
         # update
