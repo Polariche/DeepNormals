@@ -69,7 +69,7 @@ def train_batch(device, model, x, z_uv, h,w, batchsize, backward=True):
         z_uv_ = z_uv[br].to(device)
 
         f_ = model(x_)
-        n_ = utils.model_from_y(f_, x_)
+        n_ = utils.normal_from_y(f_, x_)
         
         zx_ = (-n_[:,0] / n_[:,2]).view(-1,1)
         zy_ = (-n_[:,1] / n_[:,2]).view(-1,1)
@@ -127,7 +127,7 @@ def main():
     xyz = xyz.squeeze().view(3,-1).T.detach()
     z_uv = z_uv.squeeze().view(2,-1).T.detach()
 
-    writer.add_image("z_uv", torch.cat([z_uv.view(h,w,2), torch.zeros((h,w,1)).to(device)], dim=2), 0, dataformats="HWC")
+    writer.add_image("z_uv", torch.cat([z_uv.view(w,h,2), torch.zeros((w,h,1)).to(device)], dim=2), 0, dataformats="WHC")
 
     bs = args.batchsize
 
@@ -140,7 +140,7 @@ def main():
         utils.model_train(model)
         loss_t, z_uv2 = train_batch(device, model, xyz, z_uv, h,w, bs)
 
-        writer.add_image("z_uv2", torch.cat([z_uv2.view(h,w,2), torch.zeros((h,w,1)).to(device)], dim=2), epoch, dataformats="HWC")
+        writer.add_image("z_uv2", torch.cat([z_uv2.view(w,h,2), torch.zeros((w,h,1)).to(device)], dim=2), epoch, dataformats="WHC")
         writer.add_scalars("loss", {'train': loss_t}, epoch)
         
         # update
