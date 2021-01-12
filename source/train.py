@@ -84,10 +84,14 @@ def train_batch(device, model, xy, z, n, h,w, batchsize, backward=True, lamb=0.9
         xy_ = xy[br]
         f_, xy_ = model(xy_)
         
-        loss = 0.9*z_loss(f_, z[br]) + 0.1*tangent_loss(f_, xy_, n[br], h, w)
+        for param in model.parameters():
+            param.requires_grad = False
+        loss = lamb*z_loss(f_, z[br]) + (1.-lamb)*tangent_loss(f_, xy_, n[br], h, w)
         loss /= xy.shape[0]
 
         if backward:
+            for param in model.parameters():
+                param.requires_grad = True
             loss.backward()
         loss_sum += loss.detach() 
 
