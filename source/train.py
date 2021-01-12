@@ -122,7 +122,7 @@ def main():
                     torch.ones((1,1,w,h)).to(device)], dim=1)
     xyz *= depth
 
-    z_uv = Sobel(1)(depth)
+    z_uv = Sobel(1).to(device)(depth)
 
     xyz = xyz.squeeze().view(3,-1).T.detach()
     z_uv = z_uv.squeeze().view(2,-1).T.detach()
