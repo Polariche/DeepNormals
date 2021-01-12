@@ -86,7 +86,7 @@ def train_batch(device, model, xy, z, n, h,w, batchsize, backward=True, lamb=0.9
         
         for param in model.parameters():
             param.requires_grad = False
-        loss = lamb*z_loss(f_, z[br]) + (1.-lamb)*tangent_loss(f_, xy_, n[br], h, w)
+        loss = lamb*z_loss(f_, z[br]) #+ (1.-lamb)*tangent_loss(f_, xy_, n[br], h, w)
         loss /= xy.shape[0]
 
         if backward:
@@ -158,6 +158,9 @@ def main():
         optimizer.step()
 
         torch.save(model.state_dict(), args.weight_save_path+'model_%03d.pth' % epoch)
+
+        if epoch == args.epoch -1:
+            utils.writePLY_mesh("../../../data/result.ply", torch.cat([xy1[:,:2], f], dim=1).reshape(1,w,h,3).transpose(1,2), xy1.reshape(1,w,h,3).transpose(1,2), eps=100)
         
     
     writer.close()
