@@ -102,11 +102,11 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # create models
-    if args.pe:
+    if False: #args.pe:
         model = nn.Sequential(PositionalEncoding(args.pedim),
                                 DeepSDF(args.pedim, 1, activation=args.activation, omega_0 = args.omega)).to(device)
     else:
-        model = DeepSDF(3, 1, activation=args.activation, omega_0 = args.omega).to(device)
+        model = DeepSDF(2, 1, activation=args.activation, omega_0 = args.omega).to(device)
 
     optimizer = optim.Adam(model.parameters(), lr = 1e-3)
 
