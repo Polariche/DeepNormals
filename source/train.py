@@ -39,11 +39,9 @@ parser.add_argument('--epsilon', dest='epsilon', type=float, metavar='EPSILON', 
                         help='epsilon')
 parser.add_argument('--omega', dest='omega', type=float, metavar='OMEGA', default=30, 
                         help='hyperparameter for periodic layer')
+parser.add_argument('--lambda', dest='omega', type=float, metavar='LAMBDA', default=0.9, 
+                        help='hyperparameter for z : tangent loss ratio')
 
-parser.add_argument('--pe', dest='pe', metavar='PE', type=bool, default=True, 
-                        help='positional encoding')
-parser.add_argument('--pedim', dest='pedim', metavar='PE_DIMENSIONS', type=int, default=60, 
-                        help='positional encoding dimension')
 
 parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE', 
                         help='output file')
@@ -86,7 +84,7 @@ def train_batch(device, model, xy, z, n, h,w, batchsize, backward=True):
         xy_ = xy[br]
         f_, xy_ = model(xy_)
         
-        loss = 0.7*z_loss(f_, z[br]) + 0.3*tangent_loss(f_, xy_, n[br], h, w)
+        loss = 0.9*z_loss(f_, z[br]) + 0.1*tangent_loss(f_, xy_, n[br], h, w)
         loss /= xy.shape[0]
 
         if backward:
@@ -104,12 +102,8 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # create models
-    if False: #args.pe:
-        model = nn.Sequential(PositionalEncoding(args.pedim),
-                                DeepSDF(args.pedim, 1, activation=args.activation, omega_0 = args.omega)).to(device)
-    else:
-        model = Siren(in_features=2, out_features=1, hidden_features=256, hidden_layers=3, outermost_linear=True).to(device) 
-                #DeepSDF(2, 1, activation=args.activation, omega_0 = args.omega).to(device)
+    model = Siren(in_features=2, out_features=1, hidden_features=256, hidden_layers=3, outermost_linear=True).to(device) 
+            #DeepSDF(2, 1, activation=args.activation, omega_0 = args.omega).to(device)
 
     optimizer = optim.Adam(model.parameters(), lr = 1e-3)
 
