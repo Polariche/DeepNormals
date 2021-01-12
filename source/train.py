@@ -66,7 +66,8 @@ def z_loss(f_, z_):
     return torch.sum(torch.pow(f_ - z_, 2))
 
 def tangent_loss(f_, x_, n_, h, w):
-    g_ = x_.grad.data
+    g_ = torch.autograd.grad(torch.sum(f_), [x_], create_graph=True)[0]
+    #g_ = x_.grad.data
     tx_ = torch.cat([-(x_* g_)[:,0:1] - f_ / w, -(x_* g_)[:,1:2], g_[:,0:1]], dim=1)
     ty_ = torch.cat([-(x_* g_)[:,0:1], -(x_* g_)[:,1:2] - f_ / w, g_[:,1:2]], dim=1)
 
