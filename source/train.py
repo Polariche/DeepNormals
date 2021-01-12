@@ -119,7 +119,7 @@ def main():
 
     xyz = torch.cat([x.to(device).unsqueeze(0).unsqueeze(0),
                     y.to(device).unsqueeze(0).unsqueeze(0), 
-                    1], dim=1)
+                    torch.ones((1,1,w,h))], dim=1)
     xyz *= depth
 
     z_uv = Sobel(1)(depth)
