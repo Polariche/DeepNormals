@@ -49,32 +49,42 @@ parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE',
                         help='output file')
 
 
-def train_batch(device, model, x, n, batchsize, backward=True):
-    
+def train_batch(device, model, x, z_uv, h,w, batchsize, backward=True):
     loss_sum = 0
-    y_cat = torch.zeros_like(x).to(device)[:,:1]
-    n_cat = torch.zeros_like(x).to(device)
-
     bs = batchsize
 
+    z_uv2 = torch.zeros(x.shape[0], 2)
+
+    v,u = torch.meshgrid(torch.true_divide(torch.arange(h), h) - 0.5, 
+                         torch.true_divide(torch.arange(w), w) - 0.5)
+    v = v.view(-1,1)
+    u = u.view(-1,1)
+
     for j in range(x.shape[0] // bs):
-        x_ = x[j*bs : (j+1)*bs].to(device)
+        br = torch.arange(j*bs, (j+1)*bs, dtype=torch.long)
+
+        x_ = x[br].to(device)
         x_.requires_grad= True
 
-        y_ = model(x_)
-        y_cat[j*bs : (j+1)*bs] = y_
+        z_uv_ = z_uv[br].to(device)
 
-        # fit gradient
-        n_ = utils.normal_from_y(y_, x_)
-        n_cat[j*bs : (j+1)*bs] = n_
+        f_ = model(x_)
+        n_ = utils.model_from_y(f_, x_)
+        
+        zx_ = (-n_[:,0] / n_[:,2]).view(-1,1)
+        zy_ = (-n_[:,1] / n_[:,2]).view(-1,1)
 
-        loss = torch.sum(torch.norm(n_ - n[j*bs : (j+1)*bs], dim=1, keepdim=True)) / x.shape[0]
+        z_uv2_ = torch.cat([(zx_*x_[:,2].view(-1,1)/w) / (1 - zx_ * u - zy_ * v),
+                            (zy_*x_[:,2].view(-1,1)/h) / (1 - zx_ * u - zy_ * v)],dim=1)
+        z_uv2[br] = z_uv2_
+
+        loss = torch.sum(torch.linalg.norm(z_uv_ - z_uv2_, dim=1)) / x.shape[0]
 
         if backward:
             loss.backward()
         loss_sum += loss.detach() 
 
-    return loss_sum, y_cat, n_cat
+    return loss_sum, z_uv2
 
 def main():
     args = parser.parse_args()
@@ -82,27 +92,6 @@ def main():
     writer = SummaryWriter(args.tb_save_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-
-    # read input depth
-    depth = cv2.imread(args.data, -1).astype(np.float32) / 1000.
-    depth = cv2.resize(depth, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_CUBIC)
-    depth = torch.tensor(depth.T, device=device).unsqueeze(0).unsqueeze(0)
-
-    w,h = depth.shape[2:]
-    x,y = torch.meshgrid(torch.true_divide(torch.arange(w), w) - 0.5, 
-                         torch.true_divide(torch.arange(h), h) - 0.5)
-
-    xyz = torch.cat([x.to(device).unsqueeze(0).unsqueeze(0),
-                    y.to(device).unsqueeze(0).unsqueeze(0), 
-                    depth], dim=1)
-
-    normal = Sobel(3).to(device).normal(xyz).detach()
-
-    writer.add_image("normal_GT", normal, 0, dataformats="NCWH")
-
-    xyz = xyz.squeeze().view(3,-1).T
-    normal = normal.squeeze().view(3,-1).T
-    
     # create models
     if args.pe:
         model = nn.Sequential(PositionalEncoding(args.pedim),
@@ -118,33 +107,41 @@ def main():
         except:
             print("Couldn't load pretrained weight: " + args.pretrained_weight)
 
+
+    # read input depth
+    depth = cv2.imread(args.data, -1).astype(np.float32) / 1000.
+    depth = cv2.resize(depth, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_CUBIC)
+    depth = torch.tensor(depth.T, device=device).unsqueeze(0).unsqueeze(0)
+
+    w,h = depth.shape[2:]
+    x,y = torch.meshgrid(torch.true_divide(torch.arange(w), w) - 0.5, 
+                         torch.true_divide(torch.arange(h), h) - 0.5)
+
+    xyz = torch.cat([x.to(device).unsqueeze(0).unsqueeze(0),
+                    y.to(device).unsqueeze(0).unsqueeze(0), 
+                    1], dim=1)
+    xyz *= depth
+
+    z_uv = Sobel(1)(depth)
+
+    xyz = xyz.squeeze().view(3,-1).T.detach()
+    z_uv = z_uv.squeeze().view(2,-1).T.detach()
+
+    writer.add_image("z_uv", torch.cat([z_uv.view(h,w,2), torch.zeros((h,w,1))], dim=2), 0, dataformats="HWC")
+
     bs = args.batchsize
 
     for epoch in range(args.epoch):
         loss_t = 0
-        loss_d = 0
 
         optimizer.zero_grad()
         
-        # validation
-        """
-        utils.model_test(model)
-        xyz_valid = (xyz + d_valid * normal).detach()[:1]
-
-        loss_d, y = train_batch(device, model, xyz_valid, normal, bs, backward=False)
-        loss_d /= xyz_valid.shape[0]
-        
-        writer.add_image("validation", y[0:1].repeat(1,3,1,1), epoch, dataformats="NCWH")
-        """
-
         # train
         utils.model_train(model)
-        loss_t, y, n = train_batch(device, model, xyz, normal, bs, backward=True)
+        loss_t, z_uv2 = train_batch(device, model, xyz, h,w, z_uv, bs, backward=True)
 
-        writer.add_image("y", y.view(h, w, 1).repeat(1,1,3), epoch, dataformats="HWC")
-        writer.add_image("n", n.view(h, w, 3), epoch, dataformats="HWC")
-
-        writer.add_scalars("loss", {'train': loss_t, 'validation': loss_d}, epoch)
+        writer.add_image("z_uv2", torch.cat([z_uv2.view(h,w,2), torch.zeros((h,w,1))], dim=2), epoch, dataformats="HWC")
+        writer.add_scalars("loss", {'train': loss_t}, epoch)
         
         # update
         optimizer.step()
