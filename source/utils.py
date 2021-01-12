@@ -67,7 +67,7 @@ def writePLY_mesh(filename, X, color, eps=0.1):
     e2 = norm(X[:,:,:w-1] - X[:,:,1:]) < eps                    # -
     e3 = norm(X[:,:, :w-1, :h-1] - X[:, :, 1:, 1:]) < eps      # \
     
-    f1 = e1[:,:,:w-1] & e2[:,:,:,:,1:] & e3     # |\
+    f1 = e1[:,:,:w-1] & e2[:,:,:,:,1:] & e3             # |\
     f2 = e3 & e1[:,:, 1:] & e2[:,:,:,:h-1]              # \|
 
     fcount = np.sum(f1) + np.sum(f2)

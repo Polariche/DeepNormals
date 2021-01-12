@@ -21,21 +21,22 @@ class DeepSDF(nn.Module):
         
         c = [in_channels] + [mid_channels]*3 + [mid_channels - in_channels] + [mid_channels]*3 + [out_channels]
         
-        if last_activation is None:
-            last_activation = torch.tanh
+        if last_activation == 'tanh':
+            self.last_activation = torch.tanh
+        elif last_activation is None:
+            self.last_activation = lambda x : x
 
         if activation == 'relu':
-            self.activation = F.relu
+            self.activation = lambda x: omega_0*F.relu(x)
         elif activation == 'sin':
             self.activation = lambda x: omega_0*torch.sin(x)
             
         self.dropout = nn.Dropout(0.2)
-        self.last_activation = last_activation
         
         for i in range(1,9):
             inc = c[i-1] if i!=5 else mid_channels
             ouc = c[i]
-            
+
             fc = nn.Linear(inc, ouc)
 
             # fc2d has no uniform init, so do it manually
@@ -68,7 +69,7 @@ class DeepSDF(nn.Module):
             x = bn(x)
             
             if i < 8:
-                x = self.activation(x) #x = F.relu(x)
+                x = self.activation(x)
                 x = self.dropout(x)
                 
         

@@ -49,17 +49,25 @@ parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE',
                         help='output file')
 
 
+
+def z_uv_loss(f_, x_, z_uv_, h, w):
+    n_ = utils.normal_from_y(f_, x_)
+    
+    zx_ = (-n_[:,0] / n_[:,2]).view(-1,1)
+    zy_ = (-n_[:,1] / n_[:,2]).view(-1,1)
+
+    z_uv2_ = torch.cat([(zx_*x_[:,2].view(-1,1)/w) / (1 - zx_ * x_[:,0].view(-1,1) - zy_ * x_[:,1].view(-1,1)),
+                        (zy_*x_[:,2].view(-1,1)/h) / (1 - zx_ * x_[:,0].view(-1,1) - zy_ * x_[:,1].view(-1,1))],dim=1)
+
+    loss = torch.sum(torch.norm(z_uv_ - z_uv2_, dim=1))
+    return loss, z_uv2_
+
+
 def train_batch(device, model, x, z_uv, h,w, batchsize, backward=True):
     loss_sum = 0
     bs = batchsize
 
     z_uv2 = torch.zeros(x.shape[0], 2).to(device)
-
-    u,v = torch.meshgrid(torch.true_divide(torch.arange(w), w) - 0.5, 
-                         torch.true_divide(torch.arange(h), h) - 0.5)
-    
-    u = u.reshape(-1,1).to(device)
-    v = v.reshape(-1,1).to(device)
 
     for j in range(x.shape[0] // bs):
         br = torch.arange(j*bs, (j+1)*bs, dtype=torch.long)
@@ -70,21 +78,16 @@ def train_batch(device, model, x, z_uv, h,w, batchsize, backward=True):
         z_uv_ = z_uv[br].to(device)
 
         f_ = model(x_)
-        n_ = utils.normal_from_y(f_, x_)
         
-        zx_ = (-n_[:,0] / n_[:,2]).view(-1,1)
-        zy_ = (-n_[:,1] / n_[:,2]).view(-1,1)
-
-        z_uv2_ = torch.cat([(zx_*x_[:,2].view(-1,1)/w) / (1 - zx_ * u[br] - zy_ * v[br]),
-                            (zy_*x_[:,2].view(-1,1)/h) / (1 - zx_ * u[br] - zy_ * v[br])],dim=1)
-        print(torch.sum(torch.isnan(z_uv2_)))
-        z_uv2[br] = z_uv2_
-
-        loss = torch.sum(torch.norm(z_uv_ - z_uv2_, dim=1)) / x.shape[0]
+        loss, z_uv2_ = z_uv_loss(f_,x_,z_uv_,h,w)
+        loss /= x.shape[0]
 
         if backward:
             loss.backward()
         loss_sum += loss.detach() 
+
+        z_uv2[br] = z_uv2_
+
 
     return loss_sum, z_uv2
 
