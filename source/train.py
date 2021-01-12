@@ -151,7 +151,7 @@ def main():
         
         # train
         utils.model_train(model)
-        loss_t, f = train_batch(device, model, xy1[:,:2], xyz[:,2:], n, h,w, bs, args.lamb)
+        loss_t, f = train_batch(device, model, xy1[:,:2], xyz[:,2:], n, h,w, bs, backwards=True, lamb= args.lamb)
 
         writer.add_image("result", f.reshape(w,h,1).repeat(1,1,3), epoch, dataformats='WHC')
 
