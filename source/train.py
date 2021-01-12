@@ -107,7 +107,7 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # create models
-    model = Siren(in_features=2, out_features=1, hidden_features=256, hidden_layers=3, outermost_linear=True).to(device) 
+    model = Siren(in_features=2, out_features=1, hidden_features=256, hidden_layers=6, outermost_linear=True).to(device) 
             #DeepSDF(2, 1, activation=args.activation, omega_0 = args.omega).to(device)
 
     optimizer = optim.Adam(model.parameters(), lr = 1e-3)
@@ -123,7 +123,7 @@ def main():
     depth = cv2.imread(args.data, -1).astype(np.float32) / 1000.
     #depth = cv2.resize(depth, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_CUBIC)
     depth = cv2.bilateralFilter(depth, 7, 20, 3)
-    
+
     depth = torch.tensor(depth.T, device=device).unsqueeze(0).unsqueeze(0)
 
     w,h = depth.shape[2:]
