@@ -39,7 +39,7 @@ parser.add_argument('--epsilon', dest='epsilon', type=float, metavar='EPSILON', 
                         help='epsilon')
 parser.add_argument('--omega', dest='omega', type=float, metavar='OMEGA', default=30, 
                         help='hyperparameter for periodic layer')
-parser.add_argument('--lambda', dest='lamb', type=float, metavar='LAMBDA', default=0.9, 
+parser.add_argument('--lambda', dest='lamb', type=float, metavar='LAMBDA', default=0.005, 
                         help='hyperparameter for z : tangent loss ratio')
 
 
@@ -65,14 +65,14 @@ def z_loss(f_, z_):
 
 def tangent_loss(f_, x_, n_, h, w):
     g_ = torch.autograd.grad(f_, [x_], grad_outputs=torch.ones_like(f_), create_graph=True)[0]
-    #g_ = x_.grad.data
+    
     tx_ = torch.cat([-(x_* g_)[:,0:1] - f_ / w, -(x_* g_)[:,1:2], g_[:,0:1]], dim=1)
     ty_ = torch.cat([-(x_* g_)[:,0:1], -(x_* g_)[:,1:2] - f_ / w, g_[:,1:2]], dim=1)
 
     return torch.sum(torch.pow(torch.sum(tx_ * n_, dim=1) + torch.sum(ty_ * n_, dim=1), 2))
 
 
-def train_batch(device, model, xy, z, n, h,w, batchsize, backward=True, lamb=0.9):
+def train_batch(device, model, xy, z, n, h,w, batchsize, backward=True, lamb=0.005):
     loss_sum = 0
     bs = batchsize
 
@@ -84,14 +84,10 @@ def train_batch(device, model, xy, z, n, h,w, batchsize, backward=True, lamb=0.9
         xy_ = xy[br]
         f_, xy_ = model(xy_)
         
-        for param in model.parameters():
-            param.requires_grad = False
-        loss = lamb*z_loss(f_, z[br]) + (1.-lamb)*tangent_loss(f_, xy_, n[br], h, w)
+        loss = (1.-lamb)*z_loss(f_, z[br]) + lamb*tangent_loss(f_, xy_, n[br], h, w)
         loss /= xy.shape[0]
 
         if backward:
-            for param in model.parameters():
-                param.requires_grad = True
             loss.backward()
         loss_sum += loss.detach() 
 
@@ -160,6 +156,11 @@ def main():
         torch.save(model.state_dict(), args.weight_save_path+'model_%03d.pth' % epoch)
 
         if epoch == args.epoch -1:
+
+            utils.writePLY_mesh("../../../data/data.ply", 
+                                xyz.reshape(1,w,h,3).permute(0,3,2,1).cpu(), 
+                                xyz.reshape(1,w,h,3).permute(0,3,2,1).cpu() * 128 + 128, 
+                                eps=100)
 
             utils.writePLY_mesh("../../../data/result.ply", 
                                 torch.cat([xy1[:,:2], f], dim=1).reshape(1,w,h,3).permute(0,3,2,1).cpu(), 
