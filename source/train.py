@@ -7,7 +7,7 @@ import torch.optim as optim
 
 from torch.utils.tensorboard import SummaryWriter
 
-from models import DeepSDF, PositionalEncoding
+from models import DeepSDF, PositionalEncoding, Siren
 from utils import Sobel
 import utils
 
@@ -106,7 +106,8 @@ def main():
         model = nn.Sequential(PositionalEncoding(args.pedim),
                                 DeepSDF(args.pedim, 1, activation=args.activation, omega_0 = args.omega)).to(device)
     else:
-        model = DeepSDF(2, 1, activation=args.activation, omega_0 = args.omega).to(device)
+        model = Siren(in_features=2, out_features=1, hidden_features=256, hidden_layers=3, outermost_linear=True).to(device) 
+                #DeepSDF(2, 1, activation=args.activation, omega_0 = args.omega).to(device)
 
     optimizer = optim.Adam(model.parameters(), lr = 1e-3)
 
