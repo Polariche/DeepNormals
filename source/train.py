@@ -65,9 +65,12 @@ def z_uv_loss(f_, x_, z_uv_, h, w):
 def z_loss(f_, z_):
     return torch.sum(torch.pow(f_ - z_, 2))
 
-#def tangent_loss(f_, x_, z_):
-#    tx_ =  
-#    ty_ =
+def tangent_loss(f_, x_, n_, h, w):
+    g_ = x_.grad.data
+    tx_ = torch.cat([-(x_* g_)[:,0:1] - f_ / w, -(x_* g_)[:,1:2], g_[:,0:1]], dim=1)
+    ty_ = torch.cat([-(x_* g_)[:,0:1], -(x_* g_)[:,1:2] - f_ / w, g_[:,1:2]], dim=1)
+
+    return torch.sum(torch.pow(torch.sum(tx_ * n_, dim=1) + torch.sum(ty_ * n_, dim=1), 2))
 
 
 def train_batch(device, model, xy, z, n, h,w, batchsize, backward=True):
@@ -80,11 +83,9 @@ def train_batch(device, model, xy, z, n, h,w, batchsize, backward=True):
         br = torch.arange(j*bs, (j+1)*bs, dtype=torch.long)
 
         xy_ = xy[br]
-        xy_.requires_grad =True
-
-        f_ = model(xy_)
+        f_, xy_ = model(xy_)
         
-        loss = z_loss(f_, z[br])
+        loss = 0.7*z_loss(f_, z[br]) + 0.3*tangent_loss(f_, xy_, n[br], h, w)
         loss /= xy.shape[0]
 
         if backward:
