@@ -160,7 +160,11 @@ def main():
         torch.save(model.state_dict(), args.weight_save_path+'model_%03d.pth' % epoch)
 
         if epoch == args.epoch -1:
-            utils.writePLY_mesh("../../../data/result.ply", torch.cat([xy1[:,:2], f], dim=1).reshape(1,w,h,3).transpose(1,2), xy1.reshape(1,w,h,3).transpose(1,2), eps=100)
+            
+            utils.writePLY_mesh("../../../data/result.ply", 
+                                torch.cat([xy1[:,:2], f], dim=1).reshape(1,w,h,3).permute(0,3,1,2), 
+                                xy1.reshape(1,w,h,3).permute(0,3,1,2), 
+                                eps=100)
         
     
     writer.close()
