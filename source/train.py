@@ -49,7 +49,7 @@ parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE',
                         help='output file')
 
 
-def train_batch(device, model, x, z_uv, h,w, batchsize, backward=True):
+def train_batch(device, model, x, h,w, batchsize, backward=True):
     loss_sum = 0
     bs = batchsize
 
@@ -57,8 +57,8 @@ def train_batch(device, model, x, z_uv, h,w, batchsize, backward=True):
 
     v,u = torch.meshgrid(torch.true_divide(torch.arange(h), h) - 0.5, 
                          torch.true_divide(torch.arange(w), w) - 0.5)
-    v = v.view(-1,1)
-    u = u.view(-1,1)
+    v = v.view(-1,1).to(device)
+    u = u.view(-1,1).to(device)
 
     for j in range(x.shape[0] // bs):
         br = torch.arange(j*bs, (j+1)*bs, dtype=torch.long)
@@ -138,7 +138,7 @@ def main():
         
         # train
         utils.model_train(model)
-        loss_t, z_uv2 = train_batch(device, model, xyz, h,w, z_uv, bs, backward=True)
+        loss_t, z_uv2 = train_batch(device, model, xyz, z_uv, h,w, z_uv, bs, backward=True)
 
         writer.add_image("z_uv2", torch.cat([z_uv2.view(h,w,2), torch.zeros((h,w,1)).to(device)], dim=2), epoch, dataformats="HWC")
         writer.add_scalars("loss", {'train': loss_t}, epoch)
