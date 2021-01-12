@@ -55,8 +55,8 @@ class DeepSDF(nn.Module):
 
             conv = nn.utils.weight_norm(conv)
             #bn = nn.BatchNorm2d(c[i])
-            bn = nn.LayerNormal(c[i])
-            
+            bn = nn.LayerNorm(c[i])
+
             setattr(self, f'conv{i}', conv)
             setattr(self, f'bn{i}', bn)
             
