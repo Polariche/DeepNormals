@@ -86,7 +86,7 @@ def train_batch(device, model, xy, z, n, h,w, batchsize, backward=True, lamb=0.0
         
         for param in model.parameters():
             param.requires_grad = False
-            
+
         loss = (1.-lamb)*z_loss(f_, z[br]) + lamb*tangent_loss(f_, xy_, n[br], h, w)
         loss /= xy.shape[0]
 
@@ -121,7 +121,9 @@ def main():
 
     # read input depth
     depth = cv2.imread(args.data, -1).astype(np.float32) / 1000.
-    depth = cv2.resize(depth, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_CUBIC)
+    #depth = cv2.resize(depth, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_CUBIC)
+    depth = cv2.bilateralFilter(depth, 7, 20, 3)
+    
     depth = torch.tensor(depth.T, device=device).unsqueeze(0).unsqueeze(0)
 
     w,h = depth.shape[2:]
