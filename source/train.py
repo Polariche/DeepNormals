@@ -49,10 +49,11 @@ parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE',
                         help='output file')
 
 
-def train_batch(device, model, x, y, batchsize, backward=True):
+def train_batch(device, model, x, n, batchsize, backward=True):
     
     loss_sum = 0
     y_cat = torch.zeros_like(x).to(device)[:,:1]
+    n_cat = torch.zeros_like(x).to(device)
 
     bs = batchsize
 
@@ -64,14 +65,16 @@ def train_batch(device, model, x, y, batchsize, backward=True):
         y_cat[j*bs : (j+1)*bs] = y_
 
         # fit gradient
-        y_ = utils.normal_from_y(y_, x_)
-        loss = torch.sum(torch.norm(y_ - y[j*bs : (j+1)*bs], dim=1, keepdim=True)) / x.shape[0]
+        n_ = utils.normal_from_y(y_, x_)
+        n_cat[j*bs : (j+1)*bs] = n_
+
+        loss = torch.sum(torch.norm(n_ - n[j*bs : (j+1)*bs], dim=1, keepdim=True)) / x.shape[0]
 
         if backward:
             loss.backward()
         loss_sum += loss.detach() 
 
-    return loss_sum, y_cat
+    return loss_sum, y_cat, n_cat
 
 def main():
     args = parser.parse_args()
@@ -116,12 +119,6 @@ def main():
             print("Couldn't load pretrained weight: " + args.pretrained_weight)
 
     bs = args.batchsize
-    #d = torch.arange(-1, 1, 0.2).view(-1,1,1,1) * args.epsilon
-    #d = d + torch.rand(d.shape[0], 1, *xyz.shape[2:]) * 0.2 * args.epsilon
-    #d = d.to(device)
-
-    #d_valid = (torch.rand(10, 1, *xyz.shape[2:]) * 2 - 1.) * args.epsilon
-    #d_valid = d_valid.to(device)
 
     for epoch in range(args.epoch):
         loss_t = 0
@@ -140,16 +137,12 @@ def main():
         writer.add_image("validation", y[0:1].repeat(1,3,1,1), epoch, dataformats="NCWH")
         """
 
-        # normal test
-        xyz.requires_grad = True
-        writer.add_image("normals", utils.normal_from_y(model(xyz), xyz).view(h,w,3), epoch, dataformats="HWC")
-        xyz.requires_grad = False
-
-
         # train
         utils.model_train(model)
-        loss_t, _ = train_batch(device, model, xyz, normal, bs, backward=True)
-        loss_t /= xyz.shape[0]
+        loss_t, y, n = train_batch(device, model, xyz, normal, bs, backward=True)
+
+        writer.add_image("y", y.view(h, w, 1).repeat(1,1,3), epoch, dataformats="HWC")
+        writer.add_image("n", n.view(h, w, 3), epoch, dataformats="HWC")
 
         writer.add_scalars("loss", {'train': loss_t, 'validation': loss_d}, epoch)
         
