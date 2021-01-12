@@ -162,8 +162,8 @@ def main():
         if epoch == args.epoch -1:
 
             utils.writePLY_mesh("../../../data/result.ply", 
-                                torch.cat([xy1[:,:2], f], dim=1).reshape(1,w,h,3).permute(0,3,1,2).cpu(), 
-                                xy1.reshape(1,w,h,3).permute(0,3,1,2).cpu() * 128 + 128, 
+                                torch.cat([xy1[:,:2], f], dim=1).reshape(1,w,h,3).permute(0,3,2,1).cpu(), 
+                                xyz.reshape(1,w,h,3).permute(0,3,2,1).cpu() * 128 + 128, 
                                 eps=100)
         
     
