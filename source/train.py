@@ -165,13 +165,13 @@ def main():
         if epoch == args.epoch -1:
 
             utils.writePLY_mesh("../../../data/data.ply", 
-                                torch.cat([xy1[:,:2], xyz[:,2:]], dim=1).reshape(1,w,h,3).permute(0,3,1,2).cpu(), 
-                                (xy1.cpu()*torch.tensor([[1,1,0]])).reshape(1,w,h,3).permute(0,3,1,2) * 128 + 128, 
+                                torch.cat([xy1[:,:2], xyz[:,2:]], dim=1).reshape(w,h,3).transpose(0,1).cpu().numpy(), 
+                                (xy1.cpu().numpy()*np.array([[1,1,0]])).reshape(w,h,3).transpose(0,1) * 128 + 128, 
                                 eps=100)
 
             utils.writePLY_mesh("../../../data/result.ply", 
-                                torch.cat([xy1[:,:2], f], dim=1).reshape(1,w,h,3).permute(0,3,1,2).cpu(), 
-                                (xy1.cpu()*torch.tensor([[1,1,0]])).reshape(1,w,h,3).permute(0,3,1,2) * 128 + 128, 
+                                torch.cat([xy1[:,:2], f], dim=1).reshape(w,h,3).transpose(0,1).cpu().numpy(), 
+                                (xy1.cpu().numpy()*np.array([[1,1,0]])).reshape(w,h,3).transpose(0,1) * 128 + 128, 
                                 eps=100)
         
     
