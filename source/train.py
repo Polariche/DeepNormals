@@ -63,7 +63,7 @@ def z_uv_loss(f_, x_, z_uv_, h, w):
     return loss, z_uv2_
 """
 def z_loss(f_, z_):
-    return torch.sum(torch.norm(f_ - z_, dim=1))
+    return torch.sum(torch.pow(f_ - z_, 2))
 
 #def tangent_loss(f_, x_, z_):
 #    tx_ =  
@@ -149,7 +149,7 @@ def main():
         utils.model_train(model)
         loss_t, f = train_batch(device, model, xy1[:,:2], xyz[:,2:], n, h,w, bs)
 
-        writer.add_image("result", ((f - torch.min(f)) / (torch.max(f) - torch.min(f))).reshape(w,h,1).repeat(1,1,3), epoch, dataformats='WHC')
+        writer.add_image("result", f.reshape(w,h,1).repeat(1,1,3), epoch, dataformats='WHC')
 
         writer.add_scalars("loss", {'train': loss_t}, epoch)
         
