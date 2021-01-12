@@ -77,9 +77,10 @@ def train_batch(device, model, x, z_uv, h,w, batchsize, backward=True):
 
         z_uv2_ = torch.cat([(zx_*x_[:,2].view(-1,1)/w) / (1 - zx_ * u[br] - zy_ * v[br]),
                             (zy_*x_[:,2].view(-1,1)/h) / (1 - zx_ * u[br] - zy_ * v[br])],dim=1)
+        print(torch.sum(torch.isnan(z_uv2_)))
         z_uv2[br] = z_uv2_
 
-        loss = torch.sum(torch.linalg.norm(z_uv_ - z_uv2_, dim=1)) / x.shape[0]
+        loss = torch.sum(torch.norm(z_uv_ - z_uv2_, dim=1)) / x.shape[0]
 
         if backward:
             loss.backward()
