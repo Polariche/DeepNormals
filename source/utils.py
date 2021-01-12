@@ -59,7 +59,7 @@ class Sobel(nn.Module):
 def writePLY_mesh(filename, X, color, eps=0.1):
     w,h = X.shape[2:]
 
-    normal = Sobel(3).normal(X)
+    normal = -Sobel(3).normal(X)
 
     norm = lambda x: torch.norm(x, dim=1, keepdim=True)
 
