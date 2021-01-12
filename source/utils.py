@@ -55,7 +55,7 @@ class Sobel(nn.Module):
             
             return x
 
-def writePLY_mesh(filename, X, color, eps=0.1):
+def writePLY_mesh(filename, X, normal, color, eps=0.1):
 
     h,w = X.shape[:2]
 

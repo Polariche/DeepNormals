@@ -162,16 +162,21 @@ def main():
 
         torch.save(model.state_dict(), args.weight_save_path+'model_%03d.pth' % epoch)
 
+        norms = (n / torch.norm(n, dim=1, keepdim=True)).reshape(w,h,3).transpose(0,1).cpu().numpy()
+        colors = (xy1.cpu().numpy()*np.array([[1,1,0]])).reshape(w,h,3).transpose(1,0,2) * 128 + 128
+        
         if epoch == args.epoch -1:
 
             utils.writePLY_mesh("../../../data/data.ply", 
                                 torch.cat([xy1[:,:2], xyz[:,2:]], dim=1).reshape(w,h,3).transpose(0,1).cpu().numpy(), 
-                                (xy1.cpu().numpy()*np.array([[1,1,0]])).reshape(w,h,3).transpose(1,0,2) * 128 + 128, 
+                                norms,
+                                colors, 
                                 eps=100)
 
             utils.writePLY_mesh("../../../data/result.ply", 
                                 torch.cat([xy1[:,:2], f], dim=1).reshape(w,h,3).transpose(0,1).cpu().numpy(), 
-                                (xy1.cpu().numpy()*np.array([[1,1,0]])).reshape(w,h,3).transpose(1,0,2) * 128 + 128, 
+                                norms,
+                                colors, 
                                 eps=100)
         
     
