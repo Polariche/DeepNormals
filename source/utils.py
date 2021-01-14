@@ -14,13 +14,14 @@ class Sobel(nn.Module):
         self.conv = nn.Conv2d(k, 2*k, 3, padding=1, padding_mode='replicate', groups=k, bias=False)
         
         for param in self.parameters():
-            param.data = torch.tensor([[[-1, -2, -1],
-                                 [0,0,0],
-                                 [1, 2, 1]],
-                                  
-                                 [[-1, 0, 1],
-                                 [-2,0,2],
-                                 [-1, 0, 1]]], dtype=dtype).unsqueeze(1).repeat(k,1,1,1)
+            param.data = torch.tensor([
+                                 [[-1,  0,  1],
+                                  [-2,  0,  2],
+                                  [-1,  0,  1]],
+
+                                 [[-1, -2, -1],
+                                  [ 0,  0,  0],
+                                  [ 1,  2,  1]]], dtype=dtype).unsqueeze(1).repeat(k,1,1,1)
             param.requires_grad = False
         
     def forward(self, x):
@@ -30,10 +31,15 @@ class Sobel(nn.Module):
         assert self.k == 3 or self.k == 1
 
         if self.k == 3:
+            # the output of self(x) is
+            # [dx/du, dx/dv, dy/du, dy/dv, dz/du, dz/dv]
+            # cross (dx/du, dy/du, dz/du) with (dx/dv, dy/dv, dz/dv)
         
             x = self(x)
             
-            x = torch.cat([t.unsqueeze(0) for t in [x[:,2]*x[:,5] - x[:,4]*x[:,3], x[:,4]*x[:,1]-x[:,0]*x[:,5], x[:,0]*x[:,3] - x[:,2]*x[:,1]]], dim=1)
+            x = torch.cat([t.unsqueeze(0) for t in [x[:,2]*x[:,5] - x[:,4]*x[:,3], 
+                                                    x[:,4]*x[:,1] - x[:,0]*x[:,5], 
+                                                    x[:,0]*x[:,3] - x[:,2]*x[:,1]]], dim=1)
             x = x / torch.norm(x, dim=1)
             x[torch.isnan(x)] = 0
             
