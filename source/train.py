@@ -78,15 +78,19 @@ def train_batch(device, model, xy, z, n, h,w, batchsize, backward=True, lamb=0.0
     bs = batchsize
 
     f = torch.zeros((xy.shape[0], 1)).to(device)
+    g = torch.zeros((xy.shape[0], 3)).to(device)
 
     for j in range(xy.shape[0] // bs):
         br = torch.arange(j*bs, (j+1)*bs, dtype=torch.long)
 
         xy_ = xy[br]
         f_, xy_ = model(xy_)
-        
+
         for param in model.parameters():
             param.requires_grad = False
+
+        g_ = torch.autograd.grad(f_, [x_], grad_outputs=torch.ones_like(f_), create_graph=False)[0]
+        g_ = g_ / torch.norm(g_, dim=1, keepdim=True)
 
         loss = (1.-lamb)*z_loss(f_, z[br]) + lamb*tangent_loss(f_, xy_, n[br], h, w)
         loss /= xy.shape[0]
@@ -98,8 +102,9 @@ def train_batch(device, model, xy, z, n, h,w, batchsize, backward=True, lamb=0.0
         loss_sum += loss.detach() 
 
         f[br] = f_.detach()
+        g[br] = g_.detach()
 
-    return loss_sum, f
+    return loss_sum, f, g
 
 def main():
     args = parser.parse_args()
@@ -155,9 +160,10 @@ def main():
         
         # train
         utils.model_train(model)
-        loss_t, f = train_batch(device, model, xy1[:,:2], xyz[:,2:], n, h,w, bs, backward=True, lamb= args.lamb)
+        loss_t, f, g = train_batch(device, model, xy1[:,:2], xyz[:,2:], n, h,w, bs, backward=True, lamb= args.lamb)
 
         writer.add_image("result", f.reshape(w,h,1).repeat(1,1,3), epoch, dataformats='WHC')
+        writer.add_image("result_normal", f.reshape(w,h,1), epoch, dataformats='WHC')
 
         writer.add_scalars("loss", {'train': loss_t}, epoch)
         
