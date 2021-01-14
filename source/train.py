@@ -163,7 +163,7 @@ def main():
         loss_t, f, g = train_batch(device, model, xy1[:,:2], xyz[:,2:], n, h,w, bs, backward=True, lamb= args.lamb)
 
         writer.add_image("result", f.reshape(w,h,1).repeat(1,1,3), epoch, dataformats='WHC')
-        writer.add_image("result_normal", torch.cat([g.reshape(w,h,2), torch.zeros(w,h,1)], dim=2), epoch, dataformats='WHC')
+        writer.add_image("result_normal", torch.cat([g.reshape(w,h,2), torch.zeros(w,h,1).to(device)], dim=2), epoch, dataformats='WHC')
 
         writer.add_scalars("loss", {'train': loss_t}, epoch)
         
