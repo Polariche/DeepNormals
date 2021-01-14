@@ -135,7 +135,10 @@ def main():
                     y.to(device).unsqueeze(0).unsqueeze(0), 
                     torch.ones((1,1,w,h)).to(device)], dim=1)
 
-    xyz = xy1 * depth
+    xyz = torch.cat([x.to(device).unsqueeze(0).unsqueeze(0),
+                    y.to(device).unsqueeze(0).unsqueeze(0), 
+                    depth], dim=1)
+    #xyz = xy1 * depth
     n = Sobel(3).to(device).normal(xyz)
 
     xy1 = xy1.squeeze().detach().view(3,-1).T
