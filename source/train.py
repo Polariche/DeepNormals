@@ -89,7 +89,7 @@ def train_batch(device, model, xy, z, n, h,w, batchsize, backward=True, lamb=0.0
         for param in model.parameters():
             param.requires_grad = False
 
-        g_ = torch.autograd.grad(f_, [xy_, grad_outputs=torch.ones_like(f_), create_graph=False)[0]
+        g_ = torch.autograd.grad(f_, [xy_], grad_outputs=torch.ones_like(f_), create_graph=False)[0]
         g_ = g_ / torch.norm(g_, dim=1, keepdim=True)
 
         loss = (1.-lamb)*z_loss(f_, z[br]) + lamb*tangent_loss(f_, xy_, n[br], h, w)
