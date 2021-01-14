@@ -70,7 +70,7 @@ def tangent_loss(f_, x_, n_, h, w):
     tx_ = torch.cat([-(x_* g_)[:,0:1] - f_ / w, -(x_* g_)[:,1:2], g_[:,0:1]], dim=1)
     ty_ = torch.cat([-(x_* g_)[:,0:1], -(x_* g_)[:,1:2] - f_ / w, g_[:,1:2]], dim=1)
 
-    return torch.sum(torch.pow(torch.sum(tx_ * n_, dim=1) + torch.sum(ty_ * n_, dim=1), 2))
+    return torch.sum(torch.pow(torch.sum(tx_ * n_, dim=1) + torch.sum(ty_ * n_, dim=1), 2)), g_
 
 
 def train_batch(device, model, xy, z, n, h,w, batchsize, backward=True, lamb=0.005):
@@ -89,10 +89,10 @@ def train_batch(device, model, xy, z, n, h,w, batchsize, backward=True, lamb=0.0
         for param in model.parameters():
             param.requires_grad = False
 
-        g_ = torch.autograd.grad(f_, [xy_], grad_outputs=torch.ones_like(f_), create_graph=False)[0]
-        g_ = g_ / torch.norm(g_, dim=1, keepdim=True)
+        zloss = z_loss(f_, z[br])
+        tloss, g_ = tangent_loss(f_, xy_, n[br], h, w)
 
-        loss = (1.-lamb)*z_loss(f_, z[br]) + lamb*tangent_loss(f_, xy_, n[br], h, w)
+        loss = (1.-lamb)*zloss + lamb*tloss
         loss /= xy.shape[0]
 
         if backward:
