@@ -97,6 +97,18 @@ def writePLY_mesh(filename, X, normal, color, eps=0.1):
         ply_file.write("%f %f %f %f %f %f %d %d %d\n" % (X[u,v,0], X[u,v,1], X[u,v,2], 
                                                         normal[u,v,0], normal[u,v,1], normal[u,v,2], 
                                                         color[u,v,0], color[u,v,1], color[u,v,2]))
+    for i in range((h-1)*(w-1)):
+        u,v = i//(w-1), i%(w-1)
+                   
+        p0 = u*w+v
+        p1 = u*w+v+1
+        p2 = (u+1)*w+v
+        p3 = (u+1)*w+v+1
+        
+        if f1[u,v]:
+            ply_file.write("3 %d %d %d\n" % (p0, p2, p3))
+        if f2[u,v]:
+            ply_file.write("3 %d %d %d\n" % (p0, p3, p1))
 
 
 def model_train(model):
