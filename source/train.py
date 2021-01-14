@@ -164,8 +164,8 @@ def main():
 
         writer.add_images("result : z", torch.cat([f.reshape(1,w,h,1).repeat(1,1,1,3), depth.reshape(w,h,1).repeat(1,1,1,3)], dim=0), epoch, dataformats='NWHC')
 
-        writer.add_images("result : dz/du, dz/dv", torch.cat([torch.cat([g.reshape(1,w,h,2), Sobel(1).to(device)(depth).permute(0,2,3,1)], dim=0)], 
-                                                    torch.zeros(2,w,h,1).to(device), dim=3), epoch, dataformats='NWHC')
+        writer.add_images("result : dz/du, dz/dv", torch.cat([torch.cat([g.reshape(1,w,h,2), Sobel(1).to(device)(depth).permute(0,2,3,1)], dim=0), 
+                                                    torch.zeros(2,w,h,1).to(device)], dim=3), epoch, dataformats='NWHC')
 
         writer.add_scalars("loss", {'train': loss_t}, epoch)
         
