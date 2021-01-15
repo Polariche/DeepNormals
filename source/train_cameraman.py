@@ -145,15 +145,15 @@ def main():
 
             writer.add_images("result : z", 
                                 np.concatenate([model_output.cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy(),
-                                            ground_truth.cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy()], dim=0), 
+                                            ground_truth.cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy()], axis=0), 
                                 step, dataformats='NHWC')
             writer.add_images("result : grad", 
                                 np.concatenate([img_grad.norm(dim=-1).cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy(), 
-                                            gradient(ground_truth, coords).norm(dim=-1).cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy()], dim=0), 
+                                            gradient(ground_truth, coords).norm(dim=-1).cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy()], axis=0), 
                                 step, dataformats='NHWC')
             writer.add_images("result : laplacian", 
                                 np.concatenate([img_laplacian.cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy(),
-                                            laplace(ground_truth, coords).cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy()], dim=0), 
+                                            laplace(ground_truth, coords).cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy()], axis=0), 
                                 step, dataformats='NHWC')
         optimizer.zero_grad()
         loss.backward()
