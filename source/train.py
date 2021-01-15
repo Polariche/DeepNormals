@@ -136,7 +136,8 @@ def main():
     #x,y = torch.meshgrid(torch.true_divide(torch.arange(w), w) - 0.5, 
     #                     (torch.true_divide(torch.arange(h), h) - 0.5)*h/w)
 
-    x,y = torch.meshgrid(torch.arange(w), torch.arange(h), dtype=torch.float)
+    x,y = torch.meshgrid(torch.arange(w, dtype=torch.float), 
+                        torch.arange(h, dtype=torch.float))
 
     xy1 = torch.cat([x.to(device).unsqueeze(0).unsqueeze(0),
                     y.to(device).unsqueeze(0).unsqueeze(0), 
