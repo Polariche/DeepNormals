@@ -8,6 +8,7 @@ import torch.optim as optim
 
 from torch.utils.tensorboard import SummaryWriter
 
+from models import Siren
 from utils import Sobel
 import utils
 
