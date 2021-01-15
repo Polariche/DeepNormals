@@ -126,7 +126,7 @@ def main():
 
 
     # read input depth
-    depth = cv2.imread(args.data, -1).astype(np.float32)# / 1000.
+    depth = cv2.imread(args.data, -1).astype(np.float32) / 1000.
     #depth = cv2.resize(depth, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_CUBIC)
     depth = cv2.bilateralFilter(depth, 7, 20, 3)
     
