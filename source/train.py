@@ -126,29 +126,30 @@ def main():
 
 
     # read input depth
-    depth = cv2.imread(args.data, -1).astype(np.float32) / 1000.
-    #depth = cv2.resize(depth, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_CUBIC)
-    depth = cv2.bilateralFilter(depth, 7, 20, 3)
-    
-    depth = torch.tensor(depth.T, device=device).unsqueeze(0).unsqueeze(0)
+    with torch.no_grad():
+        depth = cv2.imread(args.data, -1).astype(np.float32) / 1000.
+        #depth = cv2.resize(depth, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_CUBIC)
+        depth = cv2.bilateralFilter(depth, 7, 20, 3)
+        
+        depth = torch.tensor(depth.T, device=device).unsqueeze(0).unsqueeze(0)
 
-    w,h = depth.shape[2:]
-    x,y = torch.meshgrid(torch.true_divide(torch.arange(w), w) - 0.5, 
-                         (torch.true_divide(torch.arange(h), h) - 0.5)*h/w)
+        w,h = depth.shape[2:]
+        x,y = torch.meshgrid(torch.true_divide(torch.arange(w), w) - 0.5, 
+                            (torch.true_divide(torch.arange(h), h) - 0.5)*h/w)
 
-    xy1 = torch.cat([x.to(device).unsqueeze(0).unsqueeze(0),
-                    y.to(device).unsqueeze(0).unsqueeze(0), 
-                    torch.ones((1,1,w,h)).to(device)], dim=1)
+        xy1 = torch.cat([x.to(device).unsqueeze(0).unsqueeze(0),
+                        y.to(device).unsqueeze(0).unsqueeze(0), 
+                        torch.ones((1,1,w,h)).to(device)], dim=1)
 
-    xyz = torch.cat([x.to(device).unsqueeze(0).unsqueeze(0),
-                    y.to(device).unsqueeze(0).unsqueeze(0), 
-                    depth], dim=1)
-    #xyz = xy1 * depth
-    n = Sobel(3).to(device).normal(xyz)
+        xyz = torch.cat([x.to(device).unsqueeze(0).unsqueeze(0),
+                        y.to(device).unsqueeze(0).unsqueeze(0), 
+                        depth], dim=1)
+        #xyz = xy1 * depth
+        n = Sobel(3).to(device).normal(xyz)
 
-    xy1 = xy1.squeeze().detach().view(3,-1).T
-    xyz = xyz.squeeze().detach().view(3,-1).T
-    n = n.squeeze().detach().view(3,-1).T
+        xy1 = xy1.squeeze().detach().view(3,-1).T
+        xyz = xyz.squeeze().detach().view(3,-1).T
+        n = n.squeeze().detach().view(3,-1).T
     
     bs = args.batchsize
     for epoch in range(args.epoch):
