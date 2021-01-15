@@ -144,16 +144,16 @@ def main():
             img_laplacian = laplace(model_output, coords)
 
             writer.add_images("result : z", 
-                                torch.cat([model_output.cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy(),
-                                            ground_truth.cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy()], dim=1), 
+                                np.concatenate([model_output.cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy(),
+                                            ground_truth.cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy()], dim=0), 
                                 step, dataformats='NHWC')
             writer.add_images("result : grad", 
-                                torch.cat([img_grad.norm(dim=-1).cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy(), 
-                                            gradient(ground_truth, coords).norm(dim=-1).cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy()], dim=1), 
+                                np.concatenate([img_grad.norm(dim=-1).cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy(), 
+                                            gradient(ground_truth, coords).norm(dim=-1).cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy()], dim=0), 
                                 step, dataformats='NHWC')
             writer.add_images("result : laplacian", 
-                                torch.cat([img_laplacian.cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy(),
-                                            laplace(ground_truth, coords).cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy()], dim=1), 
+                                np.concatenate([img_laplacian.cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy(),
+                                            laplace(ground_truth, coords).cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy()], dim=0), 
                                 step, dataformats='NHWC')
         optimizer.zero_grad()
         loss.backward()
