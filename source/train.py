@@ -133,11 +133,8 @@ def main():
     depth = torch.tensor(depth.T, device=device).unsqueeze(0).unsqueeze(0)
 
     w,h = depth.shape[2:]
-    #x,y = torch.meshgrid(torch.true_divide(torch.arange(w), w) - 0.5, 
-    #                     (torch.true_divide(torch.arange(h), h) - 0.5)*h/w)
-
-    x,y = torch.meshgrid(torch.arange(w, dtype=torch.float), 
-                        torch.arange(h, dtype=torch.float))
+    x,y = torch.meshgrid(torch.true_divide(torch.arange(w), w) - 0.5, 
+                         (torch.true_divide(torch.arange(h), h) - 0.5)*h/w)
 
     xy1 = torch.cat([x.to(device).unsqueeze(0).unsqueeze(0),
                     y.to(device).unsqueeze(0).unsqueeze(0), 
@@ -153,8 +150,6 @@ def main():
     xyz = xyz.squeeze().detach().view(3,-1).T
     n = n.squeeze().detach().view(3,-1).T
     
-    writer.add_image("target", xyz[:,2:].reshape(w,h,1).repeat(1,1,3), 0, dataformats='WHC')
-
     bs = args.batchsize
     for epoch in range(args.epoch):
         loss_t = 0
