@@ -7,7 +7,7 @@ import torch.optim as optim
 
 from torch.utils.tensorboard import SummaryWriter
 
-from models import DeepSDF, PositionalEncoding, Siren
+from models import Siren
 from utils import Sobel
 import utils
 
@@ -68,7 +68,7 @@ def tangent_loss(f_, x_, n_, h, w):
     #g_ = g_ / torch.norm(g_, dim=1, keepdim=True)
 
     tx_ = torch.cat([-(x_* g_)[:,0:1] - f_ / w, -(x_* g_)[:,1:2], g_[:,0:1]], dim=1)
-    ty_ = torch.cat([-(x_* g_)[:,0:1], -(x_* g_)[:,1:2] - f_ / w, g_[:,1:2]], dim=1)
+    ty_ = torch.cat([-(x_* g_)[:,0:1], -(x_* g_)[:,1:2] - f_ / h, g_[:,1:2]], dim=1)
 
     return torch.sum(torch.pow(torch.sum(tx_ * n_, dim=1) + torch.sum(ty_ * n_, dim=1), 2)), g_
 
