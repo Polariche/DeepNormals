@@ -134,7 +134,6 @@ def main():
     model_input, ground_truth = next(iter(dataloader))
     model_input, ground_truth = model_input.cuda(), ground_truth.cuda()
 
-    
     for step in range(args.epoch):
         model_output, coords = model(model_input)    
         loss = ((model_output - ground_truth)**2).mean()
@@ -148,12 +147,10 @@ def main():
                                             ground_truth.cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy()], axis=0), 
                                 step, dataformats='NHWC')
             writer.add_images("result : grad", 
-                                np.concatenate([img_grad.norm(dim=-1).cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy(), 
-                                            gradient(ground_truth, coords).norm(dim=-1).cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy()], axis=0), 
+                                img_grad.norm(dim=-1).cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy(), 
                                 step, dataformats='NHWC')
             writer.add_images("result : laplacian", 
-                                np.concatenate([img_laplacian.cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy(),
-                                            laplace(ground_truth, coords).cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy()], axis=0), 
+                                img_laplacian.cpu().view(1,256,256,1).repeat(1,1,1,3).detach().numpy(), 
                                 step, dataformats='NHWC')
         optimizer.zero_grad()
         loss.backward()
