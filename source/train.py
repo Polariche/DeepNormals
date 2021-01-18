@@ -129,7 +129,7 @@ def main():
     with torch.no_grad():
         depth = cv2.imread(args.data, -1).astype(np.float32) / 1000.
         #depth = cv2.resize(depth, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_CUBIC)
-        depth = cv2.bilateralFilter(depth, 7, 20, 3)
+        depth = cv2.bilateralFilter(depth, 7, 5, 3)
         
         depth = torch.tensor(depth.T, device=device).unsqueeze(0).unsqueeze(0)
 
@@ -150,7 +150,16 @@ def main():
         xy1 = xy1.squeeze().detach().view(3,-1).T
         xyz = xyz.squeeze().detach().view(3,-1).T
         n = n.squeeze().detach().view(3,-1).T
-    
+
+        norms = n.reshape(w,h,3).transpose(0,1).cpu().numpy()
+        colors = (xy1.cpu().numpy()*np.array([[1,1,0]])).reshape(w,h,3).transpose(1,0,2) * 128 + 128
+
+        utils.writePLY_mesh("../../../data/data.ply", 
+                                torch.cat([xy1[:,:2], xyz[:,2:]], dim=1).reshape(w,h,3).transpose(0,1).cpu().numpy(), 
+                                norms,
+                                colors, 
+                                eps=100)
+
     bs = args.batchsize
     for epoch in range(args.epoch):
         loss_t = 0
@@ -173,17 +182,9 @@ def main():
 
         torch.save(model.state_dict(), args.weight_save_path+'model_%03d.pth' % epoch)
 
-        norms = n.reshape(w,h,3).transpose(0,1).cpu().numpy()
-        colors = (xy1.cpu().numpy()*np.array([[1,1,0]])).reshape(w,h,3).transpose(1,0,2) * 128 + 128
+        
         
         if epoch == args.epoch -1:
-
-            utils.writePLY_mesh("../../../data/data.ply", 
-                                torch.cat([xy1[:,:2], xyz[:,2:]], dim=1).reshape(w,h,3).transpose(0,1).cpu().numpy(), 
-                                norms,
-                                colors, 
-                                eps=100)
-
             utils.writePLY_mesh("../../../data/result.ply", 
                                 torch.cat([xy1[:,:2], f], dim=1).reshape(w,h,3).transpose(0,1).cpu().numpy(), 
                                 norms,
