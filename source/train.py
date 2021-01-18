@@ -129,7 +129,7 @@ def main():
     with torch.no_grad():
         depth = cv2.imread(args.data, -1).astype(np.float32) / 1000.
         #depth = cv2.resize(depth, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_CUBIC)
-        depth = cv2.bilateralFilter(depth, 7, 5, 3)
+        depth = cv2.bilateralFilter(depth, 5, 1, 3)
         
         depth = torch.tensor(depth.T, device=device).unsqueeze(0).unsqueeze(0)
 
