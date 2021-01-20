@@ -15,8 +15,8 @@ class ObjDataset(Dataset):
         obj = obj_file.read()
         obj_file.close()
 
-        vpattern = r"(?:v)( [-\d\.]+)( [-\d\.]+)( [-\d\.]+)"
-        fpattern = r"(?:f)( \d)(?:/\d?){0,2}( \d)(?:/\d?){0,2}( \d)(?:/\d?){0,2}"
+        vpattern = r"(?:v)\s+([-\d\.]+)\s+([-\d\.]+)\s+([-\d\.]+)"
+        fpattern = r"(?:f)\s+(\d+)(?:\/\d?){0,2}\s+(\d+)(?:\/\d?){0,2}\s+(\d+)(?:\/\d?){0,2}"
 
         print(re.findall(vpattern, obj))
         print(re.findall(fpattern, obj))
