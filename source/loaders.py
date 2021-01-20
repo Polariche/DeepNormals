@@ -22,7 +22,7 @@ class ObjDataset(Dataset):
         f = re.findall(fpattern, obj)
 
         v = torch.tensor([list(map(float, v_)) for v_ in v], dtype=torch.float)
-        f = torch.tensor([list(map(lambda x: int(x-1), f_)) for f_ in f], dtype=torch.long)
+        f = torch.tensor([list(map(lambda x: int(x)-1, f_)) for f_ in f], dtype=torch.long)
 
         fn = v[f]
         print(fn.shape)
