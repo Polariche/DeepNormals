@@ -22,22 +22,22 @@ class ObjDataset(Dataset):
     def __init__(self, obj_path):
         # read an obj file
         obj_file = open(obj_path, 'r')
-        obj = obj_file.read()
+        obj = obj_file.readlines()
         obj_file.close()
 
         vpattern = r"(?:v)\s+([-\d\.]+)\s+([-\d\.]+)\s+([-\d\.]+)"
         fpattern = r"(?:f)\s+(\d+)(?:\/\d?){0,2}\s+(\d+)(?:\/\d?){0,2}\s+(\d+)(?:\/\d?){0,2}"
 
         v = []
-        vind = []
+        vind = {}
 
         for i, line in enumerate(obj):
             vmatch = re.match(vpattern, line)
 
             if vmatch is not None:
+                vind[i] = len(v)
                 v.append(list(map(float, vmatch.group())))
-                vind.append(i)
-
+                
         f = []
 
         for i, line in enumerate(obj):
