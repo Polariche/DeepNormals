@@ -53,7 +53,7 @@ class LGD(optim.Optimizer):
             for param in group['params']:
                 n = torch.flatten(param).shape[0]
                 param_g = params_gcat[i:i+n].view(param.shape)
-                param.add_(param_g, alpha=-1)
+                param.add(param_g, alpha=-1)
 
                 i += n
 
