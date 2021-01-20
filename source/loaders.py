@@ -36,14 +36,14 @@ class ObjDataset(Dataset):
 
             if vmatch is not None:
                 vind[i] = len(v)
-                v.append(list(map(float, vmatch.group())))
+                v.append(list(map(float, vmatch.groups())))
                 
         f = []
 
         for i, line in enumerate(obj):
             fmatch = re.match(fpattern, line)
             if fmatch is not None:
-                f.append(list(map(lambda x: vind[int(x)], fmatch.group())))
+                f.append(list(map(lambda x: vind[int(x)], fmatch.groups())))
 
 
         v = torch.tensor(v, dtype=torch.float)
