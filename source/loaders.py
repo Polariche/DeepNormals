@@ -22,32 +22,17 @@ class ObjDataset(Dataset):
     def __init__(self, obj_path):
         # read an obj file
         obj_file = open(obj_path, 'r')
-        obj = obj_file.readlines()
+        obj = obj_file.read()
         obj_file.close()
 
         vpattern = r"(?:v)\s+([-\d\.]+)\s+([-\d\.]+)\s+([-\d\.]+)"
         fpattern = r"(?:f)\s+(\d+)(?:\/\d?){0,2}\s+(\d+)(?:\/\d?){0,2}\s+(\d+)(?:\/\d?){0,2}"
 
-        v = []
-        vind = {}
+        v = re.findall(vpattern, obj_line)
+        f = re.findall(fpattern, obj_line)
 
-        for i, line in enumerate(obj):
-            vmatch = re.match(vpattern, line)
-
-            if vmatch is not None:
-                vind[i+1] = len(v)
-                v.append(list(map(float, vmatch.groups())))
-                
-        f = []
-
-        for i, line in enumerate(obj):
-            fmatch = re.match(fpattern, line)
-            if fmatch is not None:
-                f.append(list(map(lambda x: vind[int(x)], fmatch.groups())))
-
-
-        v = torch.tensor(v, dtype=torch.float)
-        f = torch.tensor(f, dtype=torch.long)
+        v = torch.tensor([list(map(float, v_)) for v_ in v], dtype=torch.float)
+        f = torch.tensor([list(map(lambda x: int(x)-1, f_)) for f_ in f], dtype=torch.long)
 
         vf = v[f]
 
