@@ -78,5 +78,5 @@ c = ds.vn
 args = parser.parse_args()
 
 writer = SummaryWriter(args.tb_save_path)
-writer.add_mesh("teapot", xyz.unsqueeze(0), colors=c.float().unsqueeze(0)*0.5+0.5)
+writer.add_mesh("teapot", xyz.unsqueeze(0), colors=c.float().unsqueeze(0)*0.5+0.5, faces=ds.f.unsqueeze(0))
 writer.close()
