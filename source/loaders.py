@@ -28,11 +28,26 @@ class ObjDataset(Dataset):
         vpattern = r"(?:v)\s+([-\d\.]+)\s+([-\d\.]+)\s+([-\d\.]+)"
         fpattern = r"(?:f)\s+(\d+)(?:\/\d?){0,2}\s+(\d+)(?:\/\d?){0,2}\s+(\d+)(?:\/\d?){0,2}"
 
-        v = re.findall(vpattern, obj)
-        f = re.findall(fpattern, obj)
+        v = []
+        vind = []
 
-        v = torch.tensor([list(map(float, v_)) for v_ in v], dtype=torch.float)
-        f = torch.tensor([list(map(lambda x: int(x)-1, f_)) for f_ in f], dtype=torch.long)
+        for i, line in enumerate(obj):
+            vmatch = re.match(vpattern, line)
+
+            if vmatch is not None:
+                v.append(list(map(float, vmatch.group())))
+                vind.append(i)
+
+        f = []
+
+        for i, line in enumerate(obj):
+            fmatch = re.match(fpattern, line)
+            if fmatch is not None:
+                f.append(list(map(lambda x: vind[int(x)], fmatch.group())))
+
+
+        v = torch.tensor(v, dtype=torch.float)
+        f = torch.tensor(f, dtype=torch.long)
 
         vf = v[f]
 
