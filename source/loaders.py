@@ -63,7 +63,7 @@ class ObjDataset(Dataset):
         self.fn = fn
 
     def __len__(self):
-        raise len(self.v)
+        return len(self.v)
 
     def __getitem__(self, idx):
         return {'xyz': self.v[idx], 'n': self.vn[idx]}
