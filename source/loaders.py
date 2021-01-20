@@ -18,14 +18,22 @@ class ObjDataset(Dataset):
         vpattern = r"(?:v)\s+([-\d\.]+)\s+([-\d\.]+)\s+([-\d\.]+)"
         fpattern = r"(?:f)\s+(\d+)(?:\/\d?){0,2}\s+(\d+)(?:\/\d?){0,2}\s+(\d+)(?:\/\d?){0,2}"
 
-        print(re.findall(vpattern, obj))
-        print(re.findall(fpattern, obj))
+        v = re.findall(vpattern, obj)
+        f = re.findall(fpattern, obj)
+
+        v = torch.tensor([list(v_) for v_ in v], dtype=torch.float)
+        f = torch.tensor([list(f_) for f_ in f], dtype=torch.long)
+
+        fn = v[f]
+        print(fn.shape)
+
+        self.v = v
+        self.f = f
 
     def __len__(self):
-        raise NotImplementedError
+        raise len(self.v)
 
     def __getitem__(self, idx):
-        raise NotImplementedError
-        #return {'xyz': , 'n': }
+        return {'xyz': self.v[idx]}
 
 ObjDataset("../../../data/teapot.obj")
