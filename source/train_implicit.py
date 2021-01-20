@@ -110,15 +110,6 @@ def main():
         optimizer.step()
 
         torch.save(model.state_dict(), args.weight_save_path+'model_%03d.pth' % epoch)
-
-        
-        
-        if epoch == args.epoch -1:
-            utils.writePLY_mesh("../../../data/result.ply", 
-                                torch.cat([xy1[:,:2], f], dim=1).reshape(w,h,3).transpose(0,1).cpu().numpy(), 
-                                norms,
-                                colors, 
-                                eps=100)
         
     
     writer.close()

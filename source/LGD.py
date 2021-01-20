@@ -29,37 +29,33 @@ class LGD(optim.Optimizer):
 
         for group in self.param_groups:
             module = group['module']
-            state = self.state[group]
+            
+            k = group['param_features']
             hs_features = group['hs_features']
-            hs = state['hs']
 
-            params_gcat = torch.zeros((1,0))
+            params_gcat = torch.zeros((0,k+hs))
 
             # concat param gradients
             for param in group['params']:
-                if param.grad is not None:
-                    params_gcat = torch.cat([params_gcat, torch.flatten(param.grad).view(1,-1)], dim=1)
-                else:
-                    params_gcat = torch.cat([params_gcat, torch.flatten(torch.zeros_like(param)).view(1,-1)], dim=1)
+                state = self.state[param]
+                hs = state['hs']
 
-            # add hidden state
-            params_gcat = torch.cat([params_gcat, hs], dim=1)
+                if param.grad is not None:
+                    p = param.grad.view(1,k)
+                    p = torch.cat([p, hs], dim=1)       # add hidden state
+                    params_gcat = torch.cat([params_gcat, p], dim=0)
+                else:
+                    params_gcat = torch.cat([params_gcat, torch.zeros((1,k+hs_features))], dim=0)
 
             # pass gradients to network
             params_gcat = module(params_gcat)
 
             # update params
-            i = 0
-            for param in group['params']:
-                n = torch.flatten(param).shape[0]
-                param_g = params_gcat[i:i+n].view(param.shape)
-                param.add(param_g, alpha=-1)
+            for i, param in enumerate(group['params']):
+                state = self.state[param]
+                param.add(params_gcat[i, :k].view(param.shape), alpha=-1)
 
-                i += n
-
-            # update hidden state
-            if hs_features > 0:
-                state['hs'] = params_gcat[i:]
+                state['hs'] = params_gcat[i, k:]
         
         return loss
 
@@ -68,15 +64,20 @@ class LGD(optim.Optimizer):
         super(LGD, self).add_param_group(param_group)
 
         # count the total number of variables to optimize
-        n = 0
+        # all parameters should contain same variable count
+        k = torch.flatten(param_group['params'][0]).shape[0]
         for param in param_group['params']:
-            n += torch.flatten(param).shape[0]
+            k_ = torch.flatten(param).shape[0]
+            assert k == k_
+
+        param_group['param_features'] = k
 
         # create a network
         mc = param_group['module_class']
-        module = mc(in_features=n, out_features=n, *param_group['module_args'])
+        module = mc(in_features=k, out_features=k, *param_group['module_args'])
         param_group.setdefault('module', module)
 
-        # add a hidden state for the group
+        # add a hidden state for each param
         hs_features = param_group['hs_features']
-        self.state[param_group] = {'hs': torch.zeros((1, hs_features))}
+        for param in param_group['params']:
+            self.state[param].setdefault('hs', torch.zeros_like((1,hs_features)))
