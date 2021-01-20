@@ -68,7 +68,7 @@ class ObjDataset(Dataset):
     def __getitem__(self, idx):
         return {'xyz': self.v[idx], 'n': self.vn[idx]}
 
-ds = ObjDataset("../../../data/teapot.obj")
+ds = ObjDataset("../../../data/train/02828884/model_001415.obj")
 xyz = ds.v
 c = ds.vn
 
