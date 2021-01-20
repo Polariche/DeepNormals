@@ -47,6 +47,7 @@ class ObjDataset(Dataset):
 
         # normalization
         fn = fn / torch.norm(fn, dim=1, keepdim=True)
+        fn[torch.isnan(fn)] = 0.
 
         vn = torch.zeros_like(v)
 
@@ -56,6 +57,7 @@ class ObjDataset(Dataset):
 
         # normalization
         vn = vn / torch.norm(vn, dim=1, keepdim=True)
+        vn[torch.isnan(vn)] = 0.
     
         self.v = v
         self.f = f
