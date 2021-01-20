@@ -7,6 +7,15 @@ from torch.utils.data import  Dataset, DataLoader
 import re
 import warnings
 
+from torch.utils.tensorboard import SummaryWriter
+import argparse
+
+
+parser = argparse.ArgumentParser(description='Test',
+                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument('--tb-save-path', dest='tb_save_path', metavar='PATH', default='../../../data/pointcloud_test/checkpoints/', 
+                        help='tensorboard checkpoints path')
+
 class ObjDataset(Dataset):
 
     @torch.no_grad()
@@ -27,25 +36,26 @@ class ObjDataset(Dataset):
 
         vf = v[f]
 
+        # obtain face normal with cross vector
         a1 = vf[:,0] - vf[:,1] 
         a2 = vf[:,1] - vf[:,2]
-
+        
         fn = torch.cat([t.unsqueeze(1) for t in 
            [a1[:,1] * a2[:,2] - a1[:,2] * a2[:,1],
             a1[:,2] * a2[:,0] - a1[:,0] * a2[:,2],
             a1[:,0] * a2[:,1] - a1[:,1] * a2[:,0]]], dim=1)
+
+        # normalization
         fn = fn / torch.norm(fn, dim=1, keepdim=True)
 
         vn = torch.zeros_like(v)
 
+        # add face normal to connected vertices
         for i in range(3):
             vn[f[:,i]] = vn[f[:,i]].add_(fn)
 
-        print(vn)
-
+        # normalization
         vn = vn / torch.norm(vn, dim=1, keepdim=True)
-
-        print(vn)
     
         self.v = v
         self.f = f
@@ -56,6 +66,14 @@ class ObjDataset(Dataset):
         raise len(self.v)
 
     def __getitem__(self, idx):
-        return {'xyz': self.v[idx]}
+        return {'xyz': self.v[idx], 'n': self.vn[idx]}
 
-ObjDataset("../../../data/teapot.obj")
+ds = ObjDataset("../../../data/teapot.obj")
+xyz = [ds[i]['xyz'] for i in range(len(ds))]
+c = [ds[i]['n'] for i in range(len(ds))]
+
+args = parser.parse_args()
+
+writer = SummaryWriter(args.tb_save_path)
+writer.add_mesh("teapot", xyz.unsqueeze(0), colors=c.unsqueeze(0)*0.5+0.5)
+writer.close()
