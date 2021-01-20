@@ -38,7 +38,8 @@ class ObjDataset(Dataset):
 
         vn = torch.zeros_like(v)
 
-        vn[f] = vn[f].add_(fn.unsqueeze(1).repeat(1,3,1))
+        for i in range(3):
+            vn[f[:,i]] = vn[f[:,i]].add_(fn.unsqueeze(1).repeat(1,3,1))
 
         print(vn)
 
