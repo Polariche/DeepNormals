@@ -21,8 +21,8 @@ class ObjDataset(Dataset):
         v = re.findall(vpattern, obj)
         f = re.findall(fpattern, obj)
 
-        v = torch.tensor([map(float, v_) for v_ in v], dtype=torch.float)
-        f = torch.tensor([map(int, f_) for f_ in f], dtype=torch.long)
+        v = torch.tensor([list(map(float, v_)) for v_ in v], dtype=torch.float)
+        f = torch.tensor([list(map(int, f_)) for f_ in f], dtype=torch.long)
 
         fn = v[f]
         print(fn.shape)
