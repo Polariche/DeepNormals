@@ -34,10 +34,15 @@ class ObjDataset(Dataset):
            [a1[:,1] * a2[:,2] - a1[:,2] * a2[:,1],
             a1[:,2] * a2[:,0] - a1[:,0] * a2[:,2],
             a1[:,0] * a2[:,1] - a1[:,1] * a2[:,0]]], dim=1)
+        fn = fn / torch.norm(fn, dim=1, keepdim=True)
 
         vn = torch.zeros_like(v)
 
         vn[f] = vn[f].add_(f.unsqueeze(1).repeat(1,3,1))
+
+        print(vn)
+
+        vn = vn / torch.norm(vn, dim=1, keepdim=True)
 
         print(vn)
     
