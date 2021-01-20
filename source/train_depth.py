@@ -35,10 +35,9 @@ parser.add_argument('--batchsize', dest='batchsize', type=int, metavar='BATCHSIZ
 parser.add_argument('--epoch', dest='epoch', type=int,metavar='EPOCH', default=100, 
                         help='epochs')
 
-parser.add_argument('--epsilon', dest='epsilon', type=float, metavar='EPSILON', default=0.1, 
-                        help='epsilon')
+
 parser.add_argument('--omega', dest='omega', type=float, metavar='OMEGA', default=30, 
-                        help='hyperparameter for periodic layer')
+                        help='hyperparameter for periodic layers')
 parser.add_argument('--lambda', dest='lamb', type=float, metavar='LAMBDA', default=0.005, 
                         help='hyperparameter for z : tangent loss ratio')
 
@@ -47,19 +46,7 @@ parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE',
                         help='output file')
 
 
-"""
-def z_uv_loss(f_, x_, z_uv_, h, w):
-    n_ = utils.normal_from_y(f_, x_)
-    
-    zx_ = (-n_[:,0] / n_[:,2]).view(-1,1)
-    zy_ = (-n_[:,1] / n_[:,2]).view(-1,1)
 
-    z_uv2_ = torch.cat([(zx_*x_[:,2].view(-1,1)/w) / (1 - zx_ * x_[:,0].view(-1,1) - zy_ * x_[:,1].view(-1,1)),
-                        (zy_*x_[:,2].view(-1,1)/h) / (1 - zx_ * x_[:,0].view(-1,1) - zy_ * x_[:,1].view(-1,1))],dim=1)
-
-    loss = torch.sum(torch.norm(z_uv_ - z_uv2_, dim=1))
-    return loss, z_uv2_
-"""
 def z_loss(f_, z_):
     return torch.sum(torch.pow(f_ - z_, 2))
 
@@ -112,9 +99,7 @@ def main():
     writer = SummaryWriter(args.tb_save_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    # create models
     model = Siren(in_features=2, out_features=1, hidden_features=256, hidden_layers=3, outermost_linear=True).to(device) 
-            #DeepSDF(2, 1, activation=args.activation, omega_0 = args.omega).to(device)
 
     optimizer = optim.Adam(model.parameters(), lr = 1e-3)
 
@@ -128,7 +113,6 @@ def main():
     # read input depth
     with torch.no_grad():
         depth = cv2.imread(args.data, -1).astype(np.float32) / 1000.
-        #depth = cv2.resize(depth, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_CUBIC)
         depth = cv2.bilateralFilter(depth, 5, 1, 3)
         
         depth = torch.tensor(depth.T, device=device).unsqueeze(0).unsqueeze(0)
@@ -144,7 +128,7 @@ def main():
         xyz = torch.cat([x.to(device).unsqueeze(0).unsqueeze(0),
                         y.to(device).unsqueeze(0).unsqueeze(0), 
                         depth], dim=1)
-        #xyz = xy1 * depth
+
         n = Sobel(3).to(device).normal(xyz)
 
         xy1 = xy1.squeeze().detach().view(3,-1).T
