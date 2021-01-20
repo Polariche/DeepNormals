@@ -35,7 +35,7 @@ class ObjDataset(Dataset):
             vmatch = re.match(vpattern, line)
 
             if vmatch is not None:
-                vind[i] = len(v)
+                vind[i+1] = len(v)
                 v.append(list(map(float, vmatch.groups())))
                 
         f = []
