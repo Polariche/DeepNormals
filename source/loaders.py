@@ -69,8 +69,8 @@ class ObjDataset(Dataset):
         return {'xyz': self.v[idx], 'n': self.vn[idx]}
 
 ds = ObjDataset("../../../data/teapot.obj")
-xyz = torch.tensor([ds[i]['xyz'] for i in range(len(ds))])
-c = torch.tensor([ds[i]['n'] for i in range(len(ds))])
+xyz = ds.v
+c = ds.vn
 
 args = parser.parse_args()
 
