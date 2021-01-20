@@ -30,16 +30,21 @@ class ObjDataset(Dataset):
         a1 = vf[:,0] - vf[:,1] 
         a2 = vf[:,1] - vf[:,2]
 
-        fn = torch.cat([t.unsqueeze(1) for t in [
-            a1[:,1] * a2[:,2] - a1[:,2] * a2[:,1],
+        fn = torch.cat([t.unsqueeze(1) for t in 
+           [a1[:,1] * a2[:,2] - a1[:,2] * a2[:,1],
             a1[:,2] * a2[:,0] - a1[:,0] * a2[:,2],
             a1[:,0] * a2[:,1] - a1[:,1] * a2[:,0]]], dim=1)
 
+        vn = torch.zeros_like(v)
 
-        print(fn.shape)
+        vn[f].add_(f.unsqueeze(1).repeat(1,3,1))
 
+        print(vn)
+    
         self.v = v
         self.f = f
+        self.vn = vn
+        self.fn = fn
 
     def __len__(self):
         raise len(self.v)
