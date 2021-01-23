@@ -104,7 +104,7 @@ def main():
     # load 
     ds = ObjDataset("../../../data/train/02828884/model_001415.obj")
 
-    n = ds.n
+    n = ds.vn
     xyz = ds.v
 
     n_aug = n.unsqueeze(0).repeat(10,1,1).view(-1,3)
