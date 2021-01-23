@@ -49,45 +49,30 @@ parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE',
                         help='output file')
 
 
-def train_batch(device, model, xyz, s_gt, n_gt, batchsize, backward=True, lamb=0.005):
-    loss_sum = 0
-    bs = batchsize
+def train(device, model, xyz, s_gt, n_gt,backward=True, lamb=0.005):
+    s, n = model(xyz)
 
-    s = torch.zeros((xyz.shape[0], 1)).to(device)
-    n = torch.zeros((xyz.shape[0], 3)).to(device)
+    for param in model.parameters():
+        param.requires_grad = False
+    
+    nd = torch.norm(n, dim=1, keepdim=True)
 
-    for j in range(xyz.shape[0] // bs):
-        br = torch.arange(j*bs, (j+1)*bs, dtype=torch.long)
+    ones = s_gt == 0
+    zeros = s_gt == 1
 
-        xyz_ = xyz[br]
-        s_, n_ = model(xyz_)
+    loss_grad = torch.sum(torch.pow(nd - 1,2))
+    loss_zeros = torch.sum((torch.pow(s,2) + (1 - torch.sum(n * n_gt, dim=1, keepdim=True)))[zeros])
+    loss_ones = torch.sum(torch.exp(-nd)[ones])
 
+    loss = loss_grad + loss_zeros + loss_ones 
+    loss /= xyz.shape[0]
+    
+    if backward:
         for param in model.parameters():
-            param.requires_grad = False
-        
-        nd = torch.norm(n_, dim=1, keepdim=True)
+            param.requires_grad = True
+    loss.backward()
 
-        ones = s_gt[br] == 0
-        zeros = s_gt[br] == 1
-
-        loss_grad = torch.sum(torch.pow(nd - 1,2))
-        loss_zeros = torch.sum((torch.pow(s_,2) + (1 - torch.sum(n_ * n_gt[br], dim=1, keepdim=True)))[zeros])
-        loss_ones = torch.sum(torch.exp(-nd)[ones])
-
-        loss = loss_grad + loss_zeros + loss_ones 
-        loss /= xyz.shape[0]
-
-        
-        if backward:
-            for param in model.parameters():
-                param.requires_grad = True
-            loss.backward()
-
-        loss_sum += loss.detach() 
-        s[br] = s_.detach()
-        n[br] = n_.detach()
-
-    return loss_sum, s, n
+    return loss.detach(), s.detach(), n.detach()
 
 def main():
     args = parser.parse_args()
@@ -130,7 +115,7 @@ def main():
         
         # train
         utils.model_train(model)
-        loss_t, s, n = train_batch(device, model, xyz_aug, s_aug, n_aug, bs, backward=True, lamb= args.lamb)
+        loss_t, s, n = train(device, model, xyz_aug, s_aug, n_aug,backward=True, lamb= args.lamb)
 
         writer.add_scalars("loss", {'train': loss_t}, epoch)
 
