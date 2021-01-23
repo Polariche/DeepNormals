@@ -110,7 +110,7 @@ def main():
     with torch.no_grad():
         n_aug = n.unsqueeze(0).repeat(20,1,1).reshape(-1,3)
         xyz_aug = (xyz.unsqueeze(0).repeat(20,1,1) + n.unsqueeze(0).repeat(20, 1, 1) * torch.arange(-1e-3, 1e-3, 1e-4).reshape(20, 1, 1)).reshape(-1,3)
-        s_aug = torch.arange(-1e-3, 1e-3, 1e-4).unsqueeze(0).repeat(1,xyz.shape[0]).reshape(-1,1)
+        s_aug = torch.arange(-1, 1, 0.1).unsqueeze(0).repeat(1,xyz.shape[0]).reshape(-1,1)
 
         n_aug = n_aug.to(device)
         xyz_aug = xyz_aug.to(device)
