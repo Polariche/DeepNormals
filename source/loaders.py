@@ -49,8 +49,7 @@ class ObjDataset(Dataset):
         vn = torch.zeros_like(v)
 
         # add face normal to connected vertices
-        for i in range(3):
-            vn[f[:,i]] = vn[f[:,i]].add_(fn)
+        vn.index_add(0, f.view(-1), fn.unsqueeze(1).repeat(1,3).view(-1))
 
         # normalization
         vn = vn / torch.norm(vn, dim=1, keepdim=True)
