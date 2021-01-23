@@ -21,7 +21,7 @@ class LGD(optim.Optimizer):
 
         if closure is not None:
             with torch.enable_grad():
-                # if module's requires_grad = True, dL/dp (p is module's parameter) is be also evaluated,
+                # if module's requires_grad = True, dL/dp (p is module's parameter) is also evaluated,
                 # which is accumulated on module's grad over steps.
                 # we can run another optimizer to optimize... the optimizer?
 
@@ -79,6 +79,6 @@ class LGD(optim.Optimizer):
 
         # add a hidden state for each param
         hs_features = param_group['hs_features']
-        
+
         for param in param_group['params']:
             self.state[param].setdefault('hs', torch.zeros_like((1,hs_features)))
