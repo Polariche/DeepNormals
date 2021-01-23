@@ -109,7 +109,7 @@ def main():
         xyz_aug = xyz_aug.to(device)
         s_aug = s_aug.to(device)
 
-    writer.add_mesh("n_gt", xyz.unsqueeze(0), colors=(n.unsqueeze(0) * 128 + 128).int(), faces=ds.f.unsqueeze(0))
+    writer.add_mesh("n_gt", xyz.unsqueeze(0), colors=(n.unsqueeze(0) * 128 + 128).int())
 
     for epoch in range(args.epoch):
         loss_t = 0
@@ -123,8 +123,8 @@ def main():
         writer.add_scalars("loss", {'train': loss_t}, epoch)
 
         if epoch % 10 == 0:
-            writer.add_mesh("s", xyz_aug[:xyz.shape[0]].unsqueeze(0), colors=(s[:xyz.shape[0]].unsqueeze(0).repeat(1,1,3) * 128 + 128).int(), faces=ds.f.unsqueeze(0),  global_step=epoch)
-            writer.add_mesh("n", xyz_aug[:xyz.shape[0]].unsqueeze(0), colors=(n[:xyz.shape[0]].unsqueeze(0) * 256).int(), faces=ds.f.unsqueeze(0), global_step=epoch)
+            writer.add_mesh("s", xyz_aug[:xyz.shape[0]].unsqueeze(0), colors=(s[:xyz.shape[0]].unsqueeze(0).repeat(1,1,3) * 128 + 128).int(),  global_step=epoch)
+            writer.add_mesh("n", xyz_aug[:xyz.shape[0]].unsqueeze(0), colors=(n[:xyz.shape[0]].unsqueeze(0) * 256).int(), global_step=epoch)
 
         # update
         optimizer.step()
