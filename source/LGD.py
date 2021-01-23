@@ -53,7 +53,7 @@ class LGD(optim.Optimizer):
             # update params
             for i, param in enumerate(group['params']):
                 state = self.state[param]
-                param.add(params_gcat[i, :k].view(param.shape), alpha=-1)
+                param.add(params_gcat[i, :k].view(param.shape))
 
                 state['hs'] = params_gcat[i, k:]
         
@@ -79,5 +79,6 @@ class LGD(optim.Optimizer):
 
         # add a hidden state for each param
         hs_features = param_group['hs_features']
+        
         for param in param_group['params']:
             self.state[param].setdefault('hs', torch.zeros_like((1,hs_features)))

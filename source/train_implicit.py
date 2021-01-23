@@ -9,7 +9,9 @@ from torch.utils.tensorboard import SummaryWriter
 
 from models import Siren
 from utils import Sobel
+from loaders import ObjDataset
 import utils
+from torch.utils.data import  DataLoader
 
 import argparse
 
@@ -51,6 +53,9 @@ def train_batch(device, model, xyz, s_gt, n_gt, batchsize, backward=True, lamb=0
     loss_sum = 0
     bs = batchsize
 
+    s = torch.zeros((xyz.shape[0], 1))
+    n = torch.zeros((xyz.shape[0], 3))
+
     for j in range(xyz.shape[0] // bs):
         br = torch.arange(j*bs, (j+1)*bs, dtype=torch.long)
 
@@ -61,18 +66,22 @@ def train_batch(device, model, xyz, s_gt, n_gt, batchsize, backward=True, lamb=0
             param.requires_grad = False
         
         sloss = torch.sum(torch.pow(s_ - s_gt[br],2))
-        nloss = torch.sum(n_ * n_gt[br])
+        nloss = -torch.sum(n_ * n_gt[br])
 
         loss = (1-lamb) * sloss + lamb * nloss
         loss /= xyz.shape[0]
 
+        
         if backward:
             for param in model.parameters():
                 param.requires_grad = True
             loss.backward()
-        loss_sum += loss.detach() 
 
-    return loss_sum
+        loss_sum += loss.detach() 
+        s[br] = s_.detach()
+        n[br] = n_.detach()
+
+    return loss_sum, s, n
 
 def main():
     args = parser.parse_args()
@@ -93,6 +102,14 @@ def main():
 
 
     # load 
+    ds = ObjDataset("../../../data/train/02828884/model_001415.obj")
+
+    n = ds.n
+    xyz = ds.v
+
+    n_aug = n.unsqueeze(0).repeat(10,1,1).view(-1,3)
+    xyz_aug = (xyz.unsqueeze(0).repeat(10,1,1) + n.unsqueeze(0).repeat(10, 1, 1) * torch.arange(-1e-3, 1e-3, 1e-4).view(10, 1, 1)).view(-1,3)
+    s_aug = torch.arange(-1e-3, 1e-3, 1e-4).unsqueeze(0).repeat(10,1).view(-1,1)
 
     bs = args.batchsize
     for epoch in range(args.epoch):
@@ -102,10 +119,13 @@ def main():
         
         # train
         utils.model_train(model)
-        loss_t, f, g = train_batch(device, model, xyz[:,:3], xyz[:,3:], n, bs, backward=True, lamb= args.lamb)
+        loss_t, s, n = train_batch(device, model, xyz_aug, s_aug, n_aug, bs, backward=True, lamb= args.lamb)
 
         writer.add_scalars("loss", {'train': loss_t}, epoch)
-        
+
+        writer.add_mesh("s", xyz_aug.unsqueeze(0), colors=(s.unsqueeze(0).repeat(1,1,3) * 128 + 128).int(), global_step=epoch)
+        writer.add_mesh("n", xyz_aug.unsqueeze(0), colors=(n.unsqueeze(0) * 128 + 128).int(), global_step=epoch)
+
         # update
         optimizer.step()
 
