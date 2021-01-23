@@ -39,7 +39,7 @@ class ObjDataset(Dataset):
 
         # obtain face normal with cross vector
         a1 = vf[:,0] - vf[:,1] 
-        a2 = - vf[:,0] + vf[:,2]
+        a2 = - vf[:,1] + vf[:,2]
         
         fn = torch.cat([t.unsqueeze(1) for t in 
            [a1[:,1] * a2[:,2] - a1[:,2] * a2[:,1],
@@ -48,7 +48,7 @@ class ObjDataset(Dataset):
 
         # normalization
         fn = fn / torch.norm(fn, dim=1, keepdim=True)
-        fn[torch.isnan(fn)] = 0.
+        fn = torch.where(torch.isnan(fn), 0, fn)
 
         vn = torch.zeros_like(v)
 
@@ -58,7 +58,7 @@ class ObjDataset(Dataset):
 
         # normalization
         vn = vn / torch.norm(vn, dim=1, keepdim=True)
-        vn[torch.isnan(vn)] = 0.
+        vn = torch.where(torch.isnan(vn), 0, vn)
     
         self.v = v
         self.f = f
@@ -71,7 +71,6 @@ class ObjDataset(Dataset):
     def __getitem__(self, idx):
         return {'xyz': self.v[idx], 'n': self.vn[idx]}
 
-"""
 ds = ObjDataset("../../../data/train/02828884/model_001415.obj")
 xyz = ds.v
 c = ds.vn
@@ -81,4 +80,3 @@ args = parser.parse_args()
 writer = SummaryWriter(args.tb_save_path)
 writer.add_mesh("teapot", xyz.unsqueeze(0), colors=((c.float().unsqueeze(0)*0.5+0.5)*256).int(), faces=ds.f.unsqueeze(0))
 writer.close()
-"""
