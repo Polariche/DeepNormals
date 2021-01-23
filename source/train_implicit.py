@@ -107,7 +107,8 @@ def main():
         xyz_aug = xyz_aug.to(device)
         s_aug = s_aug.to(device)
 
-    bs = args.batchsize
+    writer.add_mesh("n_gt", xyz.unsqueeze(0), colors=(n.unsqueeze(0).repeat(1,1,3) * 128 + 128).int())
+
     for epoch in range(args.epoch):
         loss_t = 0
 
