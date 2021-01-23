@@ -11,10 +11,6 @@ from torch.utils.tensorboard import SummaryWriter
 import argparse
 
 
-parser = argparse.ArgumentParser(description='Test',
-                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('--tb-save-path', dest='tb_save_path', metavar='PATH', default='../../../data/pointcloud_test/checkpoints/', 
-                        help='tensorboard checkpoints path')
 
 class ObjDataset(Dataset):
 
