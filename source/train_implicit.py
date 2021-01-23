@@ -85,7 +85,7 @@ def main():
     # create models
     model = Siren(in_features=3, out_features=1, hidden_features=256, hidden_layers=5, outermost_linear=True).to(device) 
 
-    optimizer = optim.Adam(model.parameters(), lr = 1e-3)
+    optimizer = optim.Adam(model.parameters(), lr = 1e-4)
 
     if args.weight != None:
         try:
@@ -101,7 +101,7 @@ def main():
     xyz = ds.v
 
     with torch.no_grad():
-        xyz_aug = torch.cat([xyz, xyz + n * torch.rand(xyz.shape)], dim=0)
+        xyz_aug = torch.cat([xyz, xyz + n * torch.rand(xyz.shape) * 0.1], dim=0)
         s_aug = torch.cat([torch.zeros((xyz.shape[0], 1)), torch.ones((xyz.shape[0], 1))], dim=0)
         n_aug = n.repeat(2,1)
 
@@ -109,7 +109,7 @@ def main():
         xyz_aug = xyz_aug.to(device)
         s_aug = s_aug.to(device)
 
-    writer.add_mesh("n_gt", xyz.unsqueeze(0), colors=(n.unsqueeze(0) * 128 + 128).int(), faces=ds.f.unsqueeze(0),)
+    writer.add_mesh("n_gt", xyz.unsqueeze(0), colors=(n.unsqueeze(0) * 128 + 128).int(), faces=ds.f.unsqueeze(0))
 
     for epoch in range(args.epoch):
         loss_t = 0
