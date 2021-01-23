@@ -107,9 +107,9 @@ def main():
     n = ds.vn
     xyz = ds.v
 
-    n_aug = n.unsqueeze(0).repeat(10,1,1).view(-1,3)
-    xyz_aug = (xyz.unsqueeze(0).repeat(10,1,1) + n.unsqueeze(0).repeat(10, 1, 1) * torch.arange(-1e-3, 1e-3, 1e-4).view(10, 1, 1)).view(-1,3)
-    s_aug = torch.arange(-1e-3, 1e-3, 1e-4).unsqueeze(0).repeat(10,1).view(-1,1)
+    n_aug = n.unsqueeze(0).repeat(20,1,1).view(-1,3)
+    xyz_aug = (xyz.unsqueeze(0).repeat(20,1,1) + n.unsqueeze(0).repeat(20, 1, 1) * torch.arange(-1e-3, 1e-3, 1e-4).view(20, 1, 1)).view(-1,3)
+    s_aug = torch.arange(-1e-3, 1e-3, 1e-4).unsqueeze(0).repeat(20,1).view(-1,1)
 
     bs = args.batchsize
     for epoch in range(args.epoch):
