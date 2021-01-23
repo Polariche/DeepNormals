@@ -53,8 +53,8 @@ def train_batch(device, model, xyz, s_gt, n_gt, batchsize, backward=True, lamb=0
     loss_sum = 0
     bs = batchsize
 
-    s = torch.zeros((xyz.shape[0], 1))
-    n = torch.zeros((xyz.shape[0], 3))
+    s = torch.zeros((xyz.shape[0], 1)).to(device)
+    n = torch.zeros((xyz.shape[0], 3)).to(device)
 
     for j in range(xyz.shape[0] // bs):
         br = torch.arange(j*bs, (j+1)*bs, dtype=torch.long)
