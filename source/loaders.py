@@ -39,23 +39,24 @@ class ObjDataset(Dataset):
 
         # obtain face normal with cross vector
         a1 = vf[:,0] - vf[:,1] 
-        a2 = - vf[:,1] + vf[:,2]
+        a2 = - vf[:,0] + vf[:,2]
         
         fn = torch.cat([t.unsqueeze(1) for t in 
            [a1[:,1] * a2[:,2] - a1[:,2] * a2[:,1],
             a1[:,2] * a2[:,0] - a1[:,0] * a2[:,2],
             a1[:,0] * a2[:,1] - a1[:,1] * a2[:,0]]], dim=1)
 
+        # normalization
+        fn = fn / torch.norm(fn, dim=1, keepdim=True)
+        fn[torch.isnan(fn)] = 0.
+
         vn = torch.zeros_like(v)
+
         # add face normal to connected vertices
         for i in range(3):
             vn[f[:,i]] = vn[f[:,i]].add_(fn)
 
         # normalization
-
-        fn = fn / torch.norm(fn, dim=1, keepdim=True)
-        fn[torch.isnan(fn)] = 0.
-
         vn = vn / torch.norm(vn, dim=1, keepdim=True)
         vn[torch.isnan(vn)] = 0.
     
