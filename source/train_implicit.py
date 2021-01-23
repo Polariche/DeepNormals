@@ -50,7 +50,8 @@ parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE',
 
 
 def train(device, model, xyz, s_gt, n_gt,backward=True, lamb=0.005):
-    s, n = model(xyz)
+    s, xyz = model(xyz)
+    n = torch.autograd.grad(s, [xyz], grad_outputs=torch.ones_like(xyz), create_graph=True)[0]
 
     for param in model.parameters():
         param.requires_grad = False

@@ -116,7 +116,7 @@ class Siren(nn.Module):
         return activations
 
 class DeepSDF(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, mid_channels: int = 512, last_activation = None, activation = 'relu', omega_0 = 30.):
+    def __init__(self, in_channels: int, out_channels: int, mid_channels: int = 512, last_activation = 'tanh', activation = 'relu', omega_0 = 30.):
         super(DeepSDF, self).__init__()
         
         c = [in_channels] + [mid_channels]*3 + [mid_channels - in_channels] + [mid_channels]*3 + [out_channels]
@@ -139,7 +139,6 @@ class DeepSDF(nn.Module):
 
             fc = nn.Linear(inc, ouc)
 
-            # fc2d has no uniform init, so do it manually
             with torch.no_grad():
                 if i == 1:
                     const = 1 / mid_channels 
