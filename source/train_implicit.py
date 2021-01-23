@@ -85,7 +85,7 @@ def main():
     # create models
     model = Siren(in_features=3, out_features=1, hidden_features=256, hidden_layers=5, outermost_linear=True).to(device) 
 
-    optimizer = optim.Adam(model.parameters(), lr = 1e-3)
+    optimizer = optim.Adam(model.parameters(), lr = 1e-4)
 
     if args.weight != None:
         try:
