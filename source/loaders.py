@@ -66,13 +66,3 @@ class ObjDataset(Dataset):
 
     def __getitem__(self, idx):
         return {'xyz': self.v[idx], 'n': self.vn[idx]}
-
-ds = ObjDataset("../../../data/train/02828884/model_001415.obj")
-xyz = ds.v
-c = ds.vn
-
-args = parser.parse_args()
-
-writer = SummaryWriter(args.tb_save_path)
-writer.add_mesh("teapot", xyz.unsqueeze(0), colors=((c.float().unsqueeze(0)*0.5+0.5)*256).int(), faces=ds.f.unsqueeze(0))
-writer.close()
