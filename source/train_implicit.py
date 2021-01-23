@@ -109,7 +109,7 @@ def main():
         xyz_aug = xyz_aug.to(device)
         s_aug = s_aug.to(device)
 
-    writer.add_mesh("n_gt", xyz.unsqueeze(0), colors=(n.unsqueeze(0) * 128 + 128).int())
+    writer.add_mesh("n_gt", xyz.unsqueeze(0), colors=(n.unsqueeze(0) * 128 + 128).int(), faces=ds.f.unsqueeze(0),)
 
     for epoch in range(args.epoch):
         loss_t = 0
