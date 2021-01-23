@@ -56,7 +56,7 @@ def train(device, model, xyz, s_gt, n_gt,backward=True, lamb=0.005):
     for param in model.parameters():
         param.requires_grad = False
     
-    n = torch.autograd.grad(s, [xyz], grad_outputs=torch.ones_like(xyz), create_graph=True)[0]
+    n = torch.autograd.grad(s, [xyz], grad_outputs=torch.ones_like(s), create_graph=True)[0]
     nd = torch.norm(n, dim=1, keepdim=True)
 
     ones = s_gt == 0
