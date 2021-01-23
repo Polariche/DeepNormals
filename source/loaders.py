@@ -46,19 +46,17 @@ class ObjDataset(Dataset):
             a1[:,2] * a2[:,0] - a1[:,0] * a2[:,2],
             a1[:,0] * a2[:,1] - a1[:,1] * a2[:,0]]], dim=1)
 
-        # normalization
-        fn = fn / torch.norm(fn, dim=1, keepdim=True)
-        
         vn = torch.zeros_like(v)
-
         # add face normal to connected vertices
         for i in range(3):
             vn[f[:,i]] = vn[f[:,i]].add_(fn)
 
         # normalization
-        vn = vn / torch.norm(vn, dim=1, keepdim=True)
 
+        fn = fn / torch.norm(fn, dim=1, keepdim=True)
         fn[torch.isnan(fn)] = 0.
+
+        vn = vn / torch.norm(vn, dim=1, keepdim=True)
         vn[torch.isnan(vn)] = 0.
     
         self.v = v
