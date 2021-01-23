@@ -65,10 +65,16 @@ def train_batch(device, model, xyz, s_gt, n_gt, batchsize, backward=True, lamb=0
         for param in model.parameters():
             param.requires_grad = False
         
-        sloss = torch.sum(torch.pow(s_ - s_gt[br],2))
-        nloss = -torch.sum(n_ * n_gt[br])
+        nd = torch.norm(n_, dim=1, keepdim=True)
 
-        loss = (1-lamb) * sloss + lamb * nloss
+        ones = s_gt[br] == 0
+        zeros = s_gt[br] == 1
+
+        loss_grad = torch.sum(torch.pow(nd - 1,2))
+        loss_zeros = torch.sum((torch.pow(s_,2) + (1 - torch.sum(n_ * n_gt[br], dim=1, keepdim=True)))[zeros])
+        loss_ones = torch.sum(torch.exp(-nd)[ones])
+
+        loss = loss_grad + loss_zeros + loss_ones 
         loss /= xyz.shape[0]
 
         
@@ -90,7 +96,7 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # create models
-    model = Siren(in_features=3, out_features=1, hidden_features=256, hidden_layers=3, outermost_linear=True).to(device) 
+    model = Siren(in_features=3, out_features=1, hidden_features=256, hidden_layers=5, outermost_linear=True).to(device) 
 
     optimizer = optim.Adam(model.parameters(), lr = 1e-3)
 
@@ -108,9 +114,9 @@ def main():
     xyz = ds.v
 
     with torch.no_grad():
-        n_aug = n.unsqueeze(0).repeat(20,1,1).reshape(-1,3)
-        xyz_aug = (xyz.unsqueeze(0).repeat(20,1,1) + n.unsqueeze(0).repeat(20, 1, 1) * torch.arange(-1e-3, 1e-3, 1e-4).reshape(20, 1, 1)).reshape(-1,3)
-        s_aug = torch.arange(-1, 1, 0.1).unsqueeze(0).repeat(1,xyz.shape[0]).reshape(-1,1)
+        xyz_aug = torch.cat([xyz, xyz + n * torch.rand(xyz.shape)], dim=0)
+        s_aug = torch.cat([torch.zeros((xyz.shape[0], 1)), torch.ones((xyz.shape[0], 1))], dim=0)
+        n_aug = n.repeat(2,1)
 
         n_aug = n_aug.to(device)
         xyz_aug = xyz_aug.to(device)
