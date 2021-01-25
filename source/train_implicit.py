@@ -131,7 +131,6 @@ def main():
         utils.model_train(model)
         loss_t, s, n = train(device, model, xyz_aug, s_aug, n_aug, backward=True, lamb= args.lamb)
         #loss_x = 5e2 * torch.sum(torch.norm(xyz_aug - xyz_gt.repeat(2,1), dim=1))
-
         #loss_x.backward()
 
         writer.add_scalars("loss", {'train': loss_t}, epoch)
@@ -156,8 +155,8 @@ def main():
         # update
         optimizer.step()
 
-        with torch.no_grad():
-            s_aug = (torch.norm(xyz_aug - xyz_gt.repeat(2,1), dim=1) / 0.05).detach().clone()
+        #with torch.no_grad():
+            #s_aug = (torch.norm(xyz_aug - xyz_gt.repeat(2,1), dim=1) / 0.05).detach().clone()
 
         torch.save(model.state_dict(), args.weight_save_path+'model_%03d.pth' % epoch)
         
