@@ -52,6 +52,10 @@ parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE',
 def train(device, model, xyz, s_gt, n_gt, backward=True, lamb=0.005):
     s, xyz = model(xyz)
     
+    for param in model.parameters():
+        if param.grad != None:
+            param.requires_grad_(False)
+
     n = torch.autograd.grad(s, [xyz], grad_outputs=torch.ones_like(s), create_graph=True)[0]
     nd = torch.norm(n, dim=1, keepdim=True)
 
@@ -75,6 +79,7 @@ def train(device, model, xyz, s_gt, n_gt, backward=True, lamb=0.005):
 
         for param in model.parameters():
             if param.grad != None:
+                param.requires_grad_(True)
                 param.grad.zero_()
 
         loss.backward()
