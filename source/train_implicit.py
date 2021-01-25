@@ -61,6 +61,7 @@ def train(device, model, xyz, s_gt, n_gt,backward=True, lamb=0.005):
     p = lambda x : torch.exp(-x / (2*1e-4))
     p_gt = p(s_gt)
 
+    # instead of using n_gt, we could use ECPN tangent loss
     loss_grad = torch.sum(1e2 * (1 - torch.sum(n * n_gt, dim=1, keepdim=True) / nd) * p_gt)
     loss_zeros = torch.sum(3e3 * torch.abs(s) * p_gt)
     loss_ones = torch.sum(1e2 * torch.exp(-1e2*nd) * (1-p_gt))
@@ -104,7 +105,7 @@ def main():
 
     with torch.no_grad():
         s_aug = torch.cat([torch.zeros((xyz.shape[0], 1)), torch.rand((xyz.shape[0], 1))], dim=0)
-        xyz_aug = torch.cat([xyz, xyz + n * s_aug[xyz.shape[0]:] * 0.01], dim=0)
+        xyz_aug = torch.cat([xyz, xyz + n * s_aug[xyz.shape[0]:] * 0.1], dim=0)
         n_aug = n.repeat(2,1)
 
         s_aug = s_aug.to(device)
@@ -125,7 +126,7 @@ def main():
         # train
         utils.model_train(model)
         loss_t, s, n = train(device, model, xyz_aug, s_aug, n_aug, backward=True, lamb= args.lamb)
-        loss_x = 1e3 * torch.sum(torch.norm(xyz_aug - xyz_gt.repeat(2,1), dim=1))
+        loss_x = 1e2 * torch.sum(torch.norm(xyz_aug - xyz_gt.repeat(2,1), dim=1))
 
         loss_x.backward()
 
