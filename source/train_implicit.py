@@ -74,7 +74,7 @@ def train(device, model, xyz, s_gt, n_gt, backward=True, lamb=0.005):
             if param.grad != None:
                 param.grad.zero_()
 
-        loss_notto_x.backward()
+        loss_notto_x.backward(retain_graph=True)
 
         if xyz.grad != None:
             xyz.grad.zero_()
