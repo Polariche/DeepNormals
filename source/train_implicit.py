@@ -115,7 +115,6 @@ def main():
         n_aug = n_aug.to(device)
         xyz_aug = xyz_aug.to(device)
         
-        n_gt = n.to(device)
         xyz_gt = xyz.to(device)
 
     writer.add_mesh("1. n_gt", xyz.unsqueeze(0), colors=(n.unsqueeze(0) * 128 + 128).int(), faces=ds.f.unsqueeze(0))
