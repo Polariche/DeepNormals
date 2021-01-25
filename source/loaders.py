@@ -23,7 +23,7 @@ class ObjDataset(Dataset):
 
         # wish we could do "v %f %f %f" and "f %d %d %d" lol
         vpattern = r"(?:v)\s+([-\d\.e]+)\s+([-\d\.e]+)\s+([-\d\.e]+)"
-        fpattern = r"(?:f)\s+(\d+)(?:\/\d?){0,2}\s+(\d+)(?:\/\d?){0,2}\s+(\d+)(?:\/\d?){0,2}"
+        fpattern = r"(?:f)\s+(\d+)(?:\/\d*){0,2}\s+(\d+)(?:\/\d*){0,2}\s+(\d+)(?:\/\d*){0,2}"
 
         v = re.findall(vpattern, obj)
         f = re.findall(fpattern, obj)
@@ -49,7 +49,7 @@ class ObjDataset(Dataset):
         vn = torch.zeros_like(v)
 
         # add face normal to connected vertices
-        vn.index_add(0, f.view(-1), fn.repeat(1,3).view(-1,3))
+        vn = vn.index_add(0, f.view(-1), fn.repeat(1,3).view(-1,3))
 
         # normalization
         vn = vn / torch.norm(vn, dim=1, keepdim=True)
