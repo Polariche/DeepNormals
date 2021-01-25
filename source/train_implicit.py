@@ -105,7 +105,7 @@ def main():
 
     with torch.no_grad():
         s_aug = torch.cat([torch.zeros((xyz.shape[0], 1)), torch.rand((xyz.shape[0], 1))], dim=0)
-        xyz_aug = torch.cat([xyz, xyz + n * s_aug[xyz.shape[0]:] * 0.02], dim=0)
+        xyz_aug = torch.cat([xyz, xyz + n * s_aug[xyz.shape[0]:] * 0.05], dim=0)
         n_aug = n.repeat(2,1)
 
         s_aug = s_aug.to(device)
@@ -157,7 +157,7 @@ def main():
         optimizer.step()
 
         with torch.no_grad():
-            s_aug = torch.norm(xyz_aug.detach().clone().cpu() - xyz.repeat(2,1), dim=1, keepdim=True).to(device)
+            s_aug = (torch.norm(xyz_aug.detach().clone().cpu() - xyz.repeat(2,1), dim=1, keepdim=True)/0.05).to(device)
 
 
         #torch.save(model.state_dict(), args.weight_save_path+'model_%03d.pth' % epoch)
