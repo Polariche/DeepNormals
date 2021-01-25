@@ -70,13 +70,13 @@ class ObjDataset(Dataset):
         obj_file = open("../../../data/test.obj", 'w')
 
         for v in self.v:
-            obj_file.write(f"v {v[0]} {v[1]} {v[2]}")
+            obj_file.write(f"v {v[0]} {v[1]} {v[2]}\n")
         
         for f in self.f:
-            obj_file.write(f"f {f[0]+1} {f[1]+1} {f[2]+2}")
+            obj_file.write(f"f {f[0]+1} {f[1]+1} {f[2]+2}\n")
 
         for vn in self.vn:
-            obj_file.write(f"vn {vn[0]} {vn[1]} {vn[2]}")
+            obj_file.write(f"vn {vn[0]} {vn[1]} {vn[2]}\n")
 
         #obj = obj_file.read()
         obj_file.close()
