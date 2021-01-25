@@ -35,8 +35,8 @@ class ObjDataset(Dataset):
         f_sorted, ind1 = torch.sort(f, 1)
         f_unique, ind2 = torch.unique(f_sorted, dim=0, return_inverse=True)
 
-        for i,v in enumerate(ind2):
-            f_unique[v] = f[i]
+        for i,t in enumerate(ind2):
+            f_unique[t] = f[i]
 
         f = f_unique
         vf = v[f]
