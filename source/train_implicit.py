@@ -134,7 +134,7 @@ def main():
 
         # visualization
         n_normalized = n / torch.norm(n, dim=1, keepdim=True)
-        n_error = (1 - torch.sum(n_normalized * n_aug, dim=1, keepdim=True))
+        n_error = (1 - torch.sum(n_normalized * n_aug, dim=1, keepdim=True) / torch.norm(n_aug, dim=1, keepdim=True))
 
         writer.add_scalars("normal error", {'train': n_error[:xyz.shape[0]].detach().mean()}, epoch)
 
