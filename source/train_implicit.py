@@ -87,8 +87,6 @@ def main():
     # create models
     model = Siren(in_features=3, out_features=1, hidden_features=256, hidden_layers=5, outermost_linear=True).to(device) 
 
-    optimizer = optim.Adam(model.parameters(), lr = 1e-4)
-
     if args.weight != None:
         try:
             model.load_state_dict(torch.load(args.pretrained_weight))
@@ -104,14 +102,18 @@ def main():
 
     with torch.no_grad():
         s_aug = torch.cat([torch.zeros((xyz.shape[0], 1)), torch.rand((xyz.shape[0], 1))], dim=0)
-        xyz_aug = torch.cat([xyz, xyz + n * s_aug[xyz.shape[0]:] * 0.01], dim=0)
+        xyz_aug = torch.cat([xyz, xyz + n * s_aug[xyz.shape[0]:] * 0.01], dim=0, requires_grad=True)
         n_aug = n.repeat(2,1)
 
+        s_aug = s_aug.to(device)
         n_aug = n_aug.to(device)
         xyz_aug = xyz_aug.to(device)
-        s_aug = s_aug.to(device)
+        
+        n_gt = n.to(device)
+        xyz_gt = xyz.to(device)
 
     writer.add_mesh("n_gt", xyz.unsqueeze(0), colors=(n.unsqueeze(0) * 128 + 128).int())
+    optimizer = optim.Adam(list(model.parameters()) + [xyz_aug], lr = 1e-4)
 
     for epoch in range(args.epoch):
         loss_t = 0
@@ -122,10 +124,11 @@ def main():
         utils.model_train(model)
         loss_t, s, n = train(device, model, xyz_aug, s_aug, n_aug,backward=True, lamb= args.lamb)
 
+        writer.add_scalars("loss", {'train': loss_t}, epoch)
+
+        # visualization
         n_normalized = n / torch.norm(n, dim=1, keepdim=True)
         n_error = (1 - torch.sum(n_normalized * n_aug, dim=1, keepdim=True))
-
-        writer.add_scalars("loss", {'train': loss_t}, epoch)
 
         if epoch % 10 == 0:
             writer.add_mesh("n", xyz_aug[xyz.shape[0]:].unsqueeze(0), colors=(n_normalized[:xyz.shape[0]:].unsqueeze(0) * 128 + 128).int(), global_step=epoch)
