@@ -98,7 +98,7 @@ def main():
 
 
     # load 
-    ds = ObjDataset("../../../data/train/02828884/model_001415.obj")
+    ds = ObjDataset("../../../data/train/02828884/model_020242.obj")
 
     n = ds.vn
     xyz = ds.v
