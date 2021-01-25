@@ -74,8 +74,8 @@ def train(device, model, xyz, s_gt, n_gt,backward=True, lamb=0.005):
     loss_grad1 = 5e1 * torch.sum(torch.abs(nd - 1))
 
     loss_on_penalty = 3e3 * torch.sum((1 - s_gt) * torch.abs(s))
-    loss_off_penalty = 1e2 * torch.sum(s_gt * p(s))
-    loss_grad_dir = 1e2 * torch.sum((1 - s_gt) * (1 - torch.sum(n * n_gt, dim=1, keepdim=True) / nd))
+    loss_off_penalty = 1e2 * torch.sum((1 - s_gt) * p(s))
+    loss_grad_dir = 1e2 * torch.sum((s_gt) * (1 - torch.sum(n * n_gt, dim=1, keepdim=True) / nd))
 
     loss = loss_on_penalty + loss_off_penalty + loss_grad_dir + loss_grad1
     loss /= xyz.shape[0]
@@ -112,8 +112,8 @@ def main():
     xyz = ds.v
 
     with torch.no_grad():
-        s_aug = torch.cat([torch.zeros((xyz.shape[0], 1)), torch.rand((xyz.shape[0], 1))], dim=0)
-        xyz_aug = torch.cat([xyz, xyz + n * s_aug[xyz.shape[0]:] * 0.01], dim=0)
+        s_aug = torch.cat([torch.zeros((xyz.shape[0], 1)), torch.ones((xyz.shape[0], 1))], dim=0)
+        xyz_aug = torch.cat([xyz, xyz + n * torch.rand((xyz.shape[0], 1)) * 0.01], dim=0)
         n_aug = n.repeat(2,1)
 
         n_aug = n_aug.to(device)
