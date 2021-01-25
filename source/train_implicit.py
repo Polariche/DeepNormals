@@ -153,8 +153,8 @@ def main():
         # update
         optimizer.step()
 
-        with torch.no_grad():
-            s_aug = (torch.norm(xyz_aug.cpu() - xyz.repeat(2,1), dim=1) / 0.05).to(device)
+        #with torch.no_grad():
+        #    s_aug = (torch.norm(xyz_aug.cpu() - xyz.repeat(2,1), dim=1) / 0.05).to(device)
 
         torch.save(model.state_dict(), args.weight_save_path+'model_%03d.pth' % epoch)
         
