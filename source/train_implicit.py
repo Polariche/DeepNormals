@@ -52,7 +52,6 @@ parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE',
 def train(device, model, xyz, s_gt, n_gt,backward=True, lamb=0.005):
     s, xyz = model(xyz)
     
-
     for param in model.parameters():
         param.requires_grad = False
     
@@ -77,8 +76,7 @@ def train(device, model, xyz, s_gt, n_gt,backward=True, lamb=0.005):
     loss_off_penalty = 1e2 * (1 - p_gt) * p(s)
     loss_grad_dir = 1e2 * p_gt * (1 - torch.sum(n * n_gt, dim=1, keepdim=True) / nd)
 
-    loss = loss_on_penalty + loss_off_penalty + loss_grad_dir
-    loss /= xyz.shape[0]
+    loss = (loss_on_penalty + loss_off_penalty + loss_grad_dir).mean()
     
     if backward:
         for param in model.parameters():
@@ -112,7 +110,6 @@ def main():
     xyz = ds.v
 
     with torch.no_grad():
-        
         s_aug = torch.cat([torch.zeros((xyz.shape[0], 1)), torch.rand((xyz.shape[0], 1))], dim=0)
         xyz_aug = torch.cat([xyz, xyz + n * s_aug[xyz.shape[0]:] * 0.01], dim=0)
         n_aug = n.repeat(2,1)
