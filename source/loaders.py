@@ -31,6 +31,11 @@ class ObjDataset(Dataset):
         v = torch.tensor([list(map(float, v_)) for v_ in v], dtype=torch.float)
         f = torch.tensor([list(map(lambda x: int(x)-1, f_)) for f_ in f], dtype=torch.long)     # index starts from 1 in obj, so substract 1
 
+        # remove duplicate faces
+        f_sorted, ind1 = torch.sort(f, 1)
+        f_unique, ind2 = torch.unique(f_sorted, dim=0, return_inverse=True)
+
+        f = f_unique
         vf = v[f]
 
         # obtain face normal with cross vector
@@ -42,20 +47,28 @@ class ObjDataset(Dataset):
             a1[:,2] * a2[:,0] - a1[:,0] * a2[:,2],
             a1[:,0] * a2[:,1] - a1[:,1] * a2[:,0]]], dim=1)
 
+        sgn = torch.sign(torch.sum(fn * fn[0].unsqueeze(0), dim=1))
+        fn *= sgn.unsqueeze(1)
+
+        f[sgn<0] = torch.flip(f[sgn<0], dims=[1])
+
         # normalization
         fn = fn / torch.norm(fn, dim=1, keepdim=True)
         fn = torch.where(torch.isnan(fn), torch.zeros_like(fn), fn)
-
-        vn = torch.zeros_like(v)
-
+        
         # add face normal to connected vertices
-        for i in range(3):
-            vn = vn.index_add(0, f[:,i].view(-1), fn)
+        vn = torch.zeros_like(v)
+        vn = vn.index_add(0, f.reshape(-1), fn.repeat(1,3).reshape(-1,3))
+
+        vn.index_add(0, f.view(-1), fn.repeat(1,3).reshape(-1,3))
 
         # normalization
         vn = vn / torch.norm(vn, dim=1, keepdim=True)
         vn = torch.where(torch.isnan(vn), torch.zeros_like(vn), vn)
-    
+
+
+        print(torch.norm(vn, dim=1).mean())
+
         self.v = v
         self.f = f
         self.vn = vn
@@ -68,16 +81,13 @@ class ObjDataset(Dataset):
         return {'xyz': self.v[idx], 'n': self.vn[idx]}
 
     def to_obj(self):
-        obj_file = open("../../../data/test.obj", 'w')
+        obj_file = open("test.obj", 'w')
 
-        for v in self.v:
-            obj_file.write(f"v {v[0]} {v[1]} {v[2]}\n")
+        for i,v in enumerate(self.v):
+            obj_file.write(f"v {v[0]} {v[1]} {v[2]} {self.vn[i,0]} {self.vn[i,1]} {self.vn[i,2]}\n")
         
         for f in self.f:
             obj_file.write(f"f {f[0]+1} {f[1]+1} {f[2]+1}\n")
-
-        for vn in self.vn:
-            obj_file.write(f"vn {vn[0]} {vn[1]} {vn[2]}\n")
 
         #obj = obj_file.read()
         obj_file.close()
