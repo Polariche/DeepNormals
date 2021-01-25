@@ -61,11 +61,11 @@ def train(device, model, xyz, s_gt, n_gt,backward=True, lamb=0.005):
     p = lambda x : torch.exp(-x / (2*1e-4))
     p_gt = p(s_gt)
 
-    #loss_grad = torch.sum(5e1 * torch.abs(nd - 1))
-    loss_zeros = torch.sum((3e3 * torch.abs(s) + 1e2 * (1 - torch.sum(n * n_gt, dim=1, keepdim=True) / nd)) * p_gt)
+    loss_grad = torch.sum(1e2 * (1 - torch.sum(n * n_gt, dim=1, keepdim=True) / nd) * p_gt)
+    loss_zeros = torch.sum(3e3 * torch.abs(s) * p_gt)
     loss_ones = torch.sum(1e2 * torch.exp(-1e2*nd) * (1-p_gt))
 
-    loss = loss_zeros + loss_ones
+    loss = loss_grad + loss_zeros + loss_ones
     loss /= xyz.shape[0]
     
     if backward:
@@ -110,8 +110,6 @@ def main():
         s_aug = s_aug.to(device)
         n_aug = n_aug.to(device)
         xyz_aug = xyz_aug.to(device)
-
-        xyz_aug.requires_grad = True
         
         n_gt = n.to(device)
         xyz_gt = xyz.to(device)
@@ -126,7 +124,10 @@ def main():
         
         # train
         utils.model_train(model)
-        loss_t, s, n = train(device, model, xyz_aug, s_aug, n_aug,backward=True, lamb= args.lamb)
+        loss_t, s, n = train(device, model, xyz_aug, s_aug, n_aug, backward=True, lamb= args.lamb)
+        loss_x = 1e3 * torch.norm(xyz_aug - xyz_gt.repeat(2,1), dim=1)
+
+        loss_x.backward()
 
         writer.add_scalars("loss", {'train': loss_t}, epoch)
 
