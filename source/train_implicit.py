@@ -58,26 +58,20 @@ def train(device, model, xyz, s_gt, n_gt,backward=True, lamb=0.005):
     n = torch.autograd.grad(s, [xyz], grad_outputs=torch.ones_like(s), create_graph=True)[0]
     nd = torch.norm(n, dim=1, keepdim=True)
 
-    #ones = s_gt == 0
-    #zeros = s_gt == 1
-
-    #loss_grad = torch.sum(5e1 * torch.abs(nd - 1))
-    #loss_zeros = torch.sum((3e3 * torch.abs(s) + 1e2 * (1 - torch.sum(n * n_gt, dim=1, keepdim=True) / nd))[zeros])
-    #loss_ones = torch.sum(1e2 * torch.exp(-1e2*nd)[ones])
-
     # modified loss in SIREN 4.2 for smooth transition between surface points and non-surface points
     # use probability : exp(- s_gt / (2*eps^2))
 
     p = lambda x : torch.exp(-x / (2*1e-4))
     p_gt = p(s_gt)
 
-    loss_grad1 = 5e1 * torch.sum(torch.abs(nd - 1))
+    on = s_gt == 0
+    off = s_gt == 1
 
-    loss_on_penalty = 3e3 * torch.sum((1 - s_gt) * torch.abs(s))
-    loss_off_penalty = 1e2 * torch.sum((1 - s_gt) * p(s))
-    loss_grad_dir = 1e2 * torch.sum((s_gt) * (1 - torch.sum(n * n_gt, dim=1, keepdim=True) / nd))
+    loss_grad = torch.sum(5e1 * torch.abs(nd - 1))
+    loss_zeros = torch.sum((3e3 * torch.abs(s) + 1e2 * (1 - torch.sum(n * n_gt, dim=1, keepdim=True) / nd))[on])
+    loss_ones = torch.sum(1e2 * torch.exp(-1e2*nd)[off])
 
-    loss = loss_on_penalty + loss_off_penalty + loss_grad_dir + loss_grad1
+    loss = loss_grad + loss_zeros + loss_ones
     loss /= xyz.shape[0]
     
     if backward:
