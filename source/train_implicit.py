@@ -58,8 +58,8 @@ def train(device, model, xyz, s_gt, n_gt, backward=True, lamb=0.005):
     # modified loss in SIREN 4.2 for smooth transition between surface points and non-surface points
     # use probability : exp(- s_gt / (2*eps^2))
 
-    p = lambda x : torch.exp(-x / (2*1e-4))
-    p_gt = p(s_gt)
+    with torch.no_grad():
+        p_gt = torch.exp(-s_gt / (2*1e-4))
 
     # instead of using n_gt, we could use ECPN tangent loss
     loss_grad = 1e2 * torch.mean((1 - torch.sum(n * n_gt, dim=1, keepdim=True) / nd) * p_gt)
@@ -98,7 +98,7 @@ def main():
 
 
     # load 
-    ds = ObjDataset("../../../data/train/02828884/model_038858.obj")
+    ds = ObjDataset("../../../data/train/02828884/model_005004.obj")
 
     n = ds.vn
     xyz = ds.v
