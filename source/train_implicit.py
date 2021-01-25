@@ -98,7 +98,7 @@ def main():
 
 
     # load 
-    ds = ObjDataset("../../../data/train/02828884/model_005004.obj")
+    ds = ObjDataset("../../../data/train/02828884/model_038858.obj")
 
     n = ds.vn
     xyz = ds.v
@@ -147,6 +147,7 @@ def main():
             writer.add_scalars("normal error", {'train': n_error_originals[~torch.isnan(n_error_originals)].detach().mean()}, epoch)
             
             if epoch % 10 == 0:
+                print(epoch)
                 writer.add_mesh("2. n", xyz_aug[xyz.shape[0]:].unsqueeze(0), colors=(n_normalized[xyz.shape[0]:].unsqueeze(0) * 128 + 128).int(), global_step=epoch, faces=ds.f.unsqueeze(0))
                 writer.add_mesh("3. n_error", xyz_aug[xyz.shape[0]:].unsqueeze(0), colors=(F.pad(n_error[xyz.shape[0]:], (0,2)).unsqueeze(0) * 256).int(), global_step=epoch, faces=ds.f.unsqueeze(0))
 
