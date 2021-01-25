@@ -66,24 +66,21 @@ def train(device, model, xyz, s_gt, n_gt, backward=True, lamb=0.005):
     loss_zeros = 3e3 * torch.mean(torch.abs(s) * p_gt)
     loss_ones = 1e2 * torch.mean(torch.exp(-1e2*nd) * (1-p_gt))
 
-    loss_to_x = loss_grad
-    loss_notto_x = loss_zeros + loss_ones
+    loss = loss_grad + loss_zeros + loss_ones
+
     
     if backward:
+        xyz_grad = torch.autograd.grad(loss_grad, [xyz], create_graph=True, retain_graph = True)[0]
+        
         for param in model.parameters():
             if param.grad != None:
                 param.grad.zero_()
 
-        loss_notto_x.backward(retain_graph=True)
+        loss.backward()
 
-        if xyz.grad != None:
-            xyz.grad.zero_()
-        
-        loss_to_x.backward(retain_graph=False)
-    
-    loss_for_display = loss_to_x.detach() + loss_notto_x.detach()
+        xyz.grad = xyz_grad
 
-    return loss_for_display, s.detach(), n.detach()
+    return loss.detach(), s.detach(), n.detach()
 
 def main():
     args = parser.parse_args()
