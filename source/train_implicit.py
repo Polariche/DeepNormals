@@ -79,7 +79,7 @@ def train(device, model, xyz, s_gt, n_gt, backward=True, lamb=0.005):
         if xyz.grad != None:
             xyz.grad.zero_()
         
-        loss_to_x.backward()
+        loss_to_x.backward(retain_graph=False)
     
     loss_for_display = loss_to_x.detach() + loss_notto_x.detach()
 
