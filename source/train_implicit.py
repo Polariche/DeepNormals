@@ -118,7 +118,7 @@ def main():
     writer.add_mesh("1. n_gt", xyz.unsqueeze(0), colors=(n.unsqueeze(0) * 128 + 128).int(), faces=ds.f.unsqueeze(0))
     
 
-    optimizer = optim.Adam(list(model.parameters()) + [xyz_aug[xyz.shape[0]:]], lr = 1e-4)
+    optimizer = optim.Adam(list(model.parameters()) + [xyz_aug], lr = 1e-4)
 
     for epoch in range(args.epoch):
         loss_t = 0
