@@ -52,10 +52,6 @@ class ObjDataset(Dataset):
            [a1[:,1] * a2[:,2] - a1[:,2] * a2[:,1],
             a1[:,2] * a2[:,0] - a1[:,0] * a2[:,2],
             a1[:,0] * a2[:,1] - a1[:,1] * a2[:,0]]], dim=1)
-
-        # normalization
-        fn = fn / torch.norm(fn, dim=1, keepdim=True)
-        fn = torch.where(torch.isnan(fn), torch.zeros_like(fn), fn)
         
         # add face normal to connected vertices
         vn = torch.zeros_like(v)
@@ -63,8 +59,15 @@ class ObjDataset(Dataset):
 
         vn.index_add(0, f.view(-1), fn.repeat(1,3).reshape(-1,3))
 
+        fnn = torch.norm(fn, dim=1, keepdim=True)
+        vnn = torch.norm(vn, dim=1, keepdim=True)
+
         # normalization
-        vn = vn / torch.norm(vn, dim=1, keepdim=True)
+        fn = fn / fnn
+        fn = torch.where(torch.isnan(fn), torch.zeros_like(fn), fn)
+
+        # normalization
+        vn = vn / vnn
         vn = torch.where(torch.isnan(vn), torch.zeros_like(vn), vn)
 
 
@@ -74,6 +77,8 @@ class ObjDataset(Dataset):
         self.f = f
         self.vn = vn
         self.fn = fn
+        self.vnn = vnn
+        self.fnn = fnn
 
     def __len__(self):
         return len(self.v)

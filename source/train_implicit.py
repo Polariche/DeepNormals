@@ -98,14 +98,14 @@ def main():
 
 
     # load 
-    ds = ObjDataset("../../../data/train/02828884/model_005004.obj")
+    ds = ObjDataset("../../../data/train/02828884/model_049364.obj")
 
     n = ds.vn
     xyz = ds.v
 
     with torch.no_grad():
         s_aug = torch.cat([torch.zeros((xyz.shape[0], 1)), torch.rand((xyz.shape[0], 1))], dim=0)
-        xyz_aug = torch.cat([xyz, xyz + n * s_aug[xyz.shape[0]:] * 0.02], dim=0)
+        xyz_aug = torch.cat([xyz, xyz + n * s_aug[xyz.shape[0]:] * ds.vnn * 0.02], dim=0)
         n_aug = n.repeat(2,1)
 
         s_aug = s_aug.to(device)
@@ -126,7 +126,7 @@ def main():
         utils.model_train(model)
         loss_t, s, n = train(device, model, xyz_aug, s_aug, n_aug, backward=True, lamb= args.lamb)
 
-        loss_x = 1e1 * torch.sum(torch.norm(xyz_aug - xyz_gt, dim=1))
+        loss_x = 1e2 * torch.sum(torch.norm(xyz_aug - xyz_gt, dim=1))
         loss_x.backward()
 
         writer.add_scalars("loss", {'train': loss_t + loss_x.detach()}, epoch)
