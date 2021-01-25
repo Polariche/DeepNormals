@@ -121,8 +121,7 @@ def main():
     optimizer = optim.Adam(list(model.parameters()) + [xyz_aug], lr = 1e-4)
 
     for epoch in range(args.epoch):
-        loss_t = 0
-
+        print(epoch)
         optimizer.zero_grad()
         
         # train
@@ -146,7 +145,7 @@ def main():
             writer.add_scalars("normal error", {'train': n_error_originals[~torch.isnan(n_error_originals)].detach().mean()}, epoch)
             
             if epoch % 10 == 0:
-                print(epoch)
+                
                 writer.add_mesh("2. n", xyz_aug[xyz.shape[0]:].unsqueeze(0).detach(), colors=(n_normalized[xyz.shape[0]:].unsqueeze(0).detach() * 128 + 128).int(), global_step=epoch, faces=ds.f.unsqueeze(0))
                 writer.add_mesh("3. n_error", xyz_aug[xyz.shape[0]:].unsqueeze(0).detach(), colors=(F.pad(n_error[xyz.shape[0]:], (0,2)).unsqueeze(0).detach() * 256).int(), global_step=epoch, faces=ds.f.unsqueeze(0))
 
