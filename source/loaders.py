@@ -89,5 +89,3 @@ class ObjDataset(Dataset):
 
         #obj = obj_file.read()
         obj_file.close()
-
-ObjDataset("model_005004.obj").to_obj()
