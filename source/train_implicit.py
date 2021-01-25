@@ -134,6 +134,7 @@ def main():
 
         # visualization
         with torch.no_grad():
+            """
             n_normalized = n / torch.norm(n, dim=1, keepdim=True)
             n_error = torch.sum(n_normalized * n_aug, dim=1, keepdim=True) / torch.norm(n_aug, dim=1, keepdim=True)
             n_error = torch.acos(n_error) / np.arccos(0)
@@ -141,10 +142,10 @@ def main():
             n_error_originals = n_error[:xyz.shape[0]]
 
             writer.add_scalars("normal error", {'train': n_error_originals[~torch.isnan(n_error_originals)].detach().mean()}, epoch)
-
+            """
             if epoch % 10 == 0:
                 writer.add_mesh("2. n", xyz_aug[:xyz.shape[0]].unsqueeze(0), colors=(n_normalized[:xyz.shape[0]].unsqueeze(0) * 128 + 128).int(), global_step=epoch)
-                writer.add_mesh("3. n_error", xyz_aug[:xyz.shape[0]].unsqueeze(0), colors=(F.pad(n_error[:xyz.shape[0]], (0,2)).unsqueeze(0) * 256).int(), global_step=epoch)
+                #writer.add_mesh("3. n_error", xyz_aug[:xyz.shape[0]].unsqueeze(0), colors=(F.pad(n_error[:xyz.shape[0]], (0,2)).unsqueeze(0) * 256).int(), global_step=epoch)
 
         # update
         optimizer.step()
