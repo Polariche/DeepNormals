@@ -95,7 +95,7 @@ def main():
 
 
     # load 
-    ds = ObjDataset("../../../data/train/02828884/model_005004.obj")
+    ds = ObjDataset("../../../data/train/02828884/model_003417.obj")
 
     n = ds.vn
     xyz = ds.v
@@ -123,8 +123,7 @@ def main():
         writer.add_scalars("loss", {'train': loss_t}, epoch)
 
         if epoch % 10 == 0:
-            writer.add_mesh("s", xyz_aug[:xyz.shape[0]].unsqueeze(0), colors=(s[:xyz.shape[0]].unsqueeze(0).repeat(1,1,3) * 256).int(),  global_step=epoch)
-            writer.add_mesh("n", xyz_aug[:xyz.shape[0]].unsqueeze(0), colors=(n[:xyz.shape[0]].unsqueeze(0) * 128 + 128).int(), global_step=epoch)
+            writer.add_mesh("n", xyz_aug[xyz.shape[0]:].unsqueeze(0), colors=(n[:xyz.shape[0]:].unsqueeze(0) * 128 + 128).int(), global_step=epoch)
 
         # update
         optimizer.step()
