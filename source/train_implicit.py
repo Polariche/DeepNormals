@@ -157,7 +157,7 @@ def main():
             s_aug = torch.sqrt(torch.sum(torch.pow(xyz_aug.cpu() - xyz.repeat(2,1),2), dim=1)).to(device)
 
 
-        torch.save(model.state_dict(), args.weight_save_path+'model_%03d.pth' % epoch)
+        #torch.save(model.state_dict(), args.weight_save_path+'model_%03d.pth' % epoch)
         
     
     writer.close()
