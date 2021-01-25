@@ -64,14 +64,11 @@ def train(device, model, xyz, s_gt, n_gt,backward=True, lamb=0.005):
     p = lambda x : torch.exp(-x / (2*1e-4))
     p_gt = p(s_gt)
 
-    on = s_gt == 0
-    off = s_gt == 1
-
-    loss_grad = torch.sum(5e1 * torch.abs(nd - 1))
+    #loss_grad = torch.sum(5e1 * torch.abs(nd - 1))
     loss_zeros = torch.sum((3e3 * torch.abs(s) + 1e2 * (1 - torch.sum(n * n_gt, dim=1, keepdim=True) / nd)) * p_gt)
     loss_ones = torch.sum(1e2 * torch.exp(-1e2*nd) * (1-p_gt))
 
-    loss = loss_grad + loss_zeros + loss_ones
+    loss = loss_zeros + loss_ones
     loss /= xyz.shape[0]
     
     if backward:
