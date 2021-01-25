@@ -125,7 +125,7 @@ def main():
         # train
         utils.model_train(model)
         loss_t, s, n = train(device, model, xyz_aug, s_aug, n_aug, backward=True, lamb= args.lamb)
-        loss_x = 1e3 * torch.norm(xyz_aug - xyz_gt.repeat(2,1), dim=1)
+        loss_x = 1e3 * torch.sum(torch.norm(xyz_aug - xyz_gt.repeat(2,1), dim=1))
 
         loss_x.backward()
 
