@@ -49,7 +49,7 @@ parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE',
                         help='output file')
 
 
-def train(device, model, xyz, s_gt, n_gt,backward=True, lamb=0.005):
+def train(device, model, xyz, s_gt, n_gt, backward=True, lamb=0.005):
     s, xyz = model(xyz)
     
     n = torch.autograd.grad(s, [xyz], grad_outputs=torch.ones_like(s), create_graph=True)[0]
@@ -116,7 +116,7 @@ def main():
         xyz_gt = xyz.to(device)
 
     writer.add_mesh("1. n_gt", xyz.unsqueeze(0), colors=(n.unsqueeze(0) * 128 + 128).int())
-    optimizer = optim.Adam(list(model.parameters()) + [xyz_aug], lr = 1e-4)
+    optimizer = optim.Adam(list(model.parameters()) + [xyz_aug[xyz.shape[0]:]], lr = 1e-4)
 
     for epoch in range(args.epoch):
         loss_t = 0
@@ -136,17 +136,17 @@ def main():
         with torch.no_grad():
             
             n_normalized = n / torch.norm(n, dim=1, keepdim=True)
-            """
+            
             n_error = torch.sum(n_normalized * n_aug, dim=1, keepdim=True) / torch.norm(n_aug, dim=1, keepdim=True)
             n_error = torch.acos(n_error) / np.arccos(0)
 
             n_error_originals = n_error[:xyz.shape[0]]
 
             writer.add_scalars("normal error", {'train': n_error_originals[~torch.isnan(n_error_originals)].detach().mean()}, epoch)
-            """
+            
             if epoch % 10 == 0:
                 writer.add_mesh("2. n", xyz_aug[:xyz.shape[0]].unsqueeze(0), colors=(n_normalized[:xyz.shape[0]].unsqueeze(0) * 128 + 128).int(), global_step=epoch)
-                #writer.add_mesh("3. n_error", xyz_aug[:xyz.shape[0]].unsqueeze(0), colors=(F.pad(n_error[:xyz.shape[0]], (0,2)).unsqueeze(0) * 256).int(), global_step=epoch)
+                writer.add_mesh("3. n_error", xyz_aug[:xyz.shape[0]].unsqueeze(0), colors=(F.pad(n_error[:xyz.shape[0]], (0,2)).unsqueeze(0) * 256).int(), global_step=epoch)
 
         # update
         optimizer.step()
