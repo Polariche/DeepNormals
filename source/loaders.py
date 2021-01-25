@@ -32,11 +32,14 @@ class ObjDataset(Dataset):
         f = torch.tensor([list(map(lambda x: int(x)-1, f_)) for f_ in f], dtype=torch.long)     # index starts from 1 in obj, so substract 1
 
         # remove duplicate faces
-        f_sorted, ind1 = torch.sort(f, 1)
+        f_sorted, _ = torch.sort(f, 1)
         f_unique, ind2 = torch.unique(f_sorted, dim=0, return_inverse=True)
 
+        check = torch.zeros(f_unique.shape[0]).bool()
         for i,t in enumerate(ind2):
-            f_unique[t] = f[i]
+            if not check[t]:
+                f_unique[t] = f[i]
+                check[t] = True
 
         f = f_unique
         vf = v[f]
