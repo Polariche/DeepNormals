@@ -68,8 +68,8 @@ def train(device, model, xyz, s_gt, n_gt,backward=True, lamb=0.005):
     off = s_gt == 1
 
     loss_grad = torch.sum(5e1 * torch.abs(nd - 1))
-    loss_zeros = torch.sum((3e3 * torch.abs(s) + 1e2 * (1 - torch.sum(n * n_gt, dim=1, keepdim=True) / nd)) * (1-s_gt))
-    loss_ones = torch.sum(1e2 * torch.exp(-1e2*nd) * s_gt)
+    loss_zeros = torch.sum((3e3 * torch.abs(s) + 1e2 * (1 - torch.sum(n * n_gt, dim=1, keepdim=True) / nd)) * p_gt)
+    loss_ones = torch.sum(1e2 * torch.exp(-1e2*nd) * (1-p_gt))
 
     loss = loss_grad + loss_zeros + loss_ones
     loss /= xyz.shape[0]
