@@ -134,8 +134,9 @@ def main():
 
         # visualization
         with torch.no_grad():
-            """
+            
             n_normalized = n / torch.norm(n, dim=1, keepdim=True)
+            """
             n_error = torch.sum(n_normalized * n_aug, dim=1, keepdim=True) / torch.norm(n_aug, dim=1, keepdim=True)
             n_error = torch.acos(n_error) / np.arccos(0)
 
