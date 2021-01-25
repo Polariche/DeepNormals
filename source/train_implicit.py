@@ -62,24 +62,28 @@ def train(device, model, xyz, s_gt, n_gt, backward=True, lamb=0.005):
     p_gt = p(s_gt)
 
     # instead of using n_gt, we could use ECPN tangent loss
-    loss_grad = 1e2 * torch.sum((1 - torch.sum(n * n_gt, dim=1, keepdim=True) / nd) * p_gt)
-    loss_zeros = 3e3 * torch.sum(torch.abs(s) * p_gt)
-    loss_ones = 1e2 * torch.sum(torch.exp(-1e2*nd) * (1-p_gt))
+    loss_grad = 1e2 * torch.mean((1 - torch.sum(n * n_gt, dim=1, keepdim=True) / nd) * p_gt)
+    loss_zeros = 3e3 * torch.mean(torch.abs(s) * p_gt)
+    loss_ones = 1e2 * torch.mean(torch.exp(-1e2*nd) * (1-p_gt))
 
-    loss = loss_grad + loss_zeros + loss_ones
-    loss /= xyz.shape[0]
+    loss_to_x = loss_grad
+    loss_notto_x = loss_zeros + loss_ones
     
     if backward:
-        if xyz.grad != None:
-            xyz.grad.zero_()
-
         for param in model.parameters():
             if param.grad != None:
                 param.grad.zero_()
 
-        loss.backward()
+        loss_notto_x.backward()
 
-    return loss.detach(), s.detach(), n.detach()
+        if xyz.grad != None:
+            xyz.grad.zero_()
+        
+        loss_to_x.backward()
+    
+    loss_for_display = loss_to_x.detach() + loss_notto_x.detach()
+
+    return loss_for_display, s.detach(), n.detach()
 
 def main():
     args = parser.parse_args()
