@@ -35,6 +35,9 @@ class ObjDataset(Dataset):
         f_sorted, ind1 = torch.sort(f, 1)
         f_unique, ind2 = torch.unique(f_sorted, dim=0, return_inverse=True)
 
+        for i,v in enumerate(ind2):
+            f_unique[v] = f[i]
+
         f = f_unique
         vf = v[f]
 
@@ -46,11 +49,6 @@ class ObjDataset(Dataset):
            [a1[:,1] * a2[:,2] - a1[:,2] * a2[:,1],
             a1[:,2] * a2[:,0] - a1[:,0] * a2[:,2],
             a1[:,0] * a2[:,1] - a1[:,1] * a2[:,0]]], dim=1)
-
-        sgn = torch.sign(torch.sum(fn * fn[0].unsqueeze(0), dim=1))
-        fn *= sgn.unsqueeze(1)
-
-        f[sgn<0] = torch.flip(f[sgn<0], dims=[1])
 
         # normalization
         fn = fn / torch.norm(fn, dim=1, keepdim=True)
@@ -91,3 +89,5 @@ class ObjDataset(Dataset):
 
         #obj = obj_file.read()
         obj_file.close()
+
+ObjDataset("model_005004.obj").to_obj()
