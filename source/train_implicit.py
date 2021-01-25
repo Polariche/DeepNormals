@@ -56,7 +56,6 @@ def train(device, model, xyz, s_gt, n_gt, backward=True, lamb=0.005):
         param.requires_grad_(False)
 
     n = torch.autograd.grad(s, [xyz], grad_outputs=torch.ones_like(s), create_graph=True)[0]
-    nd = torch.norm(n, dim=1, keepdim=True)
 
     # modified loss in SIREN 4.2 for smooth transition between surface points and non-surface points
     # use probability : exp(- s_gt / (2*eps^2))
@@ -67,10 +66,10 @@ def train(device, model, xyz, s_gt, n_gt, backward=True, lamb=0.005):
     # instead of using n_gt, we could use ECPN tangent loss
     loss_grad = 1e2 * torch.mean((1 - torch.sum(n * n_gt, dim=1, keepdim=True)) * p_gt)
     
-    #loss_zeros = 3e3 * torch.mean(torch.abs(s) * p_gt)
-    #loss_ones = 1e2 * torch.mean(torch.exp(-1e2*nd) * (1-p_gt))
+    loss_zeros = 3e3 * torch.mean(torch.abs(s) * p_gt)
+    loss_ones = 1e2 * torch.mean(torch.exp(-1e2*s) * (1-p_gt))
 
-    loss = loss_grad # + loss_zeros + loss_ones
+    loss = loss_grad + loss_zeros + loss_ones
 
     if backward:
         if xyz.grad != None:
