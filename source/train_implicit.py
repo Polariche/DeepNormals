@@ -102,12 +102,14 @@ def main():
 
     with torch.no_grad():
         s_aug = torch.cat([torch.zeros((xyz.shape[0], 1)), torch.rand((xyz.shape[0], 1))], dim=0)
-        xyz_aug = torch.cat([xyz, xyz + n * s_aug[xyz.shape[0]:] * 0.01], dim=0, requires_grad=True)
+        xyz_aug = torch.cat([xyz, xyz + n * s_aug[xyz.shape[0]:] * 0.01], dim=0)
         n_aug = n.repeat(2,1)
 
         s_aug = s_aug.to(device)
         n_aug = n_aug.to(device)
         xyz_aug = xyz_aug.to(device)
+
+        xyz_aug.requires_grad = True
         
         n_gt = n.to(device)
         xyz_gt = xyz.to(device)
