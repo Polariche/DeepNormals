@@ -7,6 +7,8 @@ import torch.optim as optim
 
 import warnings
 
+from collections import defaultdict
+
 class LGD(optim.Optimizer):
     def __init__(self, params, module_class, module_args, hs_features=0):
         defaults = dict(module_class=module_class, module_args=module_args, hs_features=hs_features)
@@ -28,34 +30,19 @@ class LGD(optim.Optimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            module = group['module']
-            
-            k = group['param_features']
-            hs_features = group['hs_features']
-
-            params_gcat = torch.zeros((0,k+hs))
-
-            # concat param gradients
             for param in group['params']:
-                state = self.state[param]
-                hs = state['hs']
 
-                if param.grad is not None:
-                    p = param.grad.view(1,k)
-                    p = torch.cat([p, hs], dim=1)       # add hidden state
-                    params_gcat = torch.cat([params_gcat, p], dim=0)
+                module = group['module'][param]
+                k = group['features'][param]
+
+                p = param.view(-1,k)
+                if p.grad != None:
+                    grad = p.grad
                 else:
-                    params_gcat = torch.cat([params_gcat, torch.zeros((1,k+hs_features))], dim=0)
+                    grad = torch.zeros_like(p)
 
-            # pass gradients to network
-            params_gcat = module(params_gcat)
-
-            # update params
-            for i, param in enumerate(group['params']):
-                state = self.state[param]
-                param.add(params_gcat[i, :k].view(param.shape))
-
-                state['hs'] = params_gcat[i, k:]
+                grad = module(grad)
+                param = param.add(grad.view(param.shape))
         
         return loss
 
@@ -65,20 +52,30 @@ class LGD(optim.Optimizer):
 
         # count the total number of variables to optimize
         # all parameters should contain same variable count
-        k = torch.flatten(param_group['params'][0]).shape[0]
-        for param in param_group['params']:
-            k_ = torch.flatten(param).shape[0]
-            assert k == k_
 
-        param_group['param_features'] = k
-
-        # create a network
         mc = param_group['module_class']
-        module = mc(in_features=k, out_features=k, *param_group['module_args'])
-        param_group.setdefault('module', module)
 
-        # add a hidden state for each param
-        hs_features = param_group['hs_features']
+        param_group.setdefault('modules', defaultdict(mc))
+        param_group.setdefault('features', defaultdict(int))
 
         for param in param_group['params']:
-            self.state[param].setdefault('hs', torch.zeros_like((1,hs_features)))
+            if len(param.shape) < 2:
+                k = 1
+            elif len(param.shape) == 2:
+                k = param.shape[1]
+            else:
+                k = param.view(param.shape[0], -1).shape[-1]
+
+            # create a network
+            module = mc(in_features=k, out_features=k, *param_group['module_args'])
+
+            param_group['modules'][param] = module
+            param_group['features'][param] = k
+
+
+    def parameters(self):
+        module_params = []
+        for group in self.param_groups:
+            for param in group['params']:
+                module_params += list(group['modules'][param].parameters())
+        return module_params
