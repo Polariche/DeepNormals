@@ -69,11 +69,14 @@ def train(device, model, xyz, s_gt, n_gt,backward=True, lamb=0.005):
     loss /= xyz.shape[0]
     
     if backward:
-        xyz.grad.zero_()
+        if xyz.grad != None:
+            xyz.grad.zero_()
+
         for param in model.parameters():
-            param.grad.zero_()
-            
-    loss.backward()
+            if param.grad != None:
+                param.grad.zero_()
+
+        loss.backward()
 
     return loss.detach(), s.detach(), n.detach()
 
