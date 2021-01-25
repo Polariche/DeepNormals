@@ -68,7 +68,6 @@ def train(device, model, xyz, s_gt, n_gt, backward=True, lamb=0.005):
 
     loss = loss_grad + loss_zeros + loss_ones
 
-    
     if backward:
         xyz_grad = torch.autograd.grad(loss_grad, [xyz], create_graph=True)[0]
 
@@ -99,7 +98,7 @@ def main():
 
 
     # load 
-    ds = ObjDataset("../../../data/train/02828884/model_005004.obj")
+    ds = ObjDataset("../../../data/train/02828884/model_038858.obj")
 
     n = ds.vn
     xyz = ds.v
