@@ -135,8 +135,11 @@ def main():
         # visualization
         n_normalized = n / torch.norm(n, dim=1, keepdim=True)
         n_error = (1 - torch.sum(n_normalized * n_aug, dim=1, keepdim=True) / torch.norm(n_aug, dim=1, keepdim=True))
+        n_error[torch.isnan(n_error)] = -1
 
-        writer.add_scalars("normal error", {'train': n_error[:xyz.shape[0]].detach().mean()}, epoch)
+        n_error_originals = n_error[:xyz.shape[0]]
+
+        writer.add_scalars("normal error", {'train': n_error_originals[n_error_originals > -1].detach().mean()}, epoch)
 
         if epoch % 10 == 0:
             writer.add_mesh("2. n", xyz_aug[xyz.shape[0]:].unsqueeze(0), colors=(n_normalized[:xyz.shape[0]:].unsqueeze(0) * 128 + 128).int(), global_step=epoch)
