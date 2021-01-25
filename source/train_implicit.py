@@ -147,14 +147,14 @@ def main():
             
             if epoch % 10 == 0:
                 print(epoch)
-                writer.add_mesh("2. n", xyz_aug[xyz.shape[0]:].unsqueeze(0), colors=(n_normalized[xyz.shape[0]:].unsqueeze(0) * 128 + 128).int(), global_step=epoch, faces=ds.f.unsqueeze(0))
-                writer.add_mesh("3. n_error", xyz_aug[xyz.shape[0]:].unsqueeze(0), colors=(F.pad(n_error[xyz.shape[0]:], (0,2)).unsqueeze(0) * 256).int(), global_step=epoch, faces=ds.f.unsqueeze(0))
+                writer.add_mesh("2. n", xyz_aug[xyz.shape[0]:].unsqueeze(0).detach(), colors=(n_normalized[xyz.shape[0]:].unsqueeze(0).detach() * 128 + 128).int(), global_step=epoch, faces=ds.f.unsqueeze(0))
+                writer.add_mesh("3. n_error", xyz_aug[xyz.shape[0]:].unsqueeze(0).detach(), colors=(F.pad(n_error[xyz.shape[0]:], (0,2)).unsqueeze(0).detach() * 256).int(), global_step=epoch, faces=ds.f.unsqueeze(0))
 
         # update
         optimizer.step()
 
-        #with torch.no_grad():
-        #    s_aug = (torch.norm(xyz_aug.cpu() - xyz.repeat(2,1), dim=1) / 0.05).to(device)
+        with torch.no_grad():
+            s_aug = (torch.norm(xyz_aug.cpu() - xyz.repeat(2,1), dim=1) / 0.05).to(device)
 
         torch.save(model.state_dict(), args.weight_save_path+'model_%03d.pth' % epoch)
         
