@@ -51,9 +51,6 @@ parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE',
 
 def train(device, model, xyz, s_gt, n_gt, backward=True, lamb=0.005):
     s, xyz = model(xyz)
-    
-    for param in model.parameters():
-        param.requires_grad_(False)
 
     n = torch.autograd.grad(s, [xyz], grad_outputs=torch.ones_like(s), create_graph=True)[0]
 
@@ -114,6 +111,8 @@ def main():
         s_aug = s_aug.to(device)
         n_aug = n_aug.to(device)
         xyz_aug = xyz_aug.to(device)
+        
+        xyz_gt = xyz.to(device).repeat(2,1)
 
     writer.add_mesh("1. n_gt", xyz.unsqueeze(0), colors=(n.unsqueeze(0) * 128 + 128).int(), faces=ds.f.unsqueeze(0))
     
@@ -121,19 +120,20 @@ def main():
     optimizer = optim.Adam(list(model.parameters()) + [xyz_aug], lr = 1e-4)
 
     for epoch in range(args.epoch):
-        print(epoch)
         optimizer.zero_grad()
         
         # train
         utils.model_train(model)
         loss_t, s, n = train(device, model, xyz_aug, s_aug, n_aug, backward=True, lamb= args.lamb)
-        loss_x = 5e2 * torch.sum(torch.norm(xyz_aug - xyz.to(device).repeat(2,1), dim=1))
+
+        loss_x = 5e2 * torch.sum(torch.norm(xyz_aug - xyz_gt, dim=1))
         loss_x.backward()
 
-        writer.add_scalars("loss", {'train': loss_t}, epoch)
+        writer.add_scalars("loss", {'train': loss_t + loss_x.detach()}, epoch)
 
         # visualization
         with torch.no_grad():
+            print(epoch)
             
             n_normalized = n / torch.norm(n, dim=1, keepdim=True)
             
