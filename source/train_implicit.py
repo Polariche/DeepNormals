@@ -114,8 +114,6 @@ def main():
         s_aug = s_aug.to(device)
         n_aug = n_aug.to(device)
         xyz_aug = xyz_aug.to(device)
-        
-        xyz_gt = xyz.to(device)
 
     writer.add_mesh("1. n_gt", xyz.unsqueeze(0), colors=(n.unsqueeze(0) * 128 + 128).int(), faces=ds.f.unsqueeze(0))
     
@@ -130,8 +128,8 @@ def main():
         # train
         utils.model_train(model)
         loss_t, s, n = train(device, model, xyz_aug, s_aug, n_aug, backward=True, lamb= args.lamb)
-        #loss_x = 5e2 * torch.sum(torch.norm(xyz_aug - xyz_gt.repeat(2,1), dim=1))
-        #loss_x.backward()
+        loss_x = 5e2 * torch.sum(torch.norm(xyz_aug - xyz.to(device).repeat(2,1), dim=1))
+        loss_x.backward()
 
         writer.add_scalars("loss", {'train': loss_t}, epoch)
 
@@ -155,8 +153,8 @@ def main():
         # update
         optimizer.step()
 
-        #with torch.no_grad():
-            #s_aug = (torch.norm(xyz_aug - xyz_gt.repeat(2,1), dim=1) / 0.05).detach().clone()
+        with torch.no_grad():
+            s_aug = (torch.norm(xyz_aug.cpu() - xyz.repeat(2,1), dim=1) / 0.05).to(device)
 
         torch.save(model.state_dict(), args.weight_save_path+'model_%03d.pth' % epoch)
         
