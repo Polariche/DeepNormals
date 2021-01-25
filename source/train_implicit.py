@@ -70,8 +70,8 @@ def train(device, model, xyz, s_gt, n_gt, backward=True, lamb=0.005):
 
     
     if backward:
-        xyz_grad = torch.autograd.grad(loss_grad, [xyz], create_graph=True, retain_graph = True)[0]
-        
+        xyz_grad = torch.autograd.grad(loss_grad, [xyz], create_graph=True)[0]
+
         for param in model.parameters():
             if param.grad != None:
                 param.grad.zero_()
