@@ -67,10 +67,7 @@ def train(device, model, xyz, s_gt, n_gt, backward=True, lamb=0.005, use_abs=Tru
         p_gt = torch.exp(-s_gt / (2*1e-4))
 
     # instead of using n_gt, we could use ECPN tangent loss
-    if use_abs:
-        loss_grad = 1e2 * torch.mean((1 - torch.abs(torch.sum(n * n_gt, dim=1, keepdim=True)) / torch.norm(n, dim=1, keepdim=True)) * p_gt)
-    else:
-        loss_grad = 1e2 * torch.mean((1 - torch.sum(n * n_gt, dim=1, keepdim=True) / torch.norm(n, dim=1, keepdim=True)) * p_gt)
+    loss_grad = 1e2 * torch.mean((1 - torch.sum(n * n_gt, dim=1, keepdim=True) / torch.norm(n, dim=1, keepdim=True)) * p_gt)
     loss_s = 3e2 * torch.mean(torch.pow(s - s_gt,2))
 
     #loss_zeros = 3e3 * torch.mean(torch.abs(s) * p_gt)
@@ -151,10 +148,7 @@ def main():
 
             n_normalized = n / torch.norm(n, dim=1, keepdim=True)
             
-            if args.abs:
-                n_error = torch.sum(torch.abs(n_normalized * n_aug), dim=1, keepdim=True) / torch.norm(n_aug, dim=1, keepdim=True)
-            else: 
-                n_error = torch.sum(n_normalized * n_aug, dim=1, keepdim=True) / torch.norm(n_aug, dim=1, keepdim=True)
+            n_error = torch.sum(n_normalized * n_aug, dim=1, keepdim=True) / torch.norm(n_aug, dim=1, keepdim=True)
                 
             n_error = torch.acos(n_error) / np.arccos(0)
 
