@@ -99,7 +99,7 @@ def main():
 
             cd = (np.sum(d1) + np.sum(d2)) / 50000
 
-            writer.add_mesh("point cloud regression", x.unsqueeze(0), colors=(F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) * 256).int(), global_step=i)
+            writer.add_mesh("point cloud regression", x.unsqueeze(0), colors=(F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) / 0.05 * 256).int(), global_step=i)
             writer.add_scalar("chamfer distance", cd, global_step=i)
     
     writer.close()
