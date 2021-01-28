@@ -88,15 +88,12 @@ class ObjDataset(Dataset):
         v = self.v[f]
         vn = self.vn[f]
 
-        r = torch.rand(2)
-        a = r[0]
-        b = r[1]
-
-        # if (a,b) out of trig, flip it
-        if a+b > 0.5:
-            k = a+b-0.5 
-            a -= k
-            b -= k
+        a = 1
+        b = 1
+        while a+b > 0.5:
+            r = torch.rand(2)
+            a = r[0]
+            b = r[1]
 
         # barycentric interpolation
         xyz = (1-a-b) * v[0] + a*v[1] + b*v[2]
