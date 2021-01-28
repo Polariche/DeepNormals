@@ -150,8 +150,8 @@ def main():
             
             if epoch % 10 == 0:
                 print(epoch)
-                writer.add_mesh("2. n", xyz_aug[xyz.shape[0]:].unsqueeze(0).detach().clone(), 
-                                colors=(n_normalized[xyz.shape[0]:].unsqueeze(0).detach().clone() * 128 + 128).int(), 
+                writer.add_mesh("2. n", xyz_aug[:xyz.shape[0]].unsqueeze(0).detach().clone(), 
+                                colors=(n_normalized[:xyz.shape[0]].unsqueeze(0).detach().clone() * 128 + 128).int(), 
                                 global_step=epoch)
                 """
                 writer.add_mesh("3. n_error", xyz_aug[xyz.shape[0]:].unsqueeze(0).detach().clone(), 
