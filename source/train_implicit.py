@@ -62,11 +62,12 @@ def train(device, model, xyz, s_gt, n_gt, backward=True, lamb=0.005):
 
     # instead of using n_gt, we could use ECPN tangent loss
     loss_grad = 1e2 * torch.mean((1 - torch.sum(n * n_gt, dim=1, keepdim=True) / torch.norm(n, dim=1, keepdim=True)) * p_gt)
-    
-    loss_zeros = 3e3 * torch.mean(torch.abs(s) * p_gt)
-    loss_ones = 1e2 * torch.mean(torch.exp(-1e2*s) * (1-p_gt))
+    loss_s = 3e2 * torch.mean(torch.pow(s - s_gt,2))
 
-    loss = loss_grad + loss_zeros + loss_ones
+    #loss_zeros = 3e3 * torch.mean(torch.abs(s) * p_gt)
+    #loss_ones = 1e2 * torch.mean(torch.exp(-1e2*s) * (1-p_gt))
+
+    loss = loss_grad + loss_s #+ loss_zeros + loss_ones
 
     if backward:
         if xyz.grad != None:
