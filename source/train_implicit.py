@@ -92,9 +92,9 @@ def main():
 
     if args.weight != None:
         try:
-            model.load_state_dict(torch.load(args.pretrained_weight))
+            model.load_state_dict(torch.load(args.weight))
         except:
-            print("Couldn't load pretrained weight: " + args.pretrained_weight)
+            print("Couldn't load pretrained weight: " + args.weight)
 
 
     # load 

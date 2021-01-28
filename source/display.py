@@ -60,9 +60,9 @@ def main():
 
     if args.weight != None:
         try:
-            model.load_state_dict(torch.load(args.pretrained_weight))
+            model.load_state_dict(torch.load(args.weight))
         except:
-            print("Couldn't load pretrained weight: " + args.pretrained_weight)
+            print("Couldn't load pretrained weight: " + args.weight)
 
     ds = ObjDataset("../../../data/train/02828884/model_049364.obj")
 
