@@ -6,7 +6,6 @@ from torch import Tensor
 
 from torch.autograd import Variable
 
-import matplotlib.pyplot as plt
 
 
 def detach_var(v):
