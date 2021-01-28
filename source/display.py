@@ -85,9 +85,12 @@ def main():
             voxels_ = voxels.clone().detach()
             voxels_[:,2] += z
 
-        s, _ = model(voxels_)
+        s, g = model(voxels_)
+        g = torch.autograd.grad(s, [g], grad_outputs=torch.ones_like(s), create_graph=True)[0]
 
-        writer.add_image("implicit", torch.clamp(s.reshape(n,n)*2, 0, 1), i, dataformats='WH')
+        writer.add_image("implicit", torch.clamp(s.reshape(n,n), 0, 1), i, dataformats='WH')
+
+        writer.add_image("implicit_normals", (g.reshape(n,n,3)*128+128).int(), i, dataformats='WHC')
     
     writer.close()
 
