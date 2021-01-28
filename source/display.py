@@ -73,9 +73,11 @@ def main():
 
         voxels = (torch.tensor([[i//n,i%n,0] for i in range(n*n)], dtype=torch.float) / n).to(device)
         
+        
         ran = voxel_max - voxel_min
 
         voxels *= ran
+        voxels += voxel_min
 
     for i in range(256):
         z = i/256 * ran[:,2]
