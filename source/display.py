@@ -68,8 +68,8 @@ def main():
 
     n = 256
     with torch.no_grad():
-        voxel_min = torch.min(ds.v, dim=0, keepdim=True, out=None).to(device)
-        voxel_max = torch.max(ds.v, dim=0, keepdim=True, out=None).to(device)
+        voxel_min = torch.min(ds.v, dim=0, keepdim=True, out=None).values.to(device)
+        voxel_max = torch.max(ds.v, dim=0, keepdim=True, out=None).values.to(device)
 
         voxels = (torch.tensor([[i//n,i%n,0] for i in range(n*n)], dtype=torch.float) / n).to(device)
         
