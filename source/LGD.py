@@ -55,7 +55,7 @@ class LGD(nn.Module):
     def step(self):
         new_params = []
         n = self.n
-        grads = torch.zeros((n, 0))
+        grads = torch.zeros((n, 0)).to(self.params[0].device)
 
         k = [0]
 
