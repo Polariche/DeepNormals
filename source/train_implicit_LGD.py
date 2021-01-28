@@ -13,7 +13,7 @@ from loaders import ObjDataset
 import utils
 from torch.utils.data import  DataLoader, WeightedRandomSampler
 
-from LGD import LGD
+from LGD import LGD, apply_step
 
 import argparse
 
@@ -182,6 +182,8 @@ def main():
         if epoch % 5 == 0:
             optimizer.step()
             optimizer.zero_grad()
+
+            apply_step(model, lgd.detach_params())
 
         with torch.no_grad():
             s_aug = (torch.norm(xyz_aug.detach().clone().cpu() - xyz.repeat(2,1), dim=1, keepdim=True)/args.epsilon).to(device)
