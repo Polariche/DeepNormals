@@ -18,10 +18,10 @@ def apply_step(model, step):
         op.data = np
 
 class LGD(nn.Module):
-    def __init__(self, params, layers_generator, n=1):
+    def __init__(self, params, layers_generator, n=1, **kwargs):
         super(LGD, self).__init__()
         
-        self.layers_generator = layers_generator
+        self.layers_generator = lambda in_features, out_features: layers_generator(in_features=in_features, out_features=out_features, **kwargs)
         self.define_params(params, n)
         
         

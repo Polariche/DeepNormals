@@ -132,7 +132,7 @@ def main():
 
     writer.add_mesh("1. n_gt", xyz.unsqueeze(0), colors=(n.unsqueeze(0) * 128 + 128).int())
 
-    lgd = LGD(list(model.parameters()), layers_generator=Siren).to(device)
+    lgd = LGD(list(model.parameters()), layers_generator=Siren, hidden_features=3, hidden_layers=512).to(device)
     optimizer = optim.Adam(list(lgd.parameters()), lr = 1e-4)
 
     for epoch in range(args.epoch):
