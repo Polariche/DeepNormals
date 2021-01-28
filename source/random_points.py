@@ -72,7 +72,7 @@ def main():
     xyz = ds.v
 
     with torch.no_grad():
-        x = xyz + n * torch.rand((xyz.shape[0], 1)) * 0.5
+        x = xyz + n * torch.rand((xyz.shape[0], 1)) * 0.1
         x = x.to(device)
         x.requires_grad_(True)
 
