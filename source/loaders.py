@@ -102,6 +102,8 @@ class ObjDataset(Dataset):
         xyz = (1-a-b) * v[0] + a*v[1] + b*v[2]
         n = (1-a-b) * vn[0] + a*vn[1] + b*vn[2]
 
+        n /= torch.norm(n)
+
         return {'xyz': xyz,
                 'n': n}
 

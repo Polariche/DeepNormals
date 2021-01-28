@@ -119,8 +119,9 @@ def main():
     """
 
     data = [ds[i] for i in range(len(ds))]
-    xyz = torch.tensor([d['xyz'] for d in data])
-    n = torch.tensor([d['n'] for d in data])
+    
+    xyz = torch.cat([d['xyz'].unsqueeze(0) for d in data])
+    n = torch.cat([d['n'].unsqueeze(0) for d in data])
 
     with torch.no_grad():
         s_aug = torch.cat([torch.zeros((xyz.shape[0], 1)), torch.rand((xyz.shape[0], 1))], dim=0)
