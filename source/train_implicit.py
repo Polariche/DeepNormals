@@ -131,8 +131,8 @@ def main():
         utils.model_train(model)
         loss_t, s, n = train(device, model, xyz_aug, s_aug, n_aug, backward=True, lamb= args.lamb)
 
-        #loss_x = 1e2 * torch.sum(torch.norm(xyz_aug - xyz_gt, dim=1))
-        #loss_x.backward()
+        loss_x = 1e2 * torch.sum(torch.norm(xyz_aug - xyz_gt, dim=1))
+        loss_x.backward()
 
         writer.add_scalars("loss", {'train': loss_t}, epoch)
 
@@ -151,8 +151,8 @@ def main():
             
             if epoch % 10 == 0:
                 print(epoch)
-                writer.add_mesh("2. n", xyz_aug[:xyz.shape[0]].unsqueeze(0).detach().clone(), 
-                                colors=(n_normalized[:xyz.shape[0]].unsqueeze(0).detach().clone() * 128 + 128).int(), 
+                writer.add_mesh("2. n", xyz_aug[:].unsqueeze(0).detach().clone(), 
+                                colors=(n_normalized[:].unsqueeze(0).detach().clone() * 128 + 128).int(), 
                                 global_step=epoch)
                 """
                 writer.add_mesh("3. n_error", xyz_aug[xyz.shape[0]:].unsqueeze(0).detach().clone(), 
@@ -163,8 +163,8 @@ def main():
         # update
         optimizer.step()
 
-        #with torch.no_grad():
-        #    s_aug = (torch.norm(xyz_aug.detach().clone().cpu() - xyz.repeat(2,1), dim=1, keepdim=True)/0.02).to(device)
+        with torch.no_grad():
+            s_aug = (torch.norm(xyz_aug.detach().clone().cpu() - xyz.repeat(2,1), dim=1, keepdim=True)/0.02).to(device)
 
 
         torch.save(model.state_dict(), args.weight_save_path+'model_%03d.pth' % epoch)
