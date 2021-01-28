@@ -66,13 +66,8 @@ def main():
 
 
     # load 
-    ds = ObjDataset(args.data)
-
-    n = ds.vn
-    xyz = ds.v
-
     with torch.no_grad():
-        x = xyz + n * torch.rand((xyz.shape[0], 1)) * 0.1
+        x = (torch.rand(50000,3) - 0.5)*0.1
         x = x.to(device)
         x.requires_grad_(True)
 
