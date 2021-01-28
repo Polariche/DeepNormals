@@ -81,10 +81,31 @@ class ObjDataset(Dataset):
         self.fnn = fnn
 
     def __len__(self):
-        return len(self.v)
+        return len(self.f)
 
     def __getitem__(self, idx):
-        return {'xyz': self.v[idx], 'n': self.vn[idx]}
+        f = self.f[idx]
+        v = self.v[f]
+        vn = self.vn[f]
+
+        r = torch.rand(2)
+        a = r[0]
+        b = r[1]
+
+        # if (a,b) out of trig, flip it
+        if a+b > 0.5:
+            k = a+b-0.5 
+            a -= k
+            b -= k
+
+        # barycentric interpolation
+        xyz = (1-a-b) * v[0] + a*v[1] + b*v[2]
+        n = (1-a-b) * vn[0] + a*vn[1] + b*vn[2]
+
+        return {'xyz': xyz
+                'n': n}
+
+        #return {'xyz': self.v[idx], 'n': self.fn[idx]}
 
     def to_obj(self):
         obj_file = open("test.obj", 'w')

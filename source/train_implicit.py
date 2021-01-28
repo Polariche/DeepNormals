@@ -11,7 +11,7 @@ from models import Siren
 from utils import Sobel
 from loaders import ObjDataset
 import utils
-from torch.utils.data import  DataLoader
+from torch.utils.data import  DataLoader, WeightedRandomSampler
 
 import argparse
 
@@ -100,6 +100,7 @@ def main():
     # load 
     ds = ObjDataset(args.data)
 
+    """
     n = ds.vn
     xyz = ds.v
 
@@ -115,7 +116,25 @@ def main():
         xyz_gt = xyz.to(device).repeat(2,1)
 
     writer.add_mesh("1. n_gt", xyz.unsqueeze(0), colors=(n.unsqueeze(0) * 128 + 128).int())
-    
+    """
+
+    data = [ds[i] for i in range(len(ds))]
+    xyz = torch.tensor([d['xyz'] for d in data])
+    n = torch.tensor([d['n'] for d in data])
+
+    with torch.no_grad():
+        s_aug = torch.cat([torch.zeros((xyz.shape[0], 1)), torch.rand((xyz.shape[0], 1))], dim=0)
+        xyz_aug = torch.cat([xyz, xyz + n * s_aug[xyz.shape[0]:] * ds.vnn * 0.05], dim=0)
+        n_aug = n.repeat(2,1)
+
+        s_aug = s_aug.to(device)
+        n_aug = n_aug.to(device)
+        xyz_aug = xyz_aug.to(device)
+        
+        xyz_gt = xyz.to(device).repeat(2,1)
+
+    writer.add_mesh("1. n_gt", xyz.unsqueeze(0), colors=(n.unsqueeze(0) * 128 + 128).int())
+
 
     optimizer = optim.Adam(list(model.parameters()), lr = 1e-4)
 
@@ -149,9 +168,11 @@ def main():
                 writer.add_mesh("2. n", xyz_aug[xyz.shape[0]:].unsqueeze(0).detach().clone(), 
                                 colors=(n_normalized[xyz.shape[0]:].unsqueeze(0).detach().clone() * 128 + 128).int(), 
                                 global_step=epoch)
+                """
                 writer.add_mesh("3. n_error", xyz_aug[xyz.shape[0]:].unsqueeze(0).detach().clone(), 
                                 colors=(F.pad(n_error[xyz.shape[0]:], (0,2)).unsqueeze(0).detach().clone() * 256).int(), 
                                 global_step=epoch)
+                """
 
         # update
         optimizer.step()
