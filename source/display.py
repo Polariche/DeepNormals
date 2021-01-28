@@ -87,7 +87,7 @@ def main():
 
         s, _ = model(voxels_)
 
-        writer.add_image("implicit", s.reshape(n,n)*2, i, dataformats='WH')
+        writer.add_image("implicit", torch.clip(s.reshape(n,n)*2, 0, 1), i, dataformats='WH')
     
     writer.close()
 
