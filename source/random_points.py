@@ -63,13 +63,14 @@ def main():
             model.load_state_dict(torch.load(args.weight))
         except:
             print("Couldn't load pretrained weight: " + args.weight)
-            
+
 
     ds = ObjDataset(args.data)
 
     with torch.no_grad():
         x = torch.rand(10000, 3) - 0.5
         x.requires_grad_(True)
+        x = x.to(device)
 
     optimizer = optim.Adam([x], lr = 1e-4)
 
