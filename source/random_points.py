@@ -65,12 +65,14 @@ def main():
             print("Couldn't load pretrained weight: " + args.weight)
 
 
+    # load 
     ds = ObjDataset(args.data)
 
+    n = ds.vn
+    xyz = ds.v
+
     with torch.no_grad():
-        x = torch.rand(10000, 3) - 0.5
-        x.requires_grad_(True)
-        x = x.to(device)
+        x = xyz + n * torch.rand((xyz.shape[0], 1)) * ds.vnn * 0.05
 
     optimizer = optim.Adam([x], lr = 1e-3)
 
