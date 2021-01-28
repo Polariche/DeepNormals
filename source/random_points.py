@@ -85,8 +85,8 @@ def main():
         torch.sum(torch.pow(s, 2)).backward()
 
         optimizer.step()
-        
-        writer.add_mesh("point cloud regression", x.unsqueeze(0), global_step=i)
+        if i%10 == 0:
+            writer.add_mesh("point cloud regression", x.unsqueeze(0), global_step=i)
     
     writer.close()
 
