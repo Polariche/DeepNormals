@@ -69,7 +69,7 @@ class LGD(nn.Module):
 
             k.append(k_ + k[i])
 
-        grads, _ = self(grads)
+        grads = self(grads)
 
         for i, param in enumerate(self.params):
             param_ = param + grads[:,k[i]:k[i+1]].view(param.shape)
