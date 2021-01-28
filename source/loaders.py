@@ -44,12 +44,12 @@ class ObjDataset(Dataset):
 
         f = f_unique
         """
-        
+
         vf = v[f]
 
         # obtain face normal with cross vector
         a1 = - vf[:,0] + vf[:,1] 
-        a2 = - vf[:,0] + vf[:,2]
+        a2 = - vf[:,1] + vf[:,2]
         
         fn = torch.cat([t.unsqueeze(1) for t in 
            [a1[:,1] * a2[:,2] - a1[:,2] * a2[:,1],

@@ -99,24 +99,6 @@ def main():
 
     # load 
     ds = ObjDataset(args.data)
-
-    """
-    n = ds.vn
-    xyz = ds.v
-
-    with torch.no_grad():
-        s_aug = torch.cat([torch.zeros((xyz.shape[0], 1)), torch.rand((xyz.shape[0], 1))], dim=0)
-        xyz_aug = torch.cat([xyz, xyz + n * s_aug[xyz.shape[0]:] * ds.vnn * 0.05], dim=0)
-        n_aug = n.repeat(2,1)
-
-        s_aug = s_aug.to(device)
-        n_aug = n_aug.to(device)
-        xyz_aug = xyz_aug.to(device)
-        
-        xyz_gt = xyz.to(device).repeat(2,1)
-
-    writer.add_mesh("1. n_gt", xyz.unsqueeze(0), colors=(n.unsqueeze(0) * 128 + 128).int())
-    """
     
     samples = list(WeightedRandomSampler(ds.fnn.view(-1) / torch.sum(ds.fnn), 10000, replacement=True))
 
