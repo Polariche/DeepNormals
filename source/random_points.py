@@ -67,7 +67,7 @@ def main():
 
     # load 
     with torch.no_grad():
-        x = (torch.rand(50000,3) - 0.5)*0.1
+        x = (torch.rand(50000,3) - 0.5)
         x = x.to(device)
         x.requires_grad_(True)
 
