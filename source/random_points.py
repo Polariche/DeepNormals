@@ -11,7 +11,9 @@ from models import Siren
 from utils import Sobel
 from loaders import ObjDataset
 import utils
-from torch.utils.data import  DataLoader
+from torch.utils.data import  DataLoader, WeightedRandomSampler
+
+from sklearn.neighbors import KDTree
 
 import argparse
 
@@ -64,6 +66,14 @@ def main():
         except:
             print("Couldn't load pretrained weight: " + args.weight)
 
+    ds = ObjDataset(args.data)
+    fnn = torch.abs(ds.fnn)
+    samples = list(WeightedRandomSampler(fnn.view(-1) / torch.sum(fnn), 50000, replacement=True))
+
+    data = [ds[samples[i]] for i in range(len(samples))]
+    xyz = torch.cat([d['xyz'].unsqueeze(0) for d in data])
+    
+    tree_original = KDTree(xyz.cpu().numpy())
 
     # load 
     with torch.no_grad():
@@ -81,7 +91,15 @@ def main():
 
         optimizer.step()
         if i%10 == 0:
-            writer.add_mesh("point cloud regression", x.unsqueeze(0), global_step=i)
+            tree_new = KDTree(x.cpu().numpy())
+
+            d1, _ = tree_original.query(x.cpu().numpy(), k=1)
+            d2, _ = tree_new.query(xyz.cpu().numpy(), k=1)
+
+            cd = (np.sum(d1) + np.sum(d2)) / 50000
+
+            writer.add_mesh("point cloud regression", x.unsqueeze(0), colors=(F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) * 256).int(), global_step=i)
+            writer.add_mesh("chamfer distance", cd, global_step=i)
     
     writer.close()
 
