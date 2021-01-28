@@ -133,10 +133,10 @@ def main():
     writer.add_mesh("1. n_gt", xyz.unsqueeze(0), colors=(n.unsqueeze(0) * 128 + 128).int())
 
     lgd = LGD(list(model.parameters()), layers_generator=Siren).to(device)
-    optimizer = optim.Adam(list(model.parameters()), lr = 1e-4)
+    optimizer = optim.Adam(list(lgd.parameters()), lr = 1e-3)
 
     for epoch in range(args.epoch):
-        optimizer.zero_grad()
+        lgd.zero_grad()
         
         # train
         utils.model_train(model)
@@ -150,7 +150,6 @@ def main():
         # visualization
         with torch.no_grad():
             
-
             n_normalized = n / torch.norm(n, dim=1, keepdim=True)
             
             if args.abs:
@@ -175,8 +174,13 @@ def main():
                                 global_step=epoch)
                 
 
-        # update
-        optimizer.step()
+        # update the model
+        lgd.apply_step(model)
+
+        # update lgd
+        if epoch % 10 == 0:
+            optimizer.step()
+            optimizer.zero_grad()
 
         with torch.no_grad():
             s_aug = (torch.norm(xyz_aug.detach().clone().cpu() - xyz.repeat(2,1), dim=1, keepdim=True)/args.epsilon).to(device)
