@@ -99,8 +99,8 @@ def main():
 
     # load 
     ds = ObjDataset(args.data)
-    
-    samples = list(WeightedRandomSampler(ds.fnn.view(-1) / torch.sum(ds.fnn), 10000, replacement=True))
+    fnn = torch.abs(ds.fnn)
+    samples = list(WeightedRandomSampler(fnn.view(-1) / torch.sum(fnn), 10000, replacement=True))
 
     data = [ds[samples[i]] for i in range(len(samples))]
 
