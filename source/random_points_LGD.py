@@ -91,12 +91,12 @@ def main():
         lgd.zero_grad()
 
         s, x = model(x)
-        torch.sum(torch.pow(s, 2)).backward()
+        torch.sum(torch.pow(s, 2)).backward(retain_graph=True)
 
         [x] = lgd.step()
 
         if i%10 == 0:
-            optimizer.step()
+            optimizer.step(retain_graph=True)
             optimizer.zero_grad()
 
             [x] = lgd.detach_params()
