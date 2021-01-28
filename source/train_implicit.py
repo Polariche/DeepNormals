@@ -120,7 +120,7 @@ def main():
     
     samples = list(WeightedRandomSampler(ds.fnn.view(-1) / torch.sum(ds.fnn), 50000, replacement=True))
 
-    data = [ds[i] for i in range(len(samples))]
+    data = [ds[samples[i]] for i in range(len(samples))]
 
     xyz = torch.cat([d['xyz'].unsqueeze(0) for d in data])
     n = torch.cat([d['n'].unsqueeze(0) for d in data])
