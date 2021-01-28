@@ -38,7 +38,7 @@ parser.add_argument('--epoch', dest='epoch', type=int,metavar='EPOCH', default=1
                         help='epochs')
 
 
-parser.add_argument('--abs', dest='abs', type=bool, metavar='BOOL', default=True, 
+parser.add_argument('--abs', dest='abs', type=bool, metavar='BOOL', default=False, 
                         help='whether we should use ABS when evaluating normal loss')
 
 parser.add_argument('--epsilon', dest='epsilon', type=float, metavar='EPSILON', default=0.1, 
