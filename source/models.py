@@ -55,7 +55,7 @@ class SineLayer(nn.Module):
     
     
 class Siren(nn.Module):
-    def __init__(self, in_features, hidden_features=5, hidden_layers=256, out_features, outermost_linear=True, 
+    def __init__(self, in_features, out_features, hidden_features=5, hidden_layers=256, outermost_linear=True, 
                  first_omega_0=30, hidden_omega_0=30.):
         super().__init__()
         
