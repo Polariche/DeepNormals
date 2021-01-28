@@ -71,7 +71,7 @@ def main():
         voxel_min = torch.min(ds.v, dim=0, keepdim=True, out=None).values.to(device)
         voxel_max = torch.max(ds.v, dim=0, keepdim=True, out=None).values.to(device)
 
-        voxels = (torch.tensor([[i//n,0,i%n] for i in range(n*n)], dtype=torch.float) / n).to(device)
+        voxels = (torch.tensor([[i//n,0,n-i%n] for i in range(n*n)], dtype=torch.float) / n).to(device)
         
         ran = voxel_max - voxel_min
 
@@ -79,7 +79,7 @@ def main():
         voxels += voxel_min
 
     for i in range(256):
-        y = n-i/256 * ran[:,1]
+        y = i/256 * ran[:,1]
 
         with torch.no_grad():
             voxels_ = voxels.clone().detach()
