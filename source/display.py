@@ -86,7 +86,7 @@ def main():
 
         s, _ = model(voxels_)
 
-        writer.add_image("implicit", s.reshape(n,n), i, dataformats='WH')
+        writer.add_image("implicit", (s.reshape(n,n) * 128 + 128).int(), i, dataformats='WH')
     
     writer.close()
 
