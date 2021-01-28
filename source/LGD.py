@@ -60,12 +60,12 @@ class LGD(nn.Module):
         k = [0]
 
         for i, param in enumerate(self.params):
-            k_ = param.view(n,-1).shape[1]
+            k_ = int(param.view(n,-1).shape[1])
             if param.grad is not None:
                 grad = detach_var(param.grad).view(n, -1)
                 grads = torch.cat([grads, grad], dim=1)
             else:
-                grads = torch.cat([grads, torch.zeros((n, k_))], dim=1)
+                grads = torch.cat([grads, torch.zeros((n, k_)).to(self.params[0].device)], dim=1)
 
             k.append(k_ + k[i])
 
