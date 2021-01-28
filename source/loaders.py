@@ -31,7 +31,7 @@ class ObjDataset(Dataset):
         v = torch.tensor([list(map(float, v_)) for v_ in v], dtype=torch.float)
         f = torch.tensor([list(map(lambda x: int(x)-1, f_)) for f_ in f], dtype=torch.long)     # index starts from 1 in obj, so substract 1
 
-        
+        """
         # remove duplicate faces
         f_sorted, _ = torch.sort(f, 1)
         f_unique, ind2 = torch.unique(f_sorted, dim=0, return_inverse=True)
@@ -43,7 +43,7 @@ class ObjDataset(Dataset):
                 check[t] = True
 
         f = f_unique
-        
+        """
 
         vf = v[f]
 
@@ -100,10 +100,9 @@ class ObjDataset(Dataset):
 
         # barycentric interpolation
         xyz = (1-a-b) * v[0] + a*v[1] + b*v[2]
-        n = (1-a-b) * vn[0] + a*vn[1] + b*vn[2]
-        n /= torch.norm(n)
-
-        #n = -self.fn[idx]
+        #n = (1-a-b) * vn[0] + a*vn[1] + b*vn[2]
+        #n /= torch.norm(n)
+        n = self.fn[idx]
 
         return {'xyz': xyz,
                 'n': n}
