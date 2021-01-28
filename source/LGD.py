@@ -1,81 +1,86 @@
-import numpy as np
-import cv2
-import torch 
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torch import Tensor
 
-import warnings
+from torch.autograd import Variable
 
-from collections import defaultdict
+import matplotlib.pyplot as plt
 
-class LGD(optim.Optimizer):
-    def __init__(self, params, module_class, module_args, hs_features=0):
-        defaults = dict(module_class=module_class, module_args=module_args, hs_features=hs_features)
-        super(LGD, self).__init__(params, defaults)
 
-    def __setstate__(self, state):
-        super(LGD, self).__setstate__(state)
-    
-    @torch.no_grad()
-    def step(self, closure):
-        loss = None
+def detach_var(v):
+    var = Variable(v.data, requires_grad=True)
+    var.retain_grad()
+    return var
 
-        if closure is not None:
-            with torch.enable_grad():
-                # if module's requires_grad = True, dL/dp (p is module's parameter) is also evaluated,
-                # which is accumulated on module's grad over steps.
-                # we can run another optimizer to optimize... the optimizer?
+def apply_step(model, step):
+    for op, np in zip(model.parameters(), step):
+        op.data = np
 
-                loss = closure()
-
-        for group in self.param_groups:
-            for param in group['params']:
-
-                module = group['module'][param]
-                k = group['features'][param]
-
-                p = param.view(-1,k)
-                if p.grad != None:
-                    grad = p.grad
-                else:
-                    grad = torch.zeros_like(p)
-
-                grad = module(grad)
-                param = param.add(grad.view(param.shape))
+class LGD(nn.Module):
+    def __init__(self, params, layers_generator, n=1):
+        super(LGD, self).__init__()
         
-        return loss
+        self.layers_generator = layers_generator
+        self.define_params(params, n)
+        
+        
+    def define_params(self, params, n):
+        k = 0
+        for param in params:
+            k += param.view(n,-1).shape[1]
+
+        self.n = n
+        self.k = k
+        self.layers = self.layers_generator(in_features = k, out_features = k)
+        self.params = params
 
 
-    def add_param_group(self, param_group):
-        super(LGD, self).add_param_group(param_group)
+    def forward(self, x):
+        return self.layers(x)
 
-        # count the total number of variables to optimize
-        # all parameters should contain same variable count
+    def zero_grad(self):
+        for param in self.params:
+            if param.grad != None:
+                param.grad.zero_()
 
-        mc = param_group['module_class']
+    def detach_params(self):
+        new_params = []
+        for param in self.params:
+            new_params.append(detach_var(param))
+        self.params = new_params
+        return new_params
+        
 
-        param_group.setdefault('modules', defaultdict(mc))
-        param_group.setdefault('features', defaultdict(int))
+    def step(self):
+        new_params = []
+        n = self.n
+        grads = torch.zeros((n, 0))
 
-        for param in param_group['params']:
-            if len(param.shape) < 2:
-                k = 1
-            elif len(param.shape) == 2:
-                k = param.shape[1]
+        k = [0]
+
+        for i, param in enumerate(self.params):
+            k_ = param.view(n,-1).shape[1]
+            if param.grad is not None:
+                grad = detach_var(param.grad).view(n, -1)
+                grads = torch.cat([grads, grad], dim=1)
             else:
-                k = param.view(param.shape[0], -1).shape[-1]
+                grads = torch.cat([grads, torch.zeros((n, k_))], dim=1)
 
-            # create a network
-            module = mc(in_features=k, out_features=k, *param_group['module_args'])
+            k.append(k_ + k[i])
 
-            param_group['modules'][param] = module
-            param_group['features'][param] = k
+        grads = self(grads)
+
+        for i, param in enumerate(self.params):
+            param_ = param + grads[:,k[i]:k[i+1]].view(param.shape)
+            param_.retain_grad()
+
+            new_params.append(param_)
+
+        self.params = new_params
+        return new_params
 
 
-    def parameters(self):
-        module_params = []
-        for group in self.param_groups:
-            for param in group['params']:
-                module_params += list(group['modules'][param].parameters())
-        return module_params
+    def apply_step(self, model):
+        apply_step(model, self.step())

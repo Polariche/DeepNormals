@@ -37,10 +37,16 @@ parser.add_argument('--batchsize', dest='batchsize', type=int, metavar='BATCHSIZ
 parser.add_argument('--epoch', dest='epoch', type=int,metavar='EPOCH', default=100, 
                         help='epochs')
 
+
+parser.add_argument('--abs', dest='abs', type=bool, metavar='BOOL', default=True, 
+                        help='whether we should use ABS when evaluating normal loss')
+
 parser.add_argument('--epsilon', dest='epsilon', type=float, metavar='EPSILON', default=0.1, 
                         help='epsilon')
 parser.add_argument('--omega', dest='omega', type=float, metavar='OMEGA', default=30, 
                         help='hyperparameter for periodic layer')
+
+
 parser.add_argument('--lambda', dest='lamb', type=float, metavar='LAMBDA', default=0.005, 
                         help='hyperparameter for s : normal loss ratio')
 
@@ -49,7 +55,7 @@ parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE',
                         help='output file')
 
 
-def train(device, model, xyz, s_gt, n_gt, backward=True, lamb=0.005):
+def train(device, model, xyz, s_gt, n_gt, backward=True, lamb=0.005, use_abs=True):
     s, xyz = model(xyz)
 
     n = torch.autograd.grad(s, [xyz], grad_outputs=torch.ones_like(s), create_graph=True)[0]
@@ -61,7 +67,10 @@ def train(device, model, xyz, s_gt, n_gt, backward=True, lamb=0.005):
         p_gt = torch.exp(-s_gt / (2*1e-4))
 
     # instead of using n_gt, we could use ECPN tangent loss
-    loss_grad = 1e2 * torch.mean((1 - torch.abs(torch.sum(n * n_gt, dim=1, keepdim=True)) / torch.norm(n, dim=1, keepdim=True)) * p_gt)
+    if use_abs:
+        loss_grad = 1e2 * torch.mean((1 - torch.abs(torch.sum(n * n_gt, dim=1, keepdim=True)) / torch.norm(n, dim=1, keepdim=True)) * p_gt)
+    else:
+        loss_grad = 1e2 * torch.mean((1 - torch.sum(n * n_gt, dim=1, keepdim=True) / torch.norm(n, dim=1, keepdim=True)) * p_gt)
     loss_s = 3e2 * torch.mean(torch.pow(s - s_gt,2))
 
     #loss_zeros = 3e3 * torch.mean(torch.abs(s) * p_gt)
@@ -129,7 +138,7 @@ def main():
         
         # train
         utils.model_train(model)
-        loss_t, s, n = train(device, model, xyz_aug, s_aug, n_aug, backward=True, lamb= args.lamb)
+        loss_t, s, n = train(device, model, xyz_aug, s_aug, n_aug, backward=True, lamb= args.lamb, use_abs=args.abs)
 
         loss_x = 1e2 * torch.sum(torch.pow(xyz_aug - xyz_gt, 2))
         loss_x.backward()
@@ -142,7 +151,11 @@ def main():
 
             n_normalized = n / torch.norm(n, dim=1, keepdim=True)
             
-            n_error = torch.sum(torch.abs(n_normalized * n_aug), dim=1, keepdim=True) / torch.norm(n_aug, dim=1, keepdim=True)
+            if args.abs:
+                n_error = torch.sum(torch.abs(n_normalized * n_aug), dim=1, keepdim=True) / torch.norm(n_aug, dim=1, keepdim=True)
+            else: 
+                n_error = torch.sum(n_normalized * n_aug, dim=1, keepdim=True) / torch.norm(n_aug, dim=1, keepdim=True)
+                
             n_error = torch.acos(n_error) / np.arccos(0)
 
             n_error_originals = n_error[:xyz.shape[0]]
