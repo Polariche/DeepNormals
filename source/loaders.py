@@ -91,12 +91,12 @@ class ObjDataset(Dataset):
         v = self.v[f]
         vn = self.vn[f]
 
-        a = 1
-        b = 1
-        while a+b > 0.5:
-            r = torch.rand(2)
-            a = r[0]
-            b = r[1]
+        #a = 1
+        #b = 1
+        #while a+b > 0.5:
+        r = torch.rand(2)
+        a = r[0]
+        b = r[1]
 
         # barycentric interpolation
         xyz = (1-a-b) * v[0] + a*v[1] + b*v[2]
