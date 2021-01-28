@@ -73,6 +73,8 @@ def main():
 
     with torch.no_grad():
         x = xyz + n * torch.rand((xyz.shape[0], 1)) * ds.vnn * 0.05
+        x = x.to(device)
+        x.requires_grad_(True)
 
     optimizer = optim.Adam([x], lr = 1e-3)
 
