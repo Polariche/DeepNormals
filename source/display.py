@@ -87,6 +87,7 @@ def main():
 
         s, g = model(voxels_)
         g = torch.autograd.grad(s, [g], grad_outputs=torch.ones_like(s), create_graph=True)[0]
+        g /= torch.norm(g, dim=1, keepdim=True)
 
         writer.add_image("implicit", torch.clamp(s.reshape(n,n), 0, 1), i, dataformats='WH')
 
