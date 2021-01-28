@@ -118,7 +118,7 @@ def main():
     writer.add_mesh("1. n_gt", xyz.unsqueeze(0), colors=(n.unsqueeze(0) * 128 + 128).int())
     """
     
-    samples = list(WeightedRandomSampler(ds.fnn.view(-1) / torch.sum(ds.fnn), 50000, replacement=True))
+    samples = list(WeightedRandomSampler(ds.fnn.view(-1) / torch.sum(ds.fnn), 10000, replacement=True))
 
     data = [ds[samples[i]] for i in range(len(samples))]
 
