@@ -160,7 +160,7 @@ def main():
             s_aug = (torch.norm(xyz_aug.detach().clone().cpu() - xyz.repeat(2,1), dim=1, keepdim=True)/0.02).to(device)
 
 
-        #torch.save(model.state_dict(), args.weight_save_path+'model_%03d.pth' % epoch)
+        torch.save(model.state_dict(), args.weight_save_path+'model_%03d.pth' % epoch)
         
     
     writer.close()
