@@ -73,7 +73,6 @@ def main():
 
         voxels = (torch.tensor([[i//n,i%n,0] for i in range(n*n)], dtype=torch.float) / n).to(device)
         
-        
         ran = voxel_max - voxel_min
 
         voxels *= ran
@@ -84,7 +83,7 @@ def main():
 
         with torch.no_grad():
             voxels_ = voxels.clone().detach()
-            voxels_[:,2] = z
+            voxels_[:,2] += z
 
         s, _ = model(voxels_)
 
