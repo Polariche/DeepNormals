@@ -78,7 +78,7 @@ def main():
 
     optimizer = optim.Adam([x], lr = 1e-3)
 
-    for i in range(1000):
+    for i in range(500):
         optimizer.zero_grad()
 
         s, x = model(x)
