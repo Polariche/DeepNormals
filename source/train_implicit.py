@@ -122,7 +122,7 @@ def main():
     writer.add_mesh("1. n_gt", xyz.unsqueeze(0), colors=(n.unsqueeze(0) * 128 + 128).int())
 
 
-    optimizer = optim.Adam(list(model.parameters()) + [xyz_aug], lr = 1e-4)
+    optimizer = optim.Adam(list(model.parameters()), lr = 1e-4)
 
     for epoch in range(args.epoch):
         optimizer.zero_grad()
