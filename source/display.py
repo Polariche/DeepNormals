@@ -64,7 +64,7 @@ def main():
         except:
             print("Couldn't load pretrained weight: " + args.weight)
 
-    ds = ObjDataset("../../../data/train/02828884/model_049364.obj")
+    ds = ObjDataset(args.data)
 
     n = 256
     with torch.no_grad():
@@ -86,7 +86,7 @@ def main():
 
         s, _ = model(voxels_)
 
-        writer.add_image("implicit", (s.reshape(n,n) * 128 + 128).int(), i, dataformats='WH')
+        writer.add_image("implicit", s.reshape(n,n), i, dataformats='WH')
     
     writer.close()
 
