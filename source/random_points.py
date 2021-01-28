@@ -72,9 +72,9 @@ def main():
         x.requires_grad_(True)
         x = x.to(device)
 
-    optimizer = optim.Adam([x], lr = 1e-4)
+    optimizer = optim.Adam([x], lr = 1e-3)
 
-    for i in range(100):
+    for i in range(1000):
         optimizer.zero_grad()
 
         s, x = model(x)
