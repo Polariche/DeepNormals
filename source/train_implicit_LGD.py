@@ -178,7 +178,7 @@ def main():
         lgd.apply_step(model)
 
         # update lgd
-        if epoch % 10 == 0:
+        if epoch % 5 == 0:
             optimizer.step()
             optimizer.zero_grad()
 
