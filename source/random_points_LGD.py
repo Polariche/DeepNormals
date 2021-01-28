@@ -96,7 +96,7 @@ def main():
         [x] = lgd.step()
 
         if i%10 == 0:
-            optimizer.step(retain_graph=True)
+            optimizer.step()
             optimizer.zero_grad()
 
             [x] = lgd.detach_params()
