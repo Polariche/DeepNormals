@@ -91,9 +91,10 @@ def main():
 
         optimizer.step()
         if i%10 == 0:
-            tree_new = KDTree(x.cpu().numpy())
+            x_ = x.cpu().detach().numpy()
+            tree_new = KDTree(x_)
 
-            d1, _ = np.power(tree_original.query(x.cpu().numpy(), k=1),2)
+            d1, _ = np.power(tree_original.query(x_, k=1),2)
             d2, _ = np.power(tree_new.query(xyz.cpu().numpy(), k=1),2)
 
             cd = (np.sum(d1) + np.sum(d2)) / 50000
