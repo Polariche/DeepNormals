@@ -100,7 +100,7 @@ def main():
         loss.backward(retain_graph=True)
 
         if i%10 == 0:
-            print(x[0], x.grad[0], lgd(x.grad[0].unsqueeze(0)).squeeze())
+            print(x[0], x.grad[0], lgd(x.grad[0].unsqueeze(0))[0].squeeze())
 
         [x] = lgd.step()
 
