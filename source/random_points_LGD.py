@@ -117,7 +117,7 @@ def main():
             d2, _ = np.power(tree_new.query(xyz.cpu().numpy(), k=1),2)
 
             cd = (np.sum(d1) + np.sum(d2)) / 50000
-            cols = torch.clamp((F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) / 0.0001 * 256).int(), 0, 256)
+            cols = torch.clamp((F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) / 0.0001), 0, 1)
 
             writer.add_mesh("point cloud regression_LGD", x.unsqueeze(0), colors=cols, global_step=i)
             writer.add_scalars("chanfer distance", {"LGD": cd}, global_step=i)
@@ -148,7 +148,7 @@ def main():
             d2, _ = np.power(tree_new.query(xyz.cpu().numpy(), k=1),2)
 
             cd = (np.sum(d1) + np.sum(d2)) / 50000
-            cols = torch.clamp((F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) / 0.0001 * 256).int(), 0, 256)
+            cols = torch.clamp((F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) / 0.0001), 0, 1)
 
             writer.add_mesh("point cloud regression", x.unsqueeze(0), colors=cols, global_step=i)
             writer.add_scalars("chanfer distance", {"Adam": cd}, global_step=i)
