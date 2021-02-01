@@ -84,6 +84,7 @@ def main():
         x.requires_grad_(True)
 
     layers_gen = lambda in_features, out_features: nn.Sequential(nn.Linear(in_features,32,bias=False),*([nn.Linear(32,32,bias=False)]*3),nn.Linear(32,out_features,bias=False))
+    
     lgd = LGD([x], layers_generator=layers_gen, n=50000).to(device)
     optimizer = optim.Adam(lgd.parameters(), lr = 5e-3)
 
@@ -93,17 +94,15 @@ def main():
         s, x = model(x)
         (torch.pow(s, 2)).mean().backward(retain_graph=True)
 
+        if i%10 == 0:
+            print(x.grad[0], lgd(x.grad[0].unsqueeze(0)))
+
         [x] = lgd.step()
 
         if i%10 == 0:
             optimizer.step()
             optimizer.zero_grad()
-
-            print(x.grad[0], lgd(x.grad[0].unsqueeze(0)))
-
             [x] = lgd.detach_params()
-
-            
 
             # compute chamfer loss
             x_ = x.cpu().detach().numpy()
