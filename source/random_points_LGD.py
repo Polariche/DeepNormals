@@ -101,7 +101,7 @@ def main():
 
             [x] = lgd.detach_params()
 
-            print(lgd.parameters()[0][0])
+            print(list(lgd.parameters())[0][0])
 
             # compute chamfer loss
             x_ = x.cpu().detach().numpy()
