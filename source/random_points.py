@@ -84,23 +84,17 @@ def main():
         x.requires_grad_(True)
 
     layers_gen = lambda in_features, out_features: nn.Sequential(nn.Linear(in_features,32,bias=False),*([nn.Linear(32,32,bias=False)]*3),nn.Linear(32,out_features,bias=False))
-    lgd = LGD([x], layers_generator=layers_gen).to(device)
-    optimizer = optim.Adam(list(lgd.parameters()), lr = 1e-4)
+    optimizer = optim.Adam(x, lr = 1e-4)
 
     for i in range(500):
-        lgd.zero_grad()
+        optimizer.zero_grad()
 
         s, x = model(x)
         torch.sum(torch.pow(s, 2)).backward()
 
-        [x] = lgd.step()
+        optimizer.step()
 
         if i%10 == 0:
-            optimizer.step()
-            optimizer.zero_grad()
-
-            [x] = lgd.detach_params()
-
             x_ = x.cpu().detach().numpy()
             tree_new = KDTree(x_)
 
