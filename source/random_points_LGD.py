@@ -85,6 +85,8 @@ def main():
         x = x.to(device)
         x.requires_grad_(True)
 
+        x_original = x.clone().detach()
+
     layers_gen = lambda in_features, out_features: nn.Sequential(nn.Linear(in_features,32,bias=False),*([nn.Linear(32,32,bias=False)]*3),nn.Linear(32,out_features,bias=False))
     
     lgd = LGD([x], layers_generator=layers_gen, n=50000).to(device)
@@ -117,8 +119,39 @@ def main():
             cd = (np.sum(d1) + np.sum(d2)) / 50000
             cols = torch.clamp((F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) / 0.0001 * 256).int(), 0, 256)
 
-            writer.add_mesh("point cloud regressio_LGD", x.unsqueeze(0), colors=cols, global_step=i)
-            writer.add_scalar("chamfer distance_LGD", cd, global_step=i)
+            writer.add_mesh("point cloud regression_LGD", x.unsqueeze(0), colors=cols, global_step=i)
+            writer.add_scalars("chanfer distance", {"LGD": cd}, global_step=i)
+
+    with torch.no_grad():
+        x = x_original.clone().detach()
+        x.requires_grad_(True)
+
+
+    optimizer = optim.Adam([x], lr = 1e-3)
+
+    for i in range(500):
+        optimizer.zero_grad()
+
+        s, x = model(x)
+        loss = (torch.pow(s, 2)).mean()
+        loss.backward(retain_graph=True)
+
+        optimizer.step()
+
+        if i%10 == 0:
+            writer.add_scalars("loss", {"Adam": loss}, global_step=i)
+
+            x_ = x.cpu().detach().numpy()
+            tree_new = KDTree(x_)
+
+            d1, _ = np.power(tree_original.query(x_, k=1),2)
+            d2, _ = np.power(tree_new.query(xyz.cpu().numpy(), k=1),2)
+
+            cd = (np.sum(d1) + np.sum(d2)) / 50000
+            cols = torch.clamp((F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) / 0.0001 * 256).int(), 0, 256)
+
+            writer.add_mesh("point cloud regression", x.unsqueeze(0), colors=cols, global_step=i)
+            writer.add_scalars("chanfer distance", {"Adam": cd}, global_step=i)
 
             
     
