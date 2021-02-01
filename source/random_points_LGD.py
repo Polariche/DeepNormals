@@ -103,8 +103,8 @@ def main():
             [x] = lgd.detach_params()
 
         if i%10 == 0:
-            writer.add_scalar("loss", loss, global_step=i)
-            
+            writer.add_scalars("loss", {"LGD": loss}, global_step=i)
+
             # compute chamfer loss
             x_ = x.cpu().detach().numpy()
             tree_new = KDTree(x_)
