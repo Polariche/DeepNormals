@@ -83,8 +83,7 @@ def main():
         x = x.to(device)
         x.requires_grad_(True)
 
-    layers_gen = lambda in_features, out_features: nn.Sequential(nn.Linear(in_features,32,bias=False),*([nn.Linear(32,32,bias=False)]*3),nn.Linear(32,out_features,bias=False))
-    optimizer = optim.Adam(x, lr = 1e-4)
+    optimizer = optim.Adam([x], lr = 1e-4)
 
     for i in range(500):
         optimizer.zero_grad()
