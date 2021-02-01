@@ -91,7 +91,7 @@ def main():
         lgd.zero_grad()
 
         s, x = model(x)
-        torch.sum(torch.pow(s, 2)).backward(retain_graph=True)
+        (torch.pow(s, 2)).mean().backward(retain_graph=True)
 
         [x] = lgd.step()
 
@@ -101,6 +101,9 @@ def main():
 
             [x] = lgd.detach_params()
 
+            print(lgd.parameters()[0][0])
+
+            # compute chamfer loss
             x_ = x.cpu().detach().numpy()
             tree_new = KDTree(x_)
 
