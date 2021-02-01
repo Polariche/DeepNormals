@@ -99,6 +99,9 @@ def main():
         loss = (torch.pow(s, 2)).mean()
         loss.backward(retain_graph=True)
 
+        if i%10 == 0:
+            print(x, x.grad[0])
+
         [x] = lgd.step()
 
         if i%5 == 0:
