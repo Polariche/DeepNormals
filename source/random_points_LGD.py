@@ -19,6 +19,7 @@ from LGD import LGD, apply_step
 
 import argparse
 
+import pytorch3d
 from pytorch3d.loss import chamfer_distance
 
 parser = argparse.ArgumentParser(description='Test',
