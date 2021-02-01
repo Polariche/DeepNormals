@@ -110,6 +110,7 @@ def main():
             writer.add_scalars("loss", {"LGD": loss}, global_step=i)
 
             # compute chamfer loss
+            """
             x_ = x.cpu().detach().numpy()
             tree_new = KDTree(x_)
 
@@ -118,8 +119,9 @@ def main():
 
             cd = (np.mean(d1) + np.mean(d2))
             cols = torch.clamp((F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) / 0.0001), 0, 1)
+            """
 
-            writer.add_mesh("point cloud regression_LGD", x.unsqueeze(0), colors=cols*256, global_step=i)
+            writer.add_mesh("point cloud regression_LGD", x.unsqueeze(0), global_step=i)
             writer.add_scalars("chanfer distance", {"LGD": cd}, global_step=i)
 
     with torch.no_grad():
