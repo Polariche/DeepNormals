@@ -56,19 +56,19 @@ class SineLayer(nn.Module):
     
 class Siren(nn.Module):
     def __init__(self, in_features, out_features, hidden_features=5, hidden_layers=256, outermost_linear=True, 
-                 first_omega_0=30, hidden_omega_0=30.):
+                 first_omega_0=30, hidden_omega_0=30., bias=True):
         super().__init__()
         
         self.net = []
         self.net.append(SineLayer(in_features, hidden_features, 
-                                  is_first=True, omega_0=first_omega_0))
+                                  is_first=True, omega_0=first_omega_0, bias=bias))
 
         for i in range(hidden_layers):
             self.net.append(SineLayer(hidden_features, hidden_features, 
-                                      is_first=False, omega_0=hidden_omega_0))
+                                      is_first=False, omega_0=hidden_omega_0, bias=bias))
 
         if outermost_linear:
-            final_linear = nn.Linear(hidden_features, out_features)
+            final_linear = nn.Linear(hidden_features, out_features, bias=bias)
             
             with torch.no_grad():
                 final_linear.weight.uniform_(-np.sqrt(6 / hidden_features) / hidden_omega_0, 
@@ -77,7 +77,7 @@ class Siren(nn.Module):
             self.net.append(final_linear)
         else:
             self.net.append(SineLayer(hidden_features, out_features, 
-                                      is_first=False, omega_0=hidden_omega_0))
+                                      is_first=False, omega_0=hidden_omega_0, bias=bias))
         
         self.net = nn.Sequential(*self.net)
     
