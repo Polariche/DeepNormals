@@ -18,6 +18,7 @@ from sklearn.neighbors import KDTree
 from LGD import LGD, apply_step
 
 import argparse
+import pytorch3d
 
 parser = argparse.ArgumentParser(description='Test',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -110,6 +111,7 @@ def main():
             writer.add_scalars("loss", {"LGD": loss}, global_step=i)
 
             # compute chamfer loss
+            """
             x_ = x.cpu().detach().numpy()
             tree_new = KDTree(x_)
 
@@ -118,8 +120,11 @@ def main():
 
             cd = (np.sum(d1) + np.sum(d2)) / 50000
             cols = torch.clamp((F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) / 0.0001 * 256).int(), 0, 256)
+            """
 
-            writer.add_mesh("point cloud regression_LGD", x.unsqueeze(0), colors=cols, global_step=i)
+            cd, _ = pytorch3d.loss.chamfer_distance(x.unsqueeze(0), xyz.unsqueeze(0))
+
+            writer.add_mesh("point cloud regression_LGD", x.unsqueeze(0), global_step=i)
             writer.add_scalars("chanfer distance", {"LGD": cd}, global_step=i)
 
     with torch.no_grad():
@@ -141,6 +146,7 @@ def main():
         if i%10 == 0:
             writer.add_scalars("loss", {"Adam": loss}, global_step=i)
 
+            """
             x_ = x.cpu().detach().numpy()
             tree_new = KDTree(x_)
 
@@ -149,8 +155,12 @@ def main():
 
             cd = (np.sum(d1) + np.sum(d2)) / 50000
             cols = torch.clamp((F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) / 0.0001 * 256).int(), 0, 256)
+            """
 
-            writer.add_mesh("point cloud regression", x.unsqueeze(0), colors=cols, global_step=i)
+            cd, _ = pytorch3d.loss.chamfer_distance(x.unsqueeze(0), xyz.unsqueeze(0))
+
+            
+            writer.add_mesh("point cloud regression", x.unsqueeze(0), global_step=i)
             writer.add_scalars("chanfer distance", {"Adam": cd}, global_step=i)
 
             
