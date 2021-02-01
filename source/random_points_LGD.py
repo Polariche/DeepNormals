@@ -100,7 +100,7 @@ def main():
         loss.backward(retain_graph=True)
 
         if i%10 == 0:
-            print(x, x.grad[0])
+            print(x[0], x.grad[0])
 
         [x] = lgd.step()
 
