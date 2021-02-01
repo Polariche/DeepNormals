@@ -70,7 +70,7 @@ def main():
 
     ds = ObjDataset(args.data)
     fnn = torch.abs(ds.fnn)
-    samples = list(WeightedRandomSampler(fnn.view(-1) / torch.sum(fnn), 50000, replacement=True))
+    samples = list(WeightedRandomSampler(fnn.view(-1) / torch.sum(fnn), 30000, replacement=True))
 
     data = [ds[samples[i]] for i in range(len(samples))]
     xyz = torch.cat([d['xyz'].unsqueeze(0) for d in data])
@@ -81,16 +81,16 @@ def main():
 
     # load 
     with torch.no_grad():
-        x = (torch.rand(50000,3) - 0.5)
+        x = (torch.rand(30000,3) - 0.5)
         x = x.to(device)
         x.requires_grad_(True)
 
         x_original = x.clone().detach()
 
     print("lgd")
-    layers_gen = lambda in_features, out_features: nn.Sequential(nn.Linear(in_features,32,bias=False), nn.PReLU(), *([nn.Linear(32,32,bias=False), nn.PReLU()]*5), nn.Linear(32,out_features,bias=False))
+    layers_gen = lambda in_features, out_features: nn.Sequential(nn.Linear(in_features,32,bias=False), nn.PReLU(), *([nn.Linear(32,32,bias=False), nn.PReLU()]*2), nn.Linear(32,out_features,bias=False))
 
-    lgd = LGD([x], layers_generator=layers_gen, n=50000).to(device)
+    lgd = LGD([x], layers_generator=layers_gen, n=30000).to(device)
     optimizer = optim.Adam(lgd.parameters(), lr = 5e-3)
 
     for i in range(500):
@@ -120,8 +120,6 @@ def main():
             d1, _ = np.power(tree_original.query(x_, k=1),2)
             d2, _ = np.power(tree_new.query(xyz.cpu().numpy(), k=1),2)
 
-
-            print(np.mean(d1), np.mean(d2))
             cd = (np.mean(d1) + np.mean(d2))
             cols = torch.clamp((F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) * 1e4), 0, 1)*256
             
