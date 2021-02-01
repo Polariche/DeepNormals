@@ -89,7 +89,7 @@ def main():
         optimizer.zero_grad()
 
         s, x = model(x)
-        torch.sum(torch.pow(s, 2)).backward()
+        (torch.pow(s, 2)).mean().backward()
 
         optimizer.step()
 
