@@ -122,7 +122,7 @@ def main():
             """
 
             writer.add_mesh("point cloud regression_LGD", x.unsqueeze(0), global_step=i)
-            writer.add_scalars("chanfer distance", {"LGD": cd}, global_step=i)
+            #writer.add_scalars("chanfer distance", {"LGD": cd}, global_step=i)
 
     with torch.no_grad():
         x = x_original.clone().detach()
