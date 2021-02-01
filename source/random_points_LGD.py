@@ -99,9 +99,11 @@ def main():
             optimizer.step()
             optimizer.zero_grad()
 
+            print(x.grad[0], lgd(x.grad[0].unsqueeze(0)))
+
             [x] = lgd.detach_params()
 
-            print(list(lgd.parameters())[0][0])
+            
 
             # compute chamfer loss
             x_ = x.cpu().detach().numpy()
