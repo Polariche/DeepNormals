@@ -87,7 +87,7 @@ def main():
 
         x_original = x.clone().detach()
 
-    layers_gen = lambda in_features, out_features: nn.Sequential(nn.Linear(in_features,32,bias=False), nn.ReLU(), *([nn.Linear(32,32,bias=False), nn.ReLU()]*3), nn.Linear(32,out_features,bias=False))
+    layers_gen = lambda in_features, out_features: nn.Sequential(nn.Linear(in_features,32,bias=False), nn.PReLU(), *([nn.Linear(32,32,bias=False), nn.PReLU()]*3), nn.Linear(32,out_features,bias=False))
 
     lgd = LGD([x], layers_generator=layers_gen, n=50000).to(device)
     optimizer = optim.Adam(lgd.parameters(), lr = 5e-3)
@@ -112,7 +112,7 @@ def main():
             writer.add_scalars("loss", {"LGD": loss}, global_step=i)
 
             # compute chamfer loss
-            """
+            
             x_ = x.cpu().detach().numpy()
             tree_new = KDTree(x_)
 
@@ -121,10 +121,9 @@ def main():
 
             cd = (np.mean(d1) + np.mean(d2))
             cols = torch.clamp((F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) / 0.0001), 0, 1)
-            """
-
+            
             writer.add_mesh("point cloud regression_LGD", x.unsqueeze(0), global_step=i)
-            #writer.add_scalars("chanfer distance", {"LGD": cd}, global_step=i)
+            writer.add_scalars("chanfer distance", {"LGD": cd}, global_step=i)
 
     with torch.no_grad():
         x = x_original.clone().detach()
