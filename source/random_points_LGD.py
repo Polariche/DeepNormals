@@ -90,7 +90,7 @@ def main():
     layers_gen = lambda in_features, out_features: nn.Sequential(nn.Linear(in_features,32,bias=False),*([nn.Linear(32,32,bias=False)]*3),nn.Linear(32,out_features,bias=False))
     
     lgd = LGD([x], layers_generator=layers_gen, n=50000).to(device)
-    optimizer = optim.Adam(lgd.parameters(), lr = 5e-3)
+    optimizer = optim.Adam(lgd.parameters(), lr = 1e-2)
 
     for i in range(500):
         lgd.zero_grad()
