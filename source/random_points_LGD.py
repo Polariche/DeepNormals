@@ -88,7 +88,7 @@ def main():
         x_original = x.clone().detach()
 
     print("lgd")
-    layers_gen = lambda in_features, out_features: nn.Sequential(nn.Linear(in_features,32,bias=False), nn.PReLU(), *([nn.Linear(32,32,bias=False), nn.PReLU()]*5), nn.Linear(32,out_features,bias=False))
+    layers_gen = lambda in_features, out_features: nn.Sequential(nn.Linear(in_features,32,bias=False), nn.PReLU(), *([nn.Linear(32,32,bias=False), nn.PReLU()]*3), nn.Linear(32,out_features,bias=False))
 
     lgd = LGD([x], layers_generator=layers_gen, n=30000).to(device)
     optimizer = optim.Adam(lgd.parameters(), lr = 15e-3)
