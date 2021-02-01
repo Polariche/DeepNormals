@@ -92,7 +92,8 @@ def main():
         lgd.zero_grad()
 
         s, x = model(x)
-        (torch.pow(s, 2)).mean().backward(retain_graph=True)
+        loss = (torch.pow(s, 2)).mean()
+        loss.backward(retain_graph=True)
 
         [x] = lgd.step()
 
@@ -102,6 +103,8 @@ def main():
             [x] = lgd.detach_params()
 
         if i%10 == 0:
+            writer.add_scalar("loss", loss, global_step=i)
+            
             # compute chamfer loss
             x_ = x.cpu().detach().numpy()
             tree_new = KDTree(x_)
@@ -113,6 +116,8 @@ def main():
 
             writer.add_mesh("point cloud regressio_LGD", x.unsqueeze(0), colors=(F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) / 0.0001 * 256).int(), global_step=i)
             writer.add_scalar("chamfer distance_LGD", cd, global_step=i)
+
+            
     
     writer.close()
 

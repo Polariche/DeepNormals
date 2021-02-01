@@ -89,11 +89,14 @@ def main():
         optimizer.zero_grad()
 
         s, x = model(x)
-        (torch.pow(s, 2)).mean().backward()
+        loss = (torch.pow(s, 2)).mean()
+        loss.backward(retain_graph=True)
 
         optimizer.step()
 
         if i%10 == 0:
+            writer.add_scalar("loss", loss, global_step=i)
+            
             x_ = x.cpu().detach().numpy()
             tree_new = KDTree(x_)
 
