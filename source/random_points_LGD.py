@@ -110,7 +110,7 @@ def main():
             [x] = lgd.detach_params()
 
         if i%10 == 0:
-            writer.add_scalars("loss", {"LGD": loss}, global_step=i)
+            writer.add_scalars("regression_loss", {"LGD": loss}, global_step=i)
 
             # compute chamfer loss
             
@@ -146,7 +146,7 @@ def main():
         optimizer.step()
 
         if i%10 == 0:
-            writer.add_scalars("loss", {"Adam": loss}, global_step=i)
+            writer.add_scalars("regression_loss", {"Adam": loss}, global_step=i)
             
             x_ = x.cpu().detach().numpy()
             tree_new = KDTree(x_)
