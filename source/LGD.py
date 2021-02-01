@@ -70,6 +70,8 @@ class LGD(nn.Module):
             k.append(k_ + k[i])
 
         grads = self(grads)
+        if type(grads) == tuple:
+            grads = grads[0]
 
         for i, param in enumerate(self.params):
             param_ = param + grads[:,k[i]:k[i+1]].view(param.shape)
