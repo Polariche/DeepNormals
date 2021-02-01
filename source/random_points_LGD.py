@@ -75,6 +75,8 @@ def main():
     data = [ds[samples[i]] for i in range(len(samples))]
     xyz = torch.cat([d['xyz'].unsqueeze(0) for d in data])
     
+    writer.add_mesh("original", xyz.unsqueeze(0))
+    
     tree_original = KDTree(xyz.cpu().numpy())
 
     # load 
