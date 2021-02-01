@@ -87,6 +87,7 @@ def main():
 
         x_original = x.clone().detach()
 
+    print("lgd")
     layers_gen = lambda in_features, out_features: nn.Sequential(nn.Linear(in_features,32,bias=False), nn.PReLU(), *([nn.Linear(32,32,bias=False), nn.PReLU()]*5), nn.Linear(32,out_features,bias=False))
 
     lgd = LGD([x], layers_generator=layers_gen, n=50000).to(device)
@@ -119,6 +120,8 @@ def main():
             d1, _ = np.power(tree_original.query(x_, k=1),2)
             d2, _ = np.power(tree_new.query(xyz.cpu().numpy(), k=1),2)
 
+
+            print(np.mean(d1), np.mean(d2))
             cd = (np.mean(d1) + np.mean(d2))
             cols = torch.clamp((F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) * 1e4), 0, 1)*256
             
@@ -129,7 +132,7 @@ def main():
         x = x_original.clone().detach()
         x.requires_grad_(True)
 
-
+    print("adam")
     optimizer = optim.Adam([x], lr = 1e-3)
 
     for i in range(500):
@@ -143,13 +146,16 @@ def main():
 
         if i%10 == 0:
             writer.add_scalars("loss", {"Adam": loss}, global_step=i)
-
+            
             x_ = x.cpu().detach().numpy()
             tree_new = KDTree(x_)
 
             d1, _ = np.power(tree_original.query(x_, k=1),2)
             d2, _ = np.power(tree_new.query(xyz.cpu().numpy(), k=1),2)
 
+            
+            print(np.mean(d1), np.mean(d2))
+            
             cd = (np.mean(d1) + np.mean(d2))
             cols = torch.clamp((F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) * 1e4), 0, 1)*256
 
