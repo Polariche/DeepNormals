@@ -116,7 +116,7 @@ def main():
             d1, _ = np.power(tree_original.query(x_, k=1),2)
             d2, _ = np.power(tree_new.query(xyz.cpu().numpy(), k=1),2)
 
-            cd = (np.sum(d1) + np.sum(d2)) / 50000
+            cd = (np.mean(d1) + np.mean(d2))
             cols = torch.clamp((F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) / 0.0001), 0, 1)
 
             writer.add_mesh("point cloud regression_LGD", x.unsqueeze(0), colors=cols, global_step=i)
@@ -147,7 +147,7 @@ def main():
             d1, _ = np.power(tree_original.query(x_, k=1),2)
             d2, _ = np.power(tree_new.query(xyz.cpu().numpy(), k=1),2)
 
-            cd = (np.sum(d1) + np.sum(d2)) / 50000
+            cd = (np.mean(d1) + np.mean(d2))
             cols = torch.clamp((F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) / 0.0001), 0, 1)
 
             writer.add_mesh("point cloud regression", x.unsqueeze(0), colors=cols, global_step=i)
