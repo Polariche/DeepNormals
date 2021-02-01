@@ -87,7 +87,7 @@ def main():
 
         x_original = x.clone().detach()
 
-    layers_gen = lambda in_features, out_features: nn.Sequential(nn.Linear(in_features,32,bias=False),*([nn.Linear(32,32,bias=False)]*5),nn.Linear(32,out_features,bias=False))
+    layers_gen = lambda in_features, out_features: nn.Sequential(nn.Linear(in_features,32,bias=False),*([nn.Linear(32,32,bias=False)]*3),nn.Linear(32,out_features,bias=False))
     
     lgd = LGD([x], layers_generator=layers_gen, n=50000).to(device)
     optimizer = optim.Adam(lgd.parameters(), lr = 5e-3)
@@ -101,7 +101,7 @@ def main():
 
         [x] = lgd.step()
 
-        if i%2 == 0:
+        if i%1 == 0:
             optimizer.step()
             optimizer.zero_grad()
             [x] = lgd.detach_params()
