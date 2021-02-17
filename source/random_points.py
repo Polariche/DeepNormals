@@ -95,7 +95,7 @@ def main():
         loss.backward(retain_graph=True)
 
         # newton's method
-        x.data -= torch.matmul(torch.pinverse(x.grad[j,:].reshape(-1,3)), s).T.data
+        x.data -= torch.matmul(torch.pinverse(x.grad.reshape(-1,3)), s).T.data
 
         #optimizer.step()
 
