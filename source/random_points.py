@@ -95,9 +95,9 @@ def main():
         loss.backward(retain_graph=True)
 
         # newton's method
-        x.data -= torch.matmul(torch.pinverse(x.grad.reshape(-1,3)), s).T.data
+        #x.data -= torch.matmul(torch.pinverse(x.grad.reshape(-1,3)), s).T.data
 
-        #optimizer.step()
+        optimizer.step()
 
         if i%10 == 0:
             writer.add_scalars("loss", {"Adam": loss}, global_step=i)
