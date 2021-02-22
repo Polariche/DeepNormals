@@ -66,6 +66,10 @@ def main():
         except:
             print("Couldn't load pretrained weight: " + args.weight)
 
+    model.eval() 
+    for param in model.parameters():
+        param.requires_grad = False
+
     n = 30000
     ds = ObjDataset(args.data)
     fnn = torch.abs(ds.fnn)
@@ -96,16 +100,17 @@ def main():
     for i in range(500):
         # evaluate losses
         loss = eval_func(x)
-        loss_trajectory = lgd.loss_trajectory(x, eval_func_list, hidden, n, steps=5)
+
+        # compute lgd grads
+        lgd_optimizer.zero_grad()
+        lgd.loss_trajectory(x, eval_func_list, hidden, n, steps=5)
         
         # update x
         [x], hidden = lgd.step(x, loss, hidden, n)
         x = detach_var(x)
         hidden = detach_var(hidden)
-    
+        
         # update lgd parameters
-        lgd_optimizer.zero_grad()
-        loss_trajectory.backward(retain_graph=True)
         lgd_optimizer.step()
 
         if i%10 == 0:

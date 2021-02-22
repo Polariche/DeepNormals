@@ -96,18 +96,16 @@ class LGD(nn.Module):
         if type(targets) is not list:
             targets = [targets]
  
-        loss_trajectory = 0
         loss = loss_func(targets)
-        
         for i in range(steps):
             targets, hidden, dx = self.step(targets, loss, hidden, batch_size, return_dx=True)
- 
             loss = loss_func(targets)
 
-            loss_trajectory += 1e-2 * loss.sum()
+            loss_trajectory = 1e-2 * loss.sum()
             loss_trajectory += torch.pow(dx, 2).sum()      # regularizer for dx
- 
-        return loss_trajectory
+
+            loss_trajectory.backward()
+
  
 def detach_var(v):
     if v is None:
