@@ -104,7 +104,7 @@ class LGD(nn.Module):
             loss_trajectory = 1e-2 * loss.sum()
             loss_trajectory += torch.pow(dx, 2).sum()      # regularizer for dx
 
-            loss_trajectory.backward()
+            loss_trajectory.backward(retain_graph=True)
 
  
 def detach_var(v):
