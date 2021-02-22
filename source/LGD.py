@@ -37,11 +37,12 @@ class LGD(nn.Module):
         h = self.hidden_features
         n = batch_size
         t = len(targets)
+        device = targets[0].device
  
-        targets_grad = torch.zeros((n, 0)).to(targets[0].device)
+        targets_grad = torch.zeros((n, 0)).to(device)
  
         if hidden is None:
-            hidden = torch.zeros((n, h))
+            hidden = torch.zeros((n, h)).to(device)
  
         # input : dL1/dx1, dL1/dx2, ..., dL2/dx1, dL2/dx2, ..., hidden
         # input size : L*D + H
