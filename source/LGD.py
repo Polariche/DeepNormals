@@ -27,7 +27,7 @@ class LGD(nn.Module):
  
         for param in self.parameters():
             if len(param.shape) >= 2:
-                nn.init.uniform_(param, -np.sqrt(6 / mid_features), np.sqrt(6 / mid_features))
+                nn.init.uniform_(param, -1 / mid_features, 1 / mid_features)
 
     def forward(self, targets, losses, hidden=None, batch_size=1):
         # targets : list of targets to optimize; flattened to (n, -1) later
@@ -106,7 +106,7 @@ class LGD(nn.Module):
             loss = loss_func(targets)
 
             loss_trajectory = loss.sum()
-            #loss_trajectory += torch.pow(dx, 2).sum()      # regularizer for dx
+            loss_trajectory += torch.pow(dx, 2).sum()      # regularizer for dx
 
             loss_trajectory.backward(retain_graph=True)
 
