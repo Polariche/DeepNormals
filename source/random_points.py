@@ -15,7 +15,7 @@ from torch.utils.data import  DataLoader, WeightedRandomSampler
 
 from sklearn.neighbors import KDTree
 
-from LGD import LGD, apply_step
+from LGD import LGD
 
 import argparse
 

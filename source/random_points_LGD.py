@@ -94,7 +94,7 @@ def main():
     eval_func = lambda x: torch.pow(x, 2).sum(dim=1)
     eval_func_list = lambda x: torch.pow(x[0], 2).sum(dim=1)
 
-    lgd = LGD(3, 1, 64, 0)
+    lgd = LGD(3, 1, 64, 0).to(device)
     lgd_optimizer = optim.Adam(lgd.parameters(), lr=1e-3)
 
     for i in range(500):
