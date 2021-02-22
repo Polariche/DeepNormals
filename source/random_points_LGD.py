@@ -95,7 +95,7 @@ def main():
     eval_func_list = lambda x: torch.pow(model(x[0])[0], 2).sum(dim=1)
 
     lgd = LGD(3, 1, 32, 0).to(device)
-    lgd_optimizer = optim.Adam(lgd.parameters(), lr=1e-3)
+    lgd_optimizer = optim.Adam(lgd.parameters(), lr=5e-3)
 
     for i in range(500):
         # evaluate losses
@@ -103,7 +103,7 @@ def main():
 
         # compute lgd grads
         lgd_optimizer.zero_grad()
-        lgd.loss_trajectory(x, eval_func_list, hidden, n, steps=10)
+        lgd.loss_trajectory(x, eval_func_list, hidden, n, steps=5)
         
         # update x
         [x], hidden = lgd.step(x, loss, hidden, n)

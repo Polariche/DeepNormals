@@ -25,6 +25,9 @@ class LGD(nn.Module):
  
                       nn.Linear(mid_features, dim_targets + hidden_features, bias=False))
  
+        for param in self.parameters():
+            nn.init.xavier_uniform_(param, gain=nn.init.calculate_gain('relu'))
+            
     def forward(self, targets, losses, hidden=None, batch_size=1):
         # targets : list of targets to optimize; flattened to (n, -1) later
         # losses : list of losses
