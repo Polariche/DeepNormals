@@ -103,7 +103,7 @@ def main():
 
         # compute lgd grads
         lgd_optimizer.zero_grad()
-        lgd.loss_trajectory(x, eval_func_list, hidden, n, steps=5)
+        lgd.loss_trajectory(x, eval_func_list, hidden, n, steps=10)
         
         # update x
         [x], hidden = lgd.step(x, loss, hidden, n)
