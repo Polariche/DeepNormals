@@ -101,8 +101,8 @@ class LGD(nn.Module):
             targets, hidden, dx = self.step(targets, loss, hidden, batch_size, return_dx=True)
             loss = loss_func(targets)
 
-            loss_trajectory = 1e-2 * loss.sum()
-            loss_trajectory += torch.pow(dx, 2).sum()      # regularizer for dx
+            loss_trajectory = loss.sum()
+            #loss_trajectory += torch.pow(dx, 2).sum()      # regularizer for dx
 
             loss_trajectory.backward(retain_graph=True)
 
