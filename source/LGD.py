@@ -7,81 +7,104 @@ from torch import Tensor
 from torch.autograd import Variable
 
 
-
+class LGD(nn.Module):
+    def __init__(self, dim_targets, num_losses, mid_features, hidden_features):
+        super(LGD, self).__init__()
+ 
+        self.dim_targets = dim_targets              # D: total dimension of targets
+        self.num_losses = num_losses                # L: number of losses
+        self.mid_features = mid_features
+        self.hidden_features = hidden_features      # H: hidden state
+ 
+        # layers : L*D + H -> D + H
+        self.layers = nn.Sequential(nn.Linear(dim_targets * num_losses + hidden_features, mid_features, bias=False),
+                      nn.PReLU(),
+ 
+                      *([nn.Linear(mid_features, mid_features, bias=False), 
+                         nn.PReLU()]*3),
+ 
+                      nn.Linear(mid_features, dim_targets + hidden_features, bias=False))
+ 
+    def forward(self, targets, losses, hidden=None, batch_size=1):
+        # targets : list of targets to optimize; flattened to (n, -1) later
+        # losses : list of losses
+ 
+        if type(targets) is not list:
+            targets = [targets]
+        if type(losses) is not list:
+            losses = [losses]
+ 
+        h = self.hidden_features
+        n = batch_size
+        t = len(targets)
+ 
+        targets_grad = torch.zeros((n, 0))
+ 
+        if hidden is None:
+            hidden = torch.zeros((n, h))
+ 
+        # input : dL1/dx1, dL1/dx2, ..., dL2/dx1, dL2/dx2, ..., hidden
+        # input size : L*D + H
+        for loss in losses:
+            targets_grad_l = torch.autograd.grad(loss, targets, grad_outputs=[torch.ones_like(loss) for _ in range(t)], create_graph=True)
+            targets_grad_l = [grad.view(n, -1) for grad in targets_grad_l]
+            targets_grad = torch.cat([targets_grad, *targets_grad_l], dim=1)
+ 
+        x = torch.cat([targets_grad, hidden], dim=1)
+ 
+        # output : new grad, new hidden
+        # output size : D + H
+        y = self.layers(x)
+ 
+        if h > 0:
+            dx = y[:,:-h]
+            hidden = y[:,-h:]
+        else:
+            dx = y
+            hidden = None
+ 
+        return dx, hidden
+ 
+ 
+    def step(self, targets, losses, hidden=None, batch_size=1):
+        if type(targets) is not list:
+            targets = [targets]
+        if type(losses) is not list:
+            losses = [losses]
+ 
+        dx, hidden = self(targets, losses, hidden, batch_size)
+ 
+        new_targets = []
+        k = 0
+ 
+        for target in targets:
+            d = target.shape[1]
+ 
+            target = target + dx[:, k:k+d].view(*target.shape)
+            new_targets.append(target)
+ 
+            k += d
+        
+        return new_targets, hidden
+ 
+    def loss_trajectory(self, targets, loss_func, hidden=None, batch_size=1, steps=10):
+        # used for training LGD model itself
+        if type(targets) is not list:
+            targets = [targets]
+ 
+        loss_trajectory = 0
+ 
+        for i in range(steps):
+            targets, hidden = self.step(targets, loss_func(targets), hidden, batch_size)
+ 
+            loss_trajectory += torch.sum(loss_func(targets))
+ 
+        return loss_trajectory
+ 
 def detach_var(v):
+    if v is None:
+        return v
+        
     var = Variable(v.data, requires_grad=True)
     var.retain_grad()
     return var
-
-def apply_step(model, step):
-    for op, np in zip(model.parameters(), step):
-        op.data = np
-
-class LGD(nn.Module):
-    def __init__(self, params, layers_generator, n=1, **kwargs):
-        super(LGD, self).__init__()
-        
-        self.layers_generator = lambda in_features, out_features: layers_generator(in_features=in_features, out_features=out_features, **kwargs)
-        self.define_params(params, n)
-        
-        
-    def define_params(self, params, n):
-        k = 0
-        for param in params:
-            k += param.view(n,-1).shape[1]
-
-        self.n = n
-        self.k = k
-        self.layers = self.layers_generator(in_features = k, out_features = k)
-        self.params = params
-
-
-    def forward(self, x):
-        return self.layers(x)
-
-    def zero_grad(self):
-        for param in self.params:
-            if param.grad != None:
-                param.grad.zero_()
-
-    def detach_params(self):
-        new_params = []
-        for param in self.params:
-            new_params.append(detach_var(param))
-        self.params = new_params
-        return new_params
-        
-
-    def step(self):
-        new_params = []
-        n = self.n
-        grads = torch.zeros((n, 0)).to(self.params[0].device)
-
-        k = [0]
-
-        for i, param in enumerate(self.params):
-            k_ = int(param.view(n,-1).shape[1])
-            if param.grad is not None:
-                grad = detach_var(param.grad).view(n, -1)
-                grads = torch.cat([grads, grad], dim=1)
-            else:
-                grads = torch.cat([grads, torch.zeros((n, k_)).to(self.params[0].device)], dim=1)
-
-            k.append(k_ + k[i])
-
-        grads = self(grads)
-        if type(grads) == tuple:
-            grads = grads[0]
-
-        for i, param in enumerate(self.params):
-            param_ = param + grads[:,k[i]:k[i+1]].view(param.shape)
-            param_.retain_grad()
-
-            new_params.append(param_)
-
-        self.params = new_params
-        return new_params
-
-
-    def apply_step(self, model):
-        apply_step(model, self.step())

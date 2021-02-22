@@ -15,7 +15,7 @@ from torch.utils.data import  DataLoader, WeightedRandomSampler
 
 from sklearn.neighbors import KDTree
 
-from LGD import LGD, apply_step
+from LGD import LGD, detach_var
 
 import argparse
 
@@ -81,36 +81,39 @@ def main():
 
     # load 
     with torch.no_grad():
-        x = (torch.rand(30000,3) - 0.5)
+        n = 30000
+        x = (torch.rand(n,3) - 0.5)
         x = x.to(device)
         x.requires_grad_(True)
 
         x_original = x.clone().detach()
 
     print("lgd")
-    layers_gen = lambda in_features, out_features: nn.Sequential(nn.Linear(in_features,32,bias=False), nn.PReLU(), *([nn.Linear(32,32,bias=False), nn.PReLU()]*3), nn.Linear(32,out_features,bias=False))
+    hidden = None
 
-    lgd = LGD([x], layers_generator=layers_gen, n=30000).to(device)
-    optimizer = optim.Adam(lgd.parameters(), lr = 15e-3)
+    eval_func = lambda x: torch.pow(x, 2).sum(dim=1)
+    eval_func_list = lambda x: torch.pow(x[0], 2).sum(dim=1)
+
+    lgd = LGD(3, 1, 64, 0)
+    lgd_optimizer = optim.Adam(lgd.parameters(), lr=1e-3)
 
     for i in range(500):
-        lgd.zero_grad()
-
-        s, x = model(x)
-        loss = (torch.pow(s, 2)).mean()
-        loss.backward(retain_graph=True)
-
-        #print(x[0], x.grad[0], lgd(x.grad[0].unsqueeze(0))[0].squeeze())
-
-        [x] = lgd.step()
-
-        if i%4 == 0:
-            optimizer.step()
-            optimizer.zero_grad()
-            [x] = lgd.detach_params()
+        # evaluate losses
+        loss = eval_func(x)
+        loss_trajectory = lgd.loss_trajectory(x, eval_func_list, hidden, n)
+        
+        # update x
+        [x], hidden = lgd.step(x, loss, hidden, n)
+        x = detach_var(x)
+        hidden = detach_var(hidden)
+    
+        # update lgd parameters
+        lgd_optimizer.zero_grad()
+        loss_trajectory.backward(retain_graph=True)
+        lgd_optimizer.step()
 
         if i%10 == 0:
-            writer.add_scalars("regression_loss", {"LGD": loss}, global_step=i)
+            writer.add_scalars("regression_loss", {"LGD": loss.mean()}, global_step=i)
 
             # compute chamfer loss
             
@@ -124,7 +127,7 @@ def main():
             cols = torch.clamp((F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) * 1e4), 0, 1)*256
             
             writer.add_mesh("point cloud regression_LGD", x.unsqueeze(0), colors=cols, global_step=i)
-            writer.add_scalars("chanfer distance", {"LGD": cd}, global_step=i)
+            writer.add_scalars("chamfer distance", {"LGD": cd}, global_step=i)
 
             writer.add_scalars("d1", {"LGD": np.mean(d1)}, global_step=i)
             writer.add_scalars("d2", {"LGD": np.mean(d2)}, global_step=i)
@@ -140,13 +143,13 @@ def main():
         optimizer.zero_grad()
 
         s, x = model(x)
-        loss = (torch.pow(s, 2)).mean()
-        loss.backward(retain_graph=True)
+        loss = (torch.pow(s, 2)).sum(dim=1)
+        loss.sum().backward(retain_graph=True)
 
         optimizer.step()
 
         if i%10 == 0:
-            writer.add_scalars("regression_loss", {"Adam": loss}, global_step=i)
+            writer.add_scalars("regression_loss", {"Adam": loss.mean()}, global_step=i)
             
             x_ = x.cpu().detach().numpy()
             tree_new = KDTree(x_)
@@ -158,7 +161,7 @@ def main():
             cols = torch.clamp((F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) * 1e4), 0, 1)*256
 
             writer.add_mesh("point cloud regression", x.unsqueeze(0), colors=cols*256, global_step=i)
-            writer.add_scalars("chanfer distance", {"Adam": cd}, global_step=i)
+            writer.add_scalars("chamfer distance", {"Adam": cd}, global_step=i)
 
             writer.add_scalars("d1", {"Adam": np.mean(d1)}, global_step=i)
             writer.add_scalars("d2", {"Adam": np.mean(d2)}, global_step=i)
