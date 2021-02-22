@@ -95,7 +95,7 @@ def main():
 
     for i in range(500):
         # evaluate losses
-        loss = eval_func(s)
+        loss = eval_func(x)
         loss_trajectory = lgd.loss_trajectory(x, eval_func_list, hidden, n, steps=5)
         
         # update x
