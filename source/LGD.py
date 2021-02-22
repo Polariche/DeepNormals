@@ -5,7 +5,7 @@ import torch.optim as optim
 from torch import Tensor
 
 from torch.autograd import Variable
-
+import numpy as np
 
 class LGD(nn.Module):
     def __init__(self, dim_targets, num_losses, mid_features, hidden_features):
@@ -27,7 +27,7 @@ class LGD(nn.Module):
  
         for param in self.parameters():
             if len(param.shape) >= 2:
-                nn.init.xavier_uniform_(param, gain=nn.init.calculate_gain('relu'))
+                nn.init.uniform_(param, -np.sqrt(6 / mid_features), np.sqrt(6 / mid_features))
 
     def forward(self, targets, losses, hidden=None, batch_size=1):
         # targets : list of targets to optimize; flattened to (n, -1) later
