@@ -97,11 +97,14 @@ class LGD(nn.Module):
             targets = [targets]
  
         loss_trajectory = 0
- 
+        loss = loss_func(targets)
+        
         for i in range(steps):
-            targets, hidden, dx = self.step(targets, loss_func(targets), hidden, batch_size, return_dx=True)
+            targets, hidden, dx = self.step(targets, loss, hidden, batch_size, return_dx=True)
  
-            loss_trajectory += loss_func(targets).sum()
+            loss = loss_func(targets)
+
+            loss_trajectory += 1e-2 * loss.sum()
             loss_trajectory += torch.pow(dx, 2).sum()      # regularizer for dx
  
         return loss_trajectory

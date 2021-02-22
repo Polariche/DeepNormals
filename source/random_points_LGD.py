@@ -13,8 +13,6 @@ from loaders import ObjDataset
 import utils
 from torch.utils.data import  DataLoader, WeightedRandomSampler
 
-from sklearn.neighbors import KDTree
-
 from LGD import LGD, detach_var
 
 import argparse
@@ -78,8 +76,6 @@ def main():
     
     #writer.add_mesh("original", xyz.unsqueeze(0))
 
-    tree_original = KDTree(xyz.cpu().numpy())
-
     # load 
     with torch.no_grad():
         x = (torch.rand(n,3) - 0.5)
@@ -114,23 +110,8 @@ def main():
 
         if i%10 == 0:
             writer.add_scalars("regression_loss", {"LGD": loss.mean()}, global_step=i)
-
-            # compute chamfer loss
+            writer.add_mesh("point cloud regression_LGD", x.unsqueeze(0), global_step=i)
             
-            x_ = x.cpu().detach().numpy()
-            tree_new = KDTree(x_)
-
-            d1, _ = np.power(tree_original.query(x_, k=1),2)
-            d2, _ = np.power(tree_new.query(xyz.cpu().numpy(), k=1),2)
-
-            cd = (np.mean(d1) + np.mean(d2))
-            cols = torch.clamp((F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) * 1e4), min=0, max=1)*256
-            
-            writer.add_mesh("point cloud regression_LGD", x.unsqueeze(0), colors=cols, global_step=i)
-            writer.add_scalars("chamfer distance", {"LGD": cd}, global_step=i)
-
-            writer.add_scalars("d1", {"LGD": np.mean(d1)}, global_step=i)
-            writer.add_scalars("d2", {"LGD": np.mean(d2)}, global_step=i)
 
     with torch.no_grad():
         x = x_original.clone().detach()
@@ -150,22 +131,7 @@ def main():
 
         if i%10 == 0:
             writer.add_scalars("regression_loss", {"Adam": loss.mean()}, global_step=i)
-            
-            x_ = x.cpu().detach().numpy()
-            tree_new = KDTree(x_)
-
-            d1, _ = np.power(tree_original.query(x_, k=1),2)
-            d2, _ = np.power(tree_new.query(xyz.cpu().numpy(), k=1),2)
-
-            cd = (np.mean(d1) + np.mean(d2))
-            cols = torch.clamp((F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) * 1e4), min=0, max=1)*256
-
-            writer.add_mesh("point cloud regression_Adam", x.unsqueeze(0), colors=cols*256, global_step=i)
-            writer.add_scalars("chamfer distance", {"Adam": cd}, global_step=i)
-
-            writer.add_scalars("d1", {"Adam": np.mean(d1)}, global_step=i)
-            writer.add_scalars("d2", {"Adam": np.mean(d2)}, global_step=i)
-
+            writer.add_mesh("point cloud regression_Adam", x.unsqueeze(0), global_step=i)
             
     
     writer.close()
