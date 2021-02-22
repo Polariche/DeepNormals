@@ -75,7 +75,7 @@ def main():
     data = [ds[samples[i]] for i in range(len(samples))]
     xyz = torch.cat([d['xyz'].unsqueeze(0) for d in data])
     
-    writer.add_mesh("original", xyz.unsqueeze(0))
+    #writer.add_mesh("original", xyz.unsqueeze(0))
 
     tree_original = KDTree(xyz.cpu().numpy())
 
@@ -100,7 +100,7 @@ def main():
     for i in range(500):
         # evaluate losses
         loss = eval_func(x)
-        loss_trajectory = lgd.loss_trajectory(x, eval_func_list, hidden, n)
+        loss_trajectory = lgd.loss_trajectory(x, eval_func_list, hidden, n, steps=5)
         
         # update x
         [x], hidden = lgd.step(x, loss, hidden, n)
@@ -160,7 +160,7 @@ def main():
             cd = (np.mean(d1) + np.mean(d2))
             cols = torch.clamp((F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) * 1e4), 0, 1)*256
 
-            writer.add_mesh("point cloud regression", x.unsqueeze(0), colors=cols*256, global_step=i)
+            writer.add_mesh("point cloud regression_Adam", x.unsqueeze(0), colors=cols*256, global_step=i)
             writer.add_scalars("chamfer distance", {"Adam": cd}, global_step=i)
 
             writer.add_scalars("d1", {"Adam": np.mean(d1)}, global_step=i)
