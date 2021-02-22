@@ -68,9 +68,10 @@ def main():
         except:
             print("Couldn't load pretrained weight: " + args.weight)
 
+    n = 30000
     ds = ObjDataset(args.data)
     fnn = torch.abs(ds.fnn)
-    samples = list(WeightedRandomSampler(fnn.view(-1) / torch.sum(fnn), 30000, replacement=True))
+    samples = list(WeightedRandomSampler(fnn.view(-1) / torch.sum(fnn), n, replacement=True))
 
     data = [ds[samples[i]] for i in range(len(samples))]
     xyz = torch.cat([d['xyz'].unsqueeze(0) for d in data])
@@ -81,7 +82,6 @@ def main():
 
     # load 
     with torch.no_grad():
-        n = 30000
         x = (torch.rand(n,3) - 0.5)
         x = x.to(device)
         x.requires_grad_(True)
@@ -94,7 +94,7 @@ def main():
     eval_func = lambda x: torch.pow(x, 2).sum(dim=1)
     eval_func_list = lambda x: torch.pow(x[0], 2).sum(dim=1)
 
-    lgd = LGD(3, 1, 64, 0).to(device)
+    lgd = LGD(3, 1, 32, 0).to(device)
     lgd_optimizer = optim.Adam(lgd.parameters(), lr=1e-3)
 
     for i in range(500):
@@ -124,7 +124,7 @@ def main():
             d2, _ = np.power(tree_new.query(xyz.cpu().numpy(), k=1),2)
 
             cd = (np.mean(d1) + np.mean(d2))
-            cols = torch.clamp((F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) * 1e4), 0, 1)*256
+            cols = torch.clamp((F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) * 1e4), min=0, max=1)*256
             
             writer.add_mesh("point cloud regression_LGD", x.unsqueeze(0), colors=cols, global_step=i)
             writer.add_scalars("chamfer distance", {"LGD": cd}, global_step=i)
@@ -158,7 +158,7 @@ def main():
             d2, _ = np.power(tree_new.query(xyz.cpu().numpy(), k=1),2)
 
             cd = (np.mean(d1) + np.mean(d2))
-            cols = torch.clamp((F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) * 1e4), 0, 1)*256
+            cols = torch.clamp((F.pad(torch.tensor(d1), (0,2)).unsqueeze(0) * 1e4), min=0, max=1)*256
 
             writer.add_mesh("point cloud regression_Adam", x.unsqueeze(0), colors=cols*256, global_step=i)
             writer.add_scalars("chamfer distance", {"Adam": cd}, global_step=i)

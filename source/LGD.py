@@ -67,7 +67,7 @@ class LGD(nn.Module):
         return dx, hidden
  
  
-    def step(self, targets, losses, hidden=None, batch_size=1):
+    def step(self, targets, losses, hidden=None, batch_size=1, return_dx=False):
         if type(targets) is not list:
             targets = [targets]
         if type(losses) is not list:
@@ -86,7 +86,10 @@ class LGD(nn.Module):
  
             k += d
         
-        return new_targets, hidden
+        if return_dx:
+            return new_targets, hidden, dx
+        else:
+            return new_targets, hidden
  
     def loss_trajectory(self, targets, loss_func, hidden=None, batch_size=1, steps=10):
         # used for training LGD model itself
@@ -96,9 +99,10 @@ class LGD(nn.Module):
         loss_trajectory = 0
  
         for i in range(steps):
-            targets, hidden = self.step(targets, loss_func(targets), hidden, batch_size)
+            targets, hidden, dx = self.step(targets, loss_func(targets), hidden, batch_size, return_dx=True)
  
-            loss_trajectory += torch.sum(loss_func(targets))
+            loss_trajectory += loss_func(targets).sum()
+            loss_trajectory += torch.pow(dx, 2).sum()      # regularizer for dx
  
         return loss_trajectory
  
