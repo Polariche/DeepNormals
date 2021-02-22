@@ -25,9 +25,11 @@ class LGD(nn.Module):
  
                       nn.Linear(mid_features, dim_targets + hidden_features, bias=False))
  
+        """
         for param in self.parameters():
             if len(param.shape) >= 2:
                 nn.init.uniform_(param, -1 / mid_features, 1 / mid_features)
+        """
 
     def forward(self, targets, losses, hidden=None, batch_size=1):
         # targets : list of targets to optimize; flattened to (n, -1) later
@@ -105,8 +107,8 @@ class LGD(nn.Module):
             targets, hidden, dx = self.step(targets, loss, hidden, batch_size, return_dx=True)
             loss = loss_func(targets)
 
-            loss_trajectory = loss.sum().mean()
-            loss_trajectory += torch.sqrt(torch.pow(dx, 2).sum(dim=1)).mean()      # regularizer for dx
+            loss_trajectory = loss.sum(dim=1).mean()
+            #loss_trajectory += torch.sqrt(torch.pow(dx, 2).sum(dim=1)).mean()      # regularizer for dx
 
             loss_trajectory.backward(retain_graph=True)
 
