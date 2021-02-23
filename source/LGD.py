@@ -108,7 +108,7 @@ class LGD(nn.Module):
             loss = loss_func(targets)
 
             loss_trajectory = loss
-            loss_trajectory += 1e1*torch.norm(dx, dim=1).mean()      # regularizer for dx
+            loss_trajectory += 5*torch.norm(dx, dim=1).mean()      # regularizer for dx
 
             loss_trajectory.backward(retain_graph=True)
 
