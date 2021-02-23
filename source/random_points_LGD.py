@@ -50,6 +50,10 @@ parser.add_argument('--lambda', dest='lamb', type=float, metavar='LAMBDA', defau
 parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE', 
                         help='output file')
 
+def compute_chamfer_distance(p1, p2):
+    cd = torch.cdist(p1, p2)
+
+    return torch.min(cd, dim=0).mean() + torch.min(cd, dim=1).mean()
 
 def main():
     args = parser.parse_args()
@@ -116,6 +120,8 @@ def main():
         if i%10 == 0:
             writer.add_scalars("regression_loss", {"LGD": loss}, global_step=i)
             writer.add_mesh("point cloud regression_LGD", x.unsqueeze(0), global_step=i)
+
+            writer.add_scalars("chamfer_distance", {"LGD": compute_chamfer_distance(x, xyz)}, global_step=i)
             
 
     with torch.no_grad():
@@ -136,6 +142,8 @@ def main():
         if i%10 == 0:
             writer.add_scalars("regression_loss", {"Adam": loss}, global_step=i)
             writer.add_mesh("point cloud regression_Adam", x.unsqueeze(0), global_step=i)
+
+            writer.add_scalars("chamfer_distance", {"Adam": compute_chamfer_distance(x, xyz)}, global_step=i)
             
     
     writer.close()
