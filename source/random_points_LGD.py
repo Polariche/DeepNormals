@@ -106,7 +106,7 @@ def main():
         lgd.loss_trajectory(x, eval_func_list, hidden, n, steps=5)
         
         # update x
-        [x], hidden = lgd.step(x, loss, hidden, n)
+        [x], hidden = lgd.step(x, loss.mean(), hidden, n)
         x = detach_var(x)
         hidden = detach_var(hidden)
         
