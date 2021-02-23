@@ -121,7 +121,7 @@ def main():
     hidden = None
 
     lgd = LGD(3, 1, 32, 0).to(device)
-    lgd_optimizer = optim.Adam(lgd.parameters(), lr=1e-3)
+    lgd_optimizer = optim.Adam(lgd.parameters(), lr=5e-3)
 
     for i in range(500):
         # evaluate losses
