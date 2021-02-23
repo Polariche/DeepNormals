@@ -92,6 +92,27 @@ def main():
         x.requires_grad_(True)
 
         x_original = x.clone().detach()
+    
+    print("adam")
+    optimizer = optim.Adam([x], lr = 1e-3)
+
+    for i in range(500):
+        optimizer.zero_grad()
+
+        loss = eval_func(x)
+        loss.backward(retain_graph=True)
+
+        optimizer.step()
+
+        if i%10 == 0:
+            writer.add_scalars("regression_loss", {"Adam": loss}, global_step=i)
+            writer.add_mesh("point cloud regression_Adam", x.unsqueeze(0), global_step=i)
+
+            writer.add_scalars("chamfer_distance", {"Adam": compute_chamfer_distance(x, xyz)}, global_step=i)
+
+    with torch.no_grad():
+        x = x_original.clone().detach()
+        x.requires_grad_(True)
 
     print("lgd")
     hidden = None
@@ -100,7 +121,7 @@ def main():
     eval_func_list = lambda x: torch.pow(model(x[0])[0], 2).sum(dim=1).mean()
 
     lgd = LGD(3, 1, 32, 0).to(device)
-    lgd_optimizer = optim.Adam(lgd.parameters(), lr=5e-3)
+    lgd_optimizer = optim.Adam(lgd.parameters(), lr=1e-3)
 
     for i in range(500):
         # evaluate losses
@@ -123,28 +144,6 @@ def main():
             writer.add_mesh("point cloud regression_LGD", x.unsqueeze(0), global_step=i)
 
             writer.add_scalars("chamfer_distance", {"LGD": compute_chamfer_distance(x, xyz)}, global_step=i)
-            
-
-    with torch.no_grad():
-        x = x_original.clone().detach()
-        x.requires_grad_(True)
-
-    print("adam")
-    optimizer = optim.Adam([x], lr = 1e-3)
-
-    for i in range(500):
-        optimizer.zero_grad()
-
-        loss = eval_func(x)
-        loss.backward(retain_graph=True)
-
-        optimizer.step()
-
-        if i%10 == 0:
-            writer.add_scalars("regression_loss", {"Adam": loss}, global_step=i)
-            writer.add_mesh("point cloud regression_Adam", x.unsqueeze(0), global_step=i)
-
-            writer.add_scalars("chamfer_distance", {"Adam": compute_chamfer_distance(x, xyz)}, global_step=i)
             
     
     writer.close()
