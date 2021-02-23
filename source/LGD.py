@@ -66,7 +66,7 @@ class LGD(nn.Module):
         xd = torch.norm(x[0])
         yd = torch.norm(y[0])
 
-        print(xd.item(), yd.item(), (x[0]*y[0]).sum() / (xd*yd))
+        print(xd.item(), yd.item(), ((x[0]*y[0]).sum() / (xd*yd)).item())
  
         if h > 0:
             dx = y[:,:-h]
