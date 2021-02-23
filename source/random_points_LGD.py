@@ -93,6 +93,9 @@ def main():
 
         x_original = x.clone().detach()
     
+    eval_func = lambda x: torch.pow(model(x)[0], 2).sum(dim=1).mean()
+    eval_func_list = lambda x: torch.pow(model(x[0])[0], 2).sum(dim=1).mean()
+    
     print("adam")
     optimizer = optim.Adam([x], lr = 1e-3)
 
@@ -117,8 +120,7 @@ def main():
     print("lgd")
     hidden = None
 
-    eval_func = lambda x: torch.pow(model(x)[0], 2).sum(dim=1).mean()
-    eval_func_list = lambda x: torch.pow(model(x[0])[0], 2).sum(dim=1).mean()
+    
 
     lgd = LGD(3, 1, 32, 0).to(device)
     lgd_optimizer = optim.Adam(lgd.parameters(), lr=1e-3)
