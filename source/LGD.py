@@ -63,7 +63,10 @@ class LGD(nn.Module):
         # output size : D + H
         y = self.layers(x)
 
-        print(torch.norm(x[0]).item(), torch.norm(y[0]).item())
+        xd = torch.norm(x[0])
+        yd = torch.norm(y[0])
+
+        print(xd.item(), yd.item(), (x[0]*y[0]).sum() / (xd*yd))
  
         if h > 0:
             dx = y[:,:-h]
@@ -110,7 +113,7 @@ class LGD(nn.Module):
             loss = loss_func(targets)
 
             loss_trajectory = loss.mean()
-            loss_trajectory += 1e2*torch.pow(dx, 2).sum(dim=1).mean()      # regularizer for dx
+            #loss_trajectory += 1e2*torch.pow(dx, 2).sum(dim=1).mean()      # regularizer for dx
 
             loss_trajectory.backward(retain_graph=True)
 
