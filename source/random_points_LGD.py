@@ -91,8 +91,8 @@ def main():
     print("lgd")
     hidden = None
 
-    eval_func = lambda x: torch.pow(model(x)[0], 2).sum(dim=1)
-    eval_func_list = lambda x: torch.pow(model(x[0])[0], 2).sum(dim=1)
+    eval_func = lambda x: torch.pow(model(x)[0], 2).sum(dim=1).mean()
+    eval_func_list = lambda x: torch.pow(model(x[0])[0], 2).sum(dim=1).mean()
 
     lgd = LGD(3, 1, 32, 0).to(device)
     lgd_optimizer = optim.Adam(lgd.parameters(), lr=5e-3)
@@ -106,7 +106,7 @@ def main():
         lgd.loss_trajectory(x, eval_func_list, hidden, n, steps=5)
         
         # update x
-        [x], hidden = lgd.step(x, loss.mean(), hidden, n)
+        [x], hidden = lgd.step(x, loss, hidden, n)
         x = detach_var(x)
         hidden = detach_var(hidden)
         
@@ -114,7 +114,7 @@ def main():
         lgd_optimizer.step()
 
         if i%10 == 0:
-            writer.add_scalars("regression_loss", {"LGD": loss.mean()}, global_step=i)
+            writer.add_scalars("regression_loss", {"LGD": loss}, global_step=i)
             writer.add_mesh("point cloud regression_LGD", x.unsqueeze(0), global_step=i)
             
 
