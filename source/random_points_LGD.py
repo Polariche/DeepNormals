@@ -81,6 +81,7 @@ def main():
 
     data = [ds[samples[i]] for i in range(len(samples))]
     xyz = torch.cat([d['xyz'].unsqueeze(0) for d in data])
+    xyz = xyz.to(device)
     
     #writer.add_mesh("original", xyz.unsqueeze(0))
 
