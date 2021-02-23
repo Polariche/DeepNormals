@@ -53,7 +53,7 @@ parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE',
 def compute_chamfer_distance(p1, p2):
     cd = torch.cdist(p1, p2)
 
-    return torch.min(cd, dim=0).mean() + torch.min(cd, dim=1).mean()
+    return torch.min(cd, dim=0)[0].mean() + torch.min(cd, dim=1)[0].mean()
 
 def main():
     args = parser.parse_args()
