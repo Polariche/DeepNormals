@@ -58,10 +58,14 @@ class LGD(nn.Module):
             targets_grad = torch.cat([targets_grad, *targets_grad_l], dim=1)
  
         x = torch.cat([targets_grad, hidden], dim=1)
+
+        print(torch.norm(x[0]))
  
         # output : new grad, new hidden
         # output size : D + H
         y = self.layers(x)
+
+        print(torch.norm(y[0]))
  
         if h > 0:
             dx = y[:,:-h]
