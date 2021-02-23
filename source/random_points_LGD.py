@@ -128,14 +128,13 @@ def main():
     for i in range(500):
         optimizer.zero_grad()
 
-        s, x = model(x)
-        loss = (torch.pow(s, 2)).sum(dim=1)
-        loss.sum().backward(retain_graph=True)
+        loss = eval_func(x)
+        loss.backward(retain_graph=True)
 
         optimizer.step()
 
         if i%10 == 0:
-            writer.add_scalars("regression_loss", {"Adam": loss.mean()}, global_step=i)
+            writer.add_scalars("regression_loss", {"Adam": loss}, global_step=i)
             writer.add_mesh("point cloud regression_Adam", x.unsqueeze(0), global_step=i)
             
     
