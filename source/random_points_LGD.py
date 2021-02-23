@@ -100,7 +100,7 @@ def main():
     eval_func_list = lambda x: torch.pow(model(x[0])[0], 2).sum(dim=1).mean()
 
     lgd = LGD(3, 1, 32, 0).to(device)
-    lgd_optimizer = optim.Adam(lgd.parameters(), lr=15e-3)
+    lgd_optimizer = optim.Adam(lgd.parameters(), lr=1e-3)
 
     for i in range(500):
         # evaluate losses
