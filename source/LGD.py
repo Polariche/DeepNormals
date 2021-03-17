@@ -241,11 +241,11 @@ class LGD(nn.Module):
         if type(losses) is not list:
             losses = [losses]
         
-        loss_trajectory = 0
+        #loss_trajectory = 0
  
         for i in range(steps):
             print(i)
-            
+
             targets, _, dx = self.step(targets, losses, hidden, batch_size, return_dx=True)
 
             loss = 0
@@ -254,9 +254,10 @@ class LGD(nn.Module):
 
             loss += 1e-4 * torch.pow(torch.norm(dx, dim=1),2).mean()
 
-            loss_trajectory += loss / steps
+            loss /= steps
+            loss.backward()
  
-        return loss_trajectory
+        #return loss_trajectory
  
 def detach_var(v):
     if v is None:

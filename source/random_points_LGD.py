@@ -128,11 +128,12 @@ def main():
         # evaluate losses
         samples_n = n//3
         sample_inds = torch.randperm(n)[:samples_n]
-        loss_trajectory = lgd.loss_trajectory(x[sample_inds], eval_func_list, None, samples_n, steps=20)
 
         # update lgd parameters
         lgd_optimizer.zero_grad()
-        loss_trajectory.backward()
+        #loss_trajectory.backward()
+        lgd.loss_trajectory(x[sample_inds], eval_func_list, None, samples_n, steps=20)
+        
         lgd_optimizer.step()
 
     # test LGD
