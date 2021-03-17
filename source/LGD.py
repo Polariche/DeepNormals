@@ -13,7 +13,7 @@ def knn(x, k=10, return_dist=False):
     device = x.device
 
     with torch.no_grad():
-        x = x.detach().cpu()
+        x = x.detach().cpu()    # a naive fix for huge memory requirement...
         xx = torch.sum(x**2, dim=1, keepdim=True)
         d = xx.repeat(1, xx.shape[0]).add_(xx.T)
         d = d.add_(torch.matmul(x, x.T).mul_(-2))
