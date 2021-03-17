@@ -120,24 +120,27 @@ def main():
     print("lgd")
     hidden = None
 
-    lgd = LGD(3, 1, 32, 0).to(device)
-    lgd_optimizer = optim.Adam(lgd.parameters(), lr=5e-3)
+    lgd = LGD(3, 1, k=10).to(device)
+    lgd_optimizer = optim.Adam(lgd.parameters(), lr=5e-4)
 
+    # train LGD
     for i in range(500):
         # evaluate losses
-        loss = eval_func(x)
+        loss_trajectory = lgd.loss_trajectory(x, eval_func_list, None, n, steps=20)
 
-        # compute lgd grads
+        # update lgd parameters
         lgd_optimizer.zero_grad()
-        lgd.loss_trajectory(x, eval_func_list, hidden, n, steps=5)
-        
+        loss_trajectory.backward()
+        lgd_optimizer.step()
+
+    # test LGD
+    for i in range(200):
+        # evaluate losses
+        loss = eval_func(x).mean()
         # update x
-        [x], hidden = lgd.step(x, loss, hidden, n)
+        [x], hidden = lgd.step(x, eval_func_list, hidden, n)
         x = detach_var(x)
         hidden = detach_var(hidden)
-        
-        # update lgd parameters
-        lgd_optimizer.step()
 
         if i%10 == 0:
             writer.add_scalars("regression_loss", {"LGD": loss}, global_step=i)
