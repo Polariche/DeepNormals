@@ -10,10 +10,10 @@ import numpy as np
 # referenced https://github.com/WangYueFt/dgcnn/blob/master/pytorch/model.py
 
 def knn(x, k=10, return_dist=False):
-    #xx = torch.sum(x**2, dim=1, keepdim=True)
-    #d = xx + xx.T - 2*torch.matmul(x, x.T)
-    x = x.view(x.shape[0], 1, x.shape[-1])
-    d = torch.norm(x - x.transpose(1,0), dim=-1)
+    xx = torch.sum(x**2, dim=1, keepdim=True)
+    d = xx.add_(xx.T)
+    d = d.add_(- 2*torch.matmul(x, x.T))
+
     ind = torch.topk(-d, k=k, dim=1).indices
 
     if return_dist:
