@@ -50,10 +50,10 @@ class EdgeConv(nn.Module):
         k = self.k
         n = x.shape[0]                                      # n x c
 
-        x = graph_features(x, k=k)                          # (n*k) x c
+        #x = graph_features(x, k=k)                          # (n*k) x c
         x = self.layers(x)                                  # (n*k) x c'
-        x = x.view(n, k, -1)                                # n x k x c'
-        x = x.max(dim=1, keepdim=False)[0].contiguous()     # n x c'
+        #x = x.view(n, k, -1)                                # n x k x c'
+        #x = x.max(dim=1, keepdim=False)[0].contiguous()     # n x c'
 
         return x
 
@@ -75,9 +75,9 @@ class DGCNN(nn.Module):
         super(DGCNN, self).__init__()
         self.k=k
 
-        self.conv1 = EdgeConv(nn.Sequential(lin(in_channels*2, 64), lin(64, 64)), k=k)
-        self.conv2 = EdgeConv(nn.Sequential(lin(64*2, 64), lin(64, 64)), k=k)
-        self.conv3 = EdgeConv(lin(64*2, 64), k=k)
+        self.conv1 = EdgeConv(nn.Sequential(lin(in_channels, 64), lin(64, 64)), k=k)
+        self.conv2 = EdgeConv(nn.Sequential(lin(64, 64), lin(64, 64)), k=k)
+        self.conv3 = EdgeConv(lin(64, 64), k=k)
         self.conv4 = lin(64*3, 1024)
 
         self.linear1 = lin(1024 + 64*3, 256)
