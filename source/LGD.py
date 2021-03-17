@@ -12,7 +12,7 @@ import numpy as np
 def knn(x, k=10, return_dist=False):
     xx = torch.sum(x**2, dim=1, keepdim=True)
     d = xx.repeat(1, xx.shape[0]).add_(xx.T)
-    d = d.add_(- 2*torch.matmul(x, x.T))
+    d = d.add_(torch.matmul(x, x.T).multiply_(-2))
 
     ind = torch.topk(-d, k=k, dim=1).indices
 
