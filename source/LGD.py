@@ -13,7 +13,7 @@ from sklearn.neighbors import NearestNeighbors
 
 def knn(x, k=10):
     device = x.device
-    x = x.cpu().numpy()
+    x = x.cpu().detach().numpy()
     _, ind = NearestNeighbors(n_neighbors=k, algorithm='ball_tree').fit(x).kneighbors(x)
     
     return torch.Tensor(ind, device=device)
