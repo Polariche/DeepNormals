@@ -244,6 +244,8 @@ class LGD(nn.Module):
         loss_trajectory = 0
  
         for i in range(steps):
+            print(i)
+            
             targets, _, dx = self.step(targets, losses, hidden, batch_size, return_dx=True)
 
             loss = 0
