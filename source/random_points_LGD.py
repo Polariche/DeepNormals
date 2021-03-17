@@ -124,6 +124,7 @@ def main():
     lgd_optimizer = optim.Adam(lgd.parameters(), lr=5e-4)
 
     # train LGD
+    lgd.train()
     for i in range(500):
         print(i)
         # evaluate losses
@@ -136,6 +137,7 @@ def main():
         lgd_optimizer.step()
 
     # test LGD
+    lgd.eval()
     for i in range(200):
         # evaluate losses
         loss = eval_func(x).mean()
