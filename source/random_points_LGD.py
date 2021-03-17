@@ -125,6 +125,7 @@ def main():
 
     # train LGD
     for i in range(500):
+        print(i)
         # evaluate losses
         samples_n = n//32
         sample_inds = torch.randperm(n)[:samples_n]
