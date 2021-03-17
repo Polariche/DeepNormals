@@ -131,9 +131,7 @@ def main():
 
         # update lgd parameters
         lgd_optimizer.zero_grad()
-        #loss_trajectory.backward()
-        lgd.loss_trajectory(x[sample_inds], eval_func_list, None, samples_n, steps=20)
-        
+        lgd.trajectory_backward(x[sample_inds], eval_func_list, None, samples_n, steps=15)
         lgd_optimizer.step()
 
     # test LGD

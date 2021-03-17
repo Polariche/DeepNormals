@@ -230,7 +230,7 @@ class LGD(nn.Module):
         else:
             return new_targets, hidden
  
-    def loss_trajectory(self, targets, losses, hidden=None, batch_size=1, steps=10):
+    def trajectory_backward(self, targets, losses, hidden=None, batch_size=1, steps=10):
         # used for training LGD model itself
 
         # since x changes after each iteration, we need to evaluate the loss again
@@ -246,7 +246,7 @@ class LGD(nn.Module):
         for i in range(steps):
             print(i)
 
-            targets, _, dx = self.step(targets, losses, hidden, batch_size, return_dx=True)
+            targets, hidden, dx = self.step(targets, losses, hidden, batch_size, return_dx=True)
 
             loss = 0
             for loss_f in losses:
@@ -255,7 +255,7 @@ class LGD(nn.Module):
             loss += 1e-4 * torch.pow(torch.norm(dx, dim=1),2).mean()
 
             loss /= steps
-            loss.backward()
+            loss.backward(retain_graph=True)
  
         #return loss_trajectory
  
