@@ -126,7 +126,8 @@ def main():
     # train LGD
     for i in range(500):
         # evaluate losses
-        loss_trajectory = lgd.loss_trajectory(x, eval_func_list, None, n, steps=10)
+        sample_inds = torch.randperm(n)[:n//3]
+        loss_trajectory = lgd.loss_trajectory(x[sample_inds], eval_func_list, None, n, steps=20)
 
         # update lgd parameters
         lgd_optimizer.zero_grad()
