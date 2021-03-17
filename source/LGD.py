@@ -85,9 +85,9 @@ class DGCNN(nn.Module):
         self.linear3 = lin(256, 128)
         self.linear4 = lin(128, out_channels)
 
-        self.dp1 = nn.Dropout(p=0.8)
-        self.dp2 = nn.Dropout(p=0.8)
-        self.dp3 = nn.Dropout(p=0.8)
+        self.dp1 = nn.Dropout(p=0.2)
+        self.dp2 = nn.Dropout(p=0.2)
+        self.dp3 = nn.Dropout(p=0.2)
 
         self.linears = nn.Sequential(self.linear1, self.dp1,
                                      self.linear2, self.dp2,
