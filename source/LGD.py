@@ -241,8 +241,6 @@ class LGD(nn.Module):
         if type(losses) is not list:
             losses = [losses]
         
-        #loss_trajectory = 0
- 
         for i in range(steps):
             print(i)
 
@@ -257,7 +255,6 @@ class LGD(nn.Module):
             loss /= steps
             loss.backward(retain_graph=True)
  
-        #return loss_trajectory
  
 def detach_var(v):
     if v is None:
