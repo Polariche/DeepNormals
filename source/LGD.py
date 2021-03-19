@@ -244,7 +244,7 @@ class LGD(nn.Module):
             for loss_f in losses:
                 loss += loss_f(targets).mean() 
 
-            loss += 1e-2 * torch.pow(torch.norm(dx, dim=1),2).mean()
+            loss += torch.pow(torch.norm(dx, dim=1),2).mean()
 
             loss /= steps
             loss.backward(retain_graph=True)
