@@ -137,6 +137,7 @@ def main():
         lgd_optimizer.step()
 
     # test LGD
+    lgd.eval()
     for i in range(200):
         # evaluate losses
         loss = eval_func(x).mean()
