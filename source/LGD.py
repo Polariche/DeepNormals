@@ -51,7 +51,7 @@ class EdgeConv(nn.Module):
         n = x.shape[0]                                      # n x c
 
         #x = graph_features(x, k=k)                          # (n*k) x c
-        x = self.layers(x)                                  # (n*k) x c'
+        x = self.layers(x)                                   # (n*k) x c'
         #x = x.view(n, k, -1)                                # n x k x c'
         #x = x.max(dim=1, keepdim=False)[0].contiguous()     # n x c'
 
