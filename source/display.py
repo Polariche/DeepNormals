@@ -114,13 +114,13 @@ def main():
         g = torch.autograd.grad(s, [g], grad_outputs=torch.ones_like(s), create_graph=True)[0]
         g /= torch.norm(g, dim=1, keepdim=True)
 
-        d = torch.clamp(dist_from_to(voxels_, xyz, requires_graph=False) / args.epsilon, 0, 1)
+        #d = torch.clamp(dist_from_to(voxels_, xyz, requires_graph=False) / args.epsilon, 0, 1)
 
         writer.add_image("implicit", torch.clamp(s.reshape(n,n), 0, 1), i, dataformats='WH')
 
         writer.add_image("implicit_normals", (g.reshape(n,n,3)*128+128).int(), i, dataformats='WHC')
 
-        writer.add_image("GT_implicit", d.reshape(n,n), i, dataformats='WH')
+        #writer.add_image("GT_implicit", d.reshape(n,n), i, dataformats='WH')
     
     writer.close()
 
