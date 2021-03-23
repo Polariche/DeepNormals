@@ -86,8 +86,8 @@ def main():
 
     # load 
     with torch.no_grad():
-        mm = torch.min(xyz, dim=0)
-        mx = torch.max(xyz, dim=0)
+        mm = torch.min(xyz, dim=0)[0]
+        mx = torch.max(xyz, dim=0)[0]
 
         x = (torch.rand(n,3) - 0.5) * (mx - mm) + mm
         x = x.to(device)
@@ -95,8 +95,11 @@ def main():
 
         x_original = x.clone().detach()
     
-    eval_func = lambda x: torch.pow(model(x)[0], 2).sum(dim=1).mean()
-    eval_func_list = lambda x: torch.pow(model(x[0])[0], 2).sum(dim=1).mean()
+    sdf_eval = lambda x: torch.pow(model(x)[0], 2).sum(dim=1).mean()
+    sdf_eval_list = lambda x: sdf_eval(x[0])
+
+    #gt_eval = lambda x: torch.clamp(args.epsilon)
+    #gt_eval_list = lambda x: gt_eval(x[0])
 
     print("adam")
     optimizer = optim.Adam([x], lr = 1e-3)
@@ -104,7 +107,7 @@ def main():
     for i in range(500):
         optimizer.zero_grad()
 
-        loss = eval_func(x)
+        loss = sdf_eval(x)
         loss.backward(retain_graph=True)
 
         optimizer.step()
@@ -135,16 +138,16 @@ def main():
 
         # update lgd parameters
         lgd_optimizer.zero_grad()
-        lgd.trajectory_backward(x[sample_inds], eval_func_list, None, samples_n, steps=15)
+        lgd.trajectory_backward(x[sample_inds], sdf_eval_list, None, samples_n, steps=15)
         lgd_optimizer.step()
 
     # test LGD
     lgd.eval()
     for i in range(200):
         # evaluate losses
-        loss = eval_func(x).mean()
+        loss = sdf_eval(x).mean()
         # update x
-        [x], hidden = lgd.step(x, eval_func_list, hidden, n)
+        [x], hidden = lgd.step(x, sdf_eval_list, hidden, n)
         x = detach_var(x)
         hidden = detach_var(hidden)
 
