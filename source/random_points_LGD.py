@@ -179,12 +179,12 @@ def main():
         samples_n = n//32
         sample_inds = torch.randperm(n)[:samples_n]
 
-        gt_eval = lambda x: torch.pow(x[sample_inds] - x_target[sample_inds],2).sum(dim=1).mean()
+        gt_eval = lambda x: torch.pow(x - x_target[sample_inds],2).sum(dim=1).mean()
         gt_eval_list = lambda x: gt_eval(x[0])
 
         # update lgd parameters
         lgd_optimizer.zero_grad()
-        lgd.trajectory_backward(x, gt_eval_list, None, n, steps=15)
+        lgd.trajectory_backward(x[sample_inds], gt_eval_list, None, n, steps=15)
         lgd_optimizer.step()
 
     # test LGD
