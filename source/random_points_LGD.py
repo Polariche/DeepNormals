@@ -190,7 +190,7 @@ def main():
 
     # test LGD
     lgd.eval()
-    for i in range(200):
+    for i in range(500):
         # evaluate losses
         loss = sdf_eval(x).mean()
         # update x
