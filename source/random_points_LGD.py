@@ -201,7 +201,7 @@ def main():
             writer.add_scalars("regression_loss", {"LGD": loss}, global_step=i)
             writer.add_mesh("point cloud regression_LGD", x.unsqueeze(0), global_step=i)
 
-            writer.add_scalars("chamfer_distance", {"LGD": chamfer_distance(x, xyz)}, global_step=i)
+            #writer.add_scalars("chamfer_distance", {"LGD": chamfer_distance(x, xyz)}, global_step=i)
             
     
     writer.close()
