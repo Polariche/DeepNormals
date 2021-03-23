@@ -89,7 +89,7 @@ def main():
         mm = torch.min(xyz, dim=0)[0]
         mx = torch.max(xyz, dim=0)[0]
 
-        x = (torch.rand(n,3) - 0.5).to(device) * (mx - mm) + mm
+        x = torch.rand(n,3).to(device) * (mx - mm) + mm
         x.requires_grad_(True)
 
         x_original = x.clone().detach()
@@ -97,7 +97,8 @@ def main():
     sdf_eval = lambda x: torch.pow(model(x)[0], 2).sum(dim=1).mean()
     sdf_eval_list = lambda x: sdf_eval(x[0])
 
-    #gt_eval = lambda x: torch.clamp(args.epsilon)
+    eps = args.epsilon
+    #gt_eval = lambda x: torch.clamp(min=-eps, max=eps)
     #gt_eval_list = lambda x: gt_eval(x[0])
 
     print("adam")
