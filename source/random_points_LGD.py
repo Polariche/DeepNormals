@@ -142,16 +142,10 @@ def main():
 
     eps = args.epsilon
     
-    
     x_target = xyz[nearest_from_to(x, xyz)]
-
-    print(nearest_from_to(x,xyz).shape)
-    print(x_target.shape)
 
     gt_eval = lambda x: torch.pow(x - x_target,2).sum(dim=1).mean()
     gt_eval_list = lambda x: gt_eval(x[0])
-
-    print(gt_eval(x))
 
     print("adam")
     optimizer = optim.Adam([x], lr = 1e-3)
@@ -185,9 +179,8 @@ def main():
     for i in range(100):
         print(i)
         # evaluate losses
-        samples_n = n//32
-        sample_inds = torch.randperm(n)[:samples_n]
-
+        #samples_n = n//32
+        #sample_inds = torch.randperm(n)[:samples_n]
 
         # update lgd parameters
         lgd_optimizer.zero_grad()
