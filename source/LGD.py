@@ -239,6 +239,7 @@ class LGD(nn.Module):
         if type(losses) is not list:
             losses = [losses]
         
+        loss_print = 0
         for i in range(steps):
             targets, hidden, dx = self.step(targets, losses, hidden, batch_size, return_dx=True)
 
@@ -250,6 +251,11 @@ class LGD(nn.Module):
 
             loss /= steps
             loss.backward(retain_graph=True)
+
+            with torch.no_grad():
+                loss_print += loss.detach()
+        
+        print(loss_print)
  
  
 def detach_var(v):
