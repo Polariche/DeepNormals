@@ -173,7 +173,7 @@ def main():
 
     # train LGD
     lgd.train()
-    for i in range(500):
+    for i in range(200):
         print(i)
         # evaluate losses
         samples_n = n//32

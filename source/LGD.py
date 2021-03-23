@@ -212,7 +212,7 @@ class LGD(nn.Module):
  
         # output : new grad, new hidden
         # output size : D + H
-        dx, hidden = self.layers(x)
+        dx = self.layers(x)
  
         return dx, hidden
  
