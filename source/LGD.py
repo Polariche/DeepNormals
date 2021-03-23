@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch import Tensor
 
+from models import Siren
 from torch.autograd import Variable
 import numpy as np
 
@@ -133,8 +134,10 @@ class LGD(nn.Module):
             inc += dim_targets
 
         #self.layers = DGFC(inc, ouc, mid_features, k=k)
-        self.layers = DGCNN(inc, ouc, k=k)
+        #self.layers = DGCNN(inc, ouc, k=k)
         #self.layers = LGD_GRU(2, hidden_features)
+
+        self.layers = Siren(inc,ouc,5)
 
         self.init_params()
 
