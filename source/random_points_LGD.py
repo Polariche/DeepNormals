@@ -142,7 +142,11 @@ def main():
 
     eps = args.epsilon
     
+    
     x_target = xyz[nearest_from_to(x, xyz)]
+
+    print(nearest_from_to(x,xyz).shape)
+    print(x_target.shape)
 
     gt_eval = lambda x: torch.pow(x - x_target,2).sum(dim=1).mean()
     gt_eval_list = lambda x: gt_eval(x[0])
