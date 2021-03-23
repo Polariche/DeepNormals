@@ -89,8 +89,7 @@ def main():
         mm = torch.min(xyz, dim=0)[0]
         mx = torch.max(xyz, dim=0)[0]
 
-        x = (torch.rand(n,3) - 0.5) * (mx - mm) + mm
-        x = x.to(device)
+        x = (torch.rand(n,3) - 0.5).to(device) * (mx - mm) + mm
         x.requires_grad_(True)
 
         x_original = x.clone().detach()
