@@ -151,7 +151,7 @@ def main():
     gt_eval = lambda x: torch.pow(x - x_target,2).sum(dim=1).mean()
     gt_eval_list = lambda x: gt_eval(x[0])
 
-    print(sdf_eval(x))
+    print(gt_eval(x))
 
     print("adam")
     optimizer = optim.Adam([x], lr = 1e-3)
