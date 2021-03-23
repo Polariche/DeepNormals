@@ -131,7 +131,7 @@ def main():
 
     eps = args.epsilon
     
-    gt_eval = lambda x: torch.clamp(dist_from_to(x, xyz), min=-eps, max=eps)
+    gt_eval = lambda x: dist_from_to(x, xyz)
     gt_eval_list = lambda x: gt_eval(x[0])
 
     print("adam")
