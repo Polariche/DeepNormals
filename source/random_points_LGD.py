@@ -96,7 +96,7 @@ def nearest_from_to(p1, p2):
 
     _, ind = p2_tree.query(p1_np)
 
-    return torch.tensor(ind, device=p1.device, dtype=torch.long)
+    return torch.tensor(ind, device=p1.device, dtype=torch.long).squeeze()
 
 
 def main():
