@@ -139,7 +139,7 @@ class LGD(nn.Module):
 
         self.layers = Siren(inc,ouc,5)
 
-        self.init_params()
+        #self.init_params()
 
 
     def init_params(self):
