@@ -163,7 +163,7 @@ def main():
                                 global_step=epoch)
                 
                 writer.add_mesh("3. cosine similarity", xyz_aug[:xyz.shape[0]].unsqueeze(0).detach().clone(), 
-                                colors=(F.pad(n_error[:xyz.shape[0]], (0,2)).unsqueeze(0).detach().clone() * 256).int(), 
+                                colors=(F.pad(1 - n_error[:xyz.shape[0]], (0,2)).unsqueeze(0).detach().clone() * 256).int(), 
                                 global_step=epoch)
                 
 

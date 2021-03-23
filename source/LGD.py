@@ -238,9 +238,9 @@ class LGD(nn.Module):
             targets = [targets]
         if type(input_losses) is not list:
             input_losses = [input_losses]
-            
-        if eval_losses is None:
-            eval_losses = lambda x: sum([loss(x) for loss in input_losses])
+
+        if eval_loss is None:
+            eval_loss = lambda x: sum([loss(x) for loss in input_losses])
         
         loss_print = 0
         for _ in range(steps):
