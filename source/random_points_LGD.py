@@ -51,24 +51,25 @@ parser.add_argument('--lambda', dest='lamb', type=float, metavar='LAMBDA', defau
 parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE', 
                         help='output file')
 
-def chamfer_distance(p1, p2):
-    """
-    cd = torch.cdist(p1, p2)
+def chamfer_distance(p1, p2, use_torch=False):
+    if use_torch:
+        # O(n^2) memory GPU computation on Torch; faster, but more expensive
+        cd = torch.cdist(p1, p2)
 
-    return torch.min(cd, dim=0)[0].mean() + torch.min(cd, dim=1)[0].mean()
-    """
+        return torch.min(cd, dim=0)[0].mean() + torch.min(cd, dim=1)[0].mean()
 
-    # O(n^2) solution is too memory intensive; use KD-tree from scipy library, on cpu.
-    p1 = p1.detach().cpu().numpy()
-    p2 = p2.detach().cpu().numpy()
+    else:
+        # O(nlog n) memory CPU computation with Sklearn; slower, but cheaper
+        p1 = p1.detach().cpu().numpy()
+        p2 = p2.detach().cpu().numpy()
 
-    p1_tree = KDTree(p1)
-    p2_tree = KDTree(p2)
+        p1_tree = KDTree(p1)
+        p2_tree = KDTree(p2)
 
-    d1, _ = p1_tree.query(p2)
-    d2, _ = p2_tree.query(p1)
+        d1, _ = p1_tree.query(p2)
+        d2, _ = p2_tree.query(p1)
 
-    return np.mean(np.power(d1,2)) + np.mean(np.power(d2,2))
+        return np.mean(np.power(d1,2)) + np.mean(np.power(d2,2))
 
 
 def dist_from_to(p1, p2, requires_graph=True):
@@ -170,7 +171,7 @@ def main():
 
         # update lgd parameters
         lgd_optimizer.zero_grad()
-        lgd.trajectory_backward(x[sample_inds], sdf_eval_list, None, samples_n, steps=15)
+        lgd.trajectory_backward(x[sample_inds], gt_eval_list, None, samples_n, steps=15)
         lgd_optimizer.step()
 
     # test LGD
