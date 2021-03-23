@@ -88,6 +88,17 @@ def dist_from_to(p1, p2, requires_graph=True):
         ind = torch.tensor(ind, device=p1.device)
         return torch.norm(p1 - p2[ind])
 
+def nearest_from_to(p1, p2):
+    p1_np = p1.detach().cpu().numpy()
+    p2_np = p2.detach().cpu().numpy()
+
+    p2_tree = KDTree(p2_np)
+
+    d, ind = p2_tree.query(p1_np)
+
+    return torch.tensor(ind, device=p1.device)
+
+
 def main():
     args = parser.parse_args()
 
@@ -131,7 +142,9 @@ def main():
 
     eps = args.epsilon
     
-    gt_eval = lambda x: dist_from_to(x, xyz)
+    x_target = xyz[nearest_from_to(x, xyz)]
+
+    gt_eval = lambda x: torch.pow(torch.norm(x - x_target),2)
     gt_eval_list = lambda x: gt_eval(x[0])
 
     print("adam")
