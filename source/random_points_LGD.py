@@ -86,7 +86,7 @@ def dist_from_to(p1, p2, requires_graph=True):
 
     else:
         ind = torch.tensor(ind, device=p1.device)
-        return torch.norm(p1 - p2[ind])
+        return torch.norm(p1 - p2[ind], dim=1, keepdim=True)
 
 def nearest_from_to(p1, p2):
     p1_np = p1.detach().cpu().numpy()
