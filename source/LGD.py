@@ -134,21 +134,10 @@ class LGD(nn.Module):
             inc += dim_targets
 
         #self.layers = DGFC(inc, ouc, mid_features, k=k)
-        #self.layers = DGCNN(inc, ouc, k=k)
+        self.layers = DGCNN(inc, ouc, k=k)
         #self.layers = LGD_GRU(2, hidden_features)
 
-        #self.layers = Siren(inc,ouc,5)
-
-        mic = 512
-        self.layers = nn.Sequential(nn.Linear(inc, mic, bias=False),
-                      nn.PReLU(),
- 
-                      *([nn.Linear(mic, mic, bias=False), 
-                         nn.PReLU()]*5),
- 
-                      nn.Linear(mic, ouc, bias=False))
-
-        #self.init_params()
+        self.init_params()
 
 
     def init_params(self):
@@ -211,8 +200,8 @@ class LGD(nn.Module):
             x = targets_grad
  
         # output : new grad, new hidden
-        # output size : D + H
-        dx = self.layers(x)
+        # output size : D, H
+        dx, hidden = self.layers(x, hidden)
  
         return dx, hidden
  
