@@ -137,7 +137,16 @@ class LGD(nn.Module):
         #self.layers = DGCNN(inc, ouc, k=k)
         #self.layers = LGD_GRU(2, hidden_features)
 
-        self.layers = Siren(inc,ouc,5)
+        #self.layers = Siren(inc,ouc,5)
+
+        mic = 256
+        self.layers = nn.Sequential(nn.Linear(inc, mic, bias=False),
+                      nn.PReLU(),
+ 
+                      *([nn.Linear(mic, mic, bias=False), 
+                         nn.PReLU()]*5),
+ 
+                      nn.Linear(mic, ouc, bias=False))
 
         #self.init_params()
 
