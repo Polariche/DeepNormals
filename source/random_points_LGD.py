@@ -184,7 +184,7 @@ def main():
 
         # update lgd parameters
         lgd_optimizer.zero_grad()
-        lgd.trajectory_backward(x[sample_inds], gt_eval_list, None, batch_size=samples_n, steps=15)
+        lgd.trajectory_backward(x[sample_inds], sdf_eval_list, gt_eval_list, batch_size=samples_n, steps=15)
         lgd_optimizer.step()
 
     # test LGD
