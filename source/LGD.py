@@ -139,7 +139,7 @@ class LGD(nn.Module):
 
         #self.layers = Siren(inc,ouc,5)
 
-        mic = 256
+        mic = 512
         self.layers = nn.Sequential(nn.Linear(inc, mic, bias=False),
                       nn.PReLU(),
  
