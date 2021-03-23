@@ -144,12 +144,11 @@ def main():
     
     x_target = xyz[nearest_from_to(x, xyz)]
 
-    print(x_target)
-
     gt_eval = lambda x: torch.pow(torch.norm(x - x_target),2)
     gt_eval_list = lambda x: gt_eval(x[0])
 
     print(gt_eval(x))
+
     print("adam")
     optimizer = optim.Adam([x], lr = 1e-3)
 
