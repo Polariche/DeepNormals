@@ -1,5 +1,4 @@
 import numpy as np
-import cv2
 import torch 
 import torch.nn as nn
 import torch.nn.functional as F
@@ -87,7 +86,10 @@ def main():
 
     # load 
     with torch.no_grad():
-        x = (torch.rand(n,3) - 0.5)
+        mm = torch.min(xyz, dim=0)
+        mx = torch.max(xyz, dim=0)
+
+        x = (torch.rand(n,3) - 0.5) * (mx - mm) + mm
         x = x.to(device)
         x.requires_grad_(True)
 
