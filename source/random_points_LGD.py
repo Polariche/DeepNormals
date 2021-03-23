@@ -16,6 +16,8 @@ from LGD import LGD, detach_var
 
 import argparse
 
+from sklearn.neighbors import KDTree
+
 parser = argparse.ArgumentParser(description='Test',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
@@ -49,10 +51,41 @@ parser.add_argument('--lambda', dest='lamb', type=float, metavar='LAMBDA', defau
 parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE', 
                         help='output file')
 
-def compute_chamfer_distance(p1, p2):
+def chamfer_distance(p1, p2):
+    """
     cd = torch.cdist(p1, p2)
 
     return torch.min(cd, dim=0)[0].mean() + torch.min(cd, dim=1)[0].mean()
+    """
+
+    # O(n^2) solution is too memory intensive; use KD-tree from scipy library, on cpu.
+    p1 = p1.detach().cpu().numpy()
+    p2 = p2.detach().cpu().numpy()
+
+    p1_tree = KDTree(p1)
+    p2_tree = KDTree(p2)
+
+    d1, _ = p1_tree.query(p2)
+    d2, _ = p2_tree.query(p1)
+
+    return np.mean(np.power(d1,2)) + np.mean(np.power(d2,2))
+
+
+def dist_from_to(p1, p2, requires_graph=True):
+    p1_np = p1.detach().cpu().numpy()
+    p2_np = p2.detach().cpu().numpy()
+
+    p2_tree = KDTree(p2_np)
+
+    d, ind = p2_tree.query(p1)
+
+    if not requires_graph:
+        # we don't need graph
+        return torch.tensor(d, device=p1.device)   
+
+    else:
+        ind = torch.tensor(ind, device=p1.device)
+        return torch.norm(p1 - p2[ind])
 
 def main():
     args = parser.parse_args()
@@ -82,8 +115,6 @@ def main():
     xyz = torch.cat([d['xyz'].unsqueeze(0) for d in data])
     xyz = xyz.to(device)
     
-    #writer.add_mesh("original", xyz.unsqueeze(0))
-
     # load 
     with torch.no_grad():
         mm = torch.min(xyz, dim=0)[0]
@@ -98,8 +129,9 @@ def main():
     sdf_eval_list = lambda x: sdf_eval(x[0])
 
     eps = args.epsilon
-    #gt_eval = lambda x: torch.clamp(min=-eps, max=eps)
-    #gt_eval_list = lambda x: gt_eval(x[0])
+    
+    gt_eval = lambda x: torch.clamp(dist_from_to(x, xyz), min=-eps, max=eps)
+    gt_eval_list = lambda x: gt_eval(x[0])
 
     print("adam")
     optimizer = optim.Adam([x], lr = 1e-3)
@@ -116,7 +148,7 @@ def main():
             writer.add_scalars("regression_loss", {"Adam": loss}, global_step=i)
             writer.add_mesh("point cloud regression_Adam", x.unsqueeze(0), global_step=i)
 
-            writer.add_scalars("chamfer_distance", {"Adam": compute_chamfer_distance(x, xyz)}, global_step=i)
+            writer.add_scalars("chamfer_distance", {"Adam": chamfer_distance(x, xyz)}, global_step=i)
 
     with torch.no_grad():
         x = x_original.clone().detach()
@@ -155,7 +187,7 @@ def main():
             writer.add_scalars("regression_loss", {"LGD": loss}, global_step=i)
             writer.add_mesh("point cloud regression_LGD", x.unsqueeze(0), global_step=i)
 
-            #writer.add_scalars("chamfer_distance", {"LGD": compute_chamfer_distance(x, xyz)}, global_step=i)
+            writer.add_scalars("chamfer_distance", {"LGD": chamfer_distance(x, xyz)}, global_step=i)
             
     
     writer.close()
