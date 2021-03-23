@@ -120,7 +120,7 @@ def main():
 
         writer.add_image("implicit_normals", (g.reshape(n,n,3)*128+128).int(), i, dataformats='WHC')
 
-        writer.add_image("implicit_normals", (d.reshape(n,n,3)*128+128).int(), i, dataformats='WHC')
+        writer.add_image("implicit_normals", (d.reshape(n,n)*0.5+0.5).int(), i, dataformats='WH')
     
     writer.close()
 
