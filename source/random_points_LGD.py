@@ -179,7 +179,8 @@ def main():
         samples_n = n//32
         sample_inds = torch.randperm(n)[:samples_n]
 
-        gt_eval = lambda x: torch.clamp(torch.pow(x - x_target[sample_inds],2).sum(dim=1), -eps**2, eps**2).mean()
+        #gt_eval = lambda x: torch.clamp(torch.pow(x - x_target[sample_inds],2).sum(dim=1), -eps**2, eps**2).mean()
+        gt_eval = lambda x: torch.pow(x - x_target[sample_inds],2).sum(dim=1).mean()
         gt_eval_list = lambda x: gt_eval(x[0])
 
         # update lgd parameters
