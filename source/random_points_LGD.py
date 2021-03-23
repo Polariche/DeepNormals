@@ -78,7 +78,7 @@ def dist_from_to(p1, p2, requires_graph=True):
 
     p2_tree = KDTree(p2_np)
 
-    d, ind = p2_tree.query(p1)
+    d, ind = p2_tree.query(p1_np)
 
     if not requires_graph:
         # we don't need graph
