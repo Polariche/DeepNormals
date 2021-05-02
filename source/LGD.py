@@ -216,7 +216,7 @@ class LGD(nn.Module):
 
         idx_start = self.dim_targets if self.concat_input else 0
 
-        dx = dx[:,idx_start:].view(x.shape[0], self.num_losses, self.dim_targets)
+        dx = dx[:,idx_start:].view(batch_size, self.num_losses, self.dim_targets)
 
         # lr[:, :self.num_losses] = learning rate (sigma)
         # lr[:, self.num_losses:] = evaluation rate (lambda)
