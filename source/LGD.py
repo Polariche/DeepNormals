@@ -286,8 +286,8 @@ class LGD(nn.Module):
                 sigma_sum += lr[:,:self.num_losses].mean() / steps
                 lambda_sum += lr[:,self.num_losses:].mean() / steps
         
-        plt.scatter(targets[0][:,0].detach().cpu().numpy(), targets[0][:,1].detach().cpu().numpy())
-        plt.show()
+        #plt.scatter(targets[0][:,0].detach().cpu().numpy(), targets[0][:,1].detach().cpu().numpy())
+        #plt.show()
 
         return loss_sum, sigma_sum, lambda_sum
  
