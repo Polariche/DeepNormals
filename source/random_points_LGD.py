@@ -173,19 +173,19 @@ def main():
 
     # train LGD
     lgd.train()
-    for i in range(200):
+    for i in range(500):
         print(i)
         # evaluate losses
         samples_n = n//32
         sample_inds = torch.randperm(n)[:samples_n]
 
         #gt_eval = lambda x: torch.clamp(torch.pow(x - x_target[sample_inds],2).sum(dim=1), -eps**2, eps**2).mean()
-        gt_eval = lambda x: torch.pow(x - x_target[sample_inds],2).sum(dim=1).mean()
-        gt_eval_list = lambda x: gt_eval(x[0])
+        #gt_eval = lambda x: torch.pow(x - x_target[sample_inds],2).sum(dim=1).mean()
+        #gt_eval_list = lambda x: gt_eval(x[0])
 
         # update lgd parameters
         lgd_optimizer.zero_grad()
-        lgd.trajectory_backward(x[sample_inds], sdf_eval_list, gt_eval_list, batch_size=samples_n, steps=10)
+        lgd.loss_trajectory_backward(x[sample_inds], sdf_eval_list, None, batch_size=samples_n, steps=5)
         lgd_optimizer.step()
 
     # test LGD
