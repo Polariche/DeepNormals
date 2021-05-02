@@ -171,7 +171,7 @@ def main():
     print("lgd")
     hidden = None
 
-    lgd = LGD(3, 1, k=10).to(device)
+    lgd = LGD(3, 2, k=10).to(device)
     lgd_optimizer = optim.Adam(lgd.parameters(), lr=1e-3)
 
     # train LGD
