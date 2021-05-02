@@ -115,56 +115,53 @@ class DGCNN(nn.Module):
 class LGD(nn.Module):
     def __init__(self, dim_targets, num_losses, k=10, concat_input=True):
         super(LGD, self).__init__()
-
+ 
         hidden_features = 0
  
         self.dim_targets = dim_targets              # D: total dimension of targets
         self.num_losses = num_losses                # L: number of losses
-
+ 
         self.hidden_features = hidden_features      # H: hidden state
         self.k = k                                  # K: k-nearest neighbors
         self.concat_input = concat_input
         
-        # layers : L*D + H -> D + H
-
+        # layers : (D+1)*L + H -> L + H
+ 
         inc = dim_targets * num_losses + hidden_features
-        ouc = dim_targets + hidden_features
-
         if concat_input:
             inc += dim_targets
 
-        #self.layers = DGFC(inc, ouc, mid_features, k=k)
+        ouc = 2*num_losses + hidden_features
+        
+ 
         self.layers = DGCNN(inc, ouc, k=k)
-        #self.layers = LGD_GRU(2, hidden_features)
-
+ 
         self.init_params()
-
-
+ 
+ 
     def init_params(self):
         for m in self.modules():
             try:
                 weight = getattr(m, 'weight')
-
+ 
                 if len(weight.shape) > 1:
                     with torch.no_grad():
                         k = weight.shape[1]
                         a = np.sqrt(0.75 / k)
-
-                        #torch.nn.init.xavier_uniform_(weight)
                         weight.data.uniform_(-a, a)
-
+ 
             except AttributeError:
                 continue
-
+ 
             try:
                 bias = getattr(m, 'bias')
                 if bias is not None:
                     with torch.no_grad():
                         bias.data = torch.zeros_like(bias.data)
-
+ 
             except AttributeError:
                 continue
-
+ 
  
     def forward(self, targets, losses, hidden=None, batch_size=1):
         # targets : list of targets to optimize; flattened to (n, -1) later
@@ -174,6 +171,9 @@ class LGD(nn.Module):
             targets = [targets]
         if type(losses) is not list:
             losses = [losses]
+
+        assert sum([target.shape[1] for target in targets]) == self.dim_targets
+        assert len(losses) == self.num_losses
  
         h = self.hidden_features
         n = batch_size
@@ -199,67 +199,97 @@ class LGD(nn.Module):
         else:
             x = targets_grad
  
-        # output : new grad, new hidden
-        # output size : D, H
-        dx, hidden = self.layers(x, hidden)
+        # output : new lr, new hidden
+        # output size : L + H
+        lr, hidden = self.layers(x, hidden)
  
-        return dx, hidden
+        return lr, hidden, x
  
  
-    def step(self, targets, losses, hidden=None, batch_size=1, return_dx=False):
+    def step(self, targets, losses, hidden=None, batch_size=1, return_lr=False):
         if type(targets) is not list:
             targets = [targets]
         if type(losses) is not list:
             losses = [losses]
- 
-        dx, hidden = self(targets, losses, hidden, batch_size)
- 
+
+        lr, hidden, dx = self(targets, losses, hidden, batch_size)
+
+        idx_start = self.dim_targets if self.concat_input else 0
+
+        dx = dx[:,idx_start:].view(x.shape[0], self.num_losses, self.dim_targets)
+
+        # lr[:, :self.num_losses] = learning rate (sigma)
+        # lr[:, self.num_losses:] = evaluation rate (lambda)
+
+        d_target = (lr[:,:self.num_losses].unsqueeze(-1) * dx).sum(dim=1)
+
         new_targets = []
         k = 0
  
         for target in targets:
             d = target.shape[1]
  
-            new_targets.append(target + dx[:, k:k+d].view(*target.shape))
+            new_targets.append(target + d_target[:,k:k+d])
  
             k += d
         
-        if return_dx:
-            return new_targets, hidden, dx
+        if return_lr:
+            return new_targets, hidden, lr
         else:
             return new_targets, hidden
  
-    def trajectory_backward(self, targets, input_losses, eval_loss=None, hidden=None, batch_size=1, steps=10):
-        # used for training LGD model itself
 
+    def loss_trajectory_backward(self, targets, losses, hidden=None, batch_size=1, steps=10):
+        # used for training LGD model itself
+ 
         # since x changes after each iteration, we need to evaluate the loss again
         # so we input loss func, rather than a pre-computed loss
         
         if type(targets) is not list:
             targets = [targets]
-        if type(input_losses) is not list:
-            input_losses = [input_losses]
+        if type(losses) is not list:
+            losses = [losses]
 
-        if eval_loss is None:
-            eval_loss = lambda x: sum([loss(x) for loss in input_losses])
+        loss_sum = 0
+        lambda_sum = 0
+        sigma_sum = 0
+
+        for i in range(steps):
+            targets, _, lr = self.step(targets, losses, hidden, batch_size, return_lr=True)
+    
+            # apply contraints on lambda
+            lr.requires_grad_()
+            lr_filtered = lr.clone().requires_grad_()
+
+            # no constraint on loss  -> lambda = 1
+            lr_filtered[:,self.num_losses+0] = 1
+            # loss = 0  -> no constratint on lambda
+
+            # loss >= 0 -> lambda <= 0
+
+            # loss <= 0 -> lambda >= 0
+
+
+ 
+            for i, loss_f in enumerate(losses):
+                loss = (lr_filtered[:,self.num_losses+i] * loss_f(targets)).mean() / steps
+
+                # evaluate dL / d(sigma), dL / d(lambda)
+                # propagate with d(sigma) / d(theta) : descent, d(lambda) / d(theta) : ascent
+
+                d_lr = torch.autograd.grad([loss], [lr], grad_outputs=[torch.ones_like(loss)], create_graph=False, retain_graph=True)[0]
+
+                lr[:,:self.num_losses].backward(d_lr[:,:self.num_losses], retain_graph=True)
+                lr[:,self.num_losses:].backward(-d_lr[:,self.num_losses:], retain_graph=True)
+
+                loss_sum += loss.detach()
+                sigma_sum += lr[:,:self.num_losses].mean() / steps
+                lambda_sum += lr[:,self.num_losses:].mean() / steps
         
-        loss_print = 0
-        for _ in range(steps):
-            targets, hidden, dx = self.step(targets, input_losses, hidden, batch_size, return_dx=True)
+        plt.scatter(targets[0][:,0].detach().cpu().numpy(), targets[0][:,1].detach().cpu().numpy())
+        plt.show()
 
-            loss = eval_loss(targets)
-            #for loss_f in eval_losses:
-            #    loss += loss_f(targets).mean() 
-
-            #loss += 1e-3*torch.pow(torch.norm(dx, dim=1),2).mean()
-
-            loss /= steps
-            loss.backward(retain_graph=True)
-
-            with torch.no_grad():
-                loss_print += loss.detach()
-        
-        print(loss_print)
+        return loss_sum, sigma_sum, lambda_sum
  
  
 def detach_var(v):
