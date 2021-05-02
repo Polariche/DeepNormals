@@ -137,7 +137,7 @@ def main():
 
         x_original = x.clone().detach()
     
-    origin_eval = lambda x: torch.pow(x_original - x).sum(dim=1).mean()
+    origin_eval = lambda x: torch.pow(x_original - x, 2).sum(dim=1).mean()
     sdf_eval = lambda x: torch.pow(model(x)[0], 2).sum(dim=1).mean()
     
     origin_eval_list = lambda x: origin_eval(x[0])
@@ -185,10 +185,13 @@ def main():
         #gt_eval = lambda x: torch.clamp(torch.pow(x - x_target[sample_inds],2).sum(dim=1), -eps**2, eps**2).mean()
         #gt_eval = lambda x: torch.pow(x - x_target[sample_inds],2).sum(dim=1).mean()
         #gt_eval_list = lambda x: gt_eval(x[0])
+        
+        origin_eval_batch = lambda x: torch.pow(x_original[sample_inds] - x, 2).sum(dim=1).mean()
+        origin_eval_batch_list = lambda x: origin_eval_batch(x[0])
 
         # update lgd parameters
         lgd_optimizer.zero_grad()
-        lgd.loss_trajectory_backward(x[sample_inds], [origin_eval_list, sdf_eval_list], None, batch_size=samples_n, steps=5)
+        lgd.loss_trajectory_backward(x[sample_inds], [origin_eval_batch_list, sdf_eval_list], None, batch_size=samples_n, steps=5)
         lgd_optimizer.step()
 
     # test LGD
