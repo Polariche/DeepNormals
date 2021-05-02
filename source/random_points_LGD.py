@@ -137,12 +137,15 @@ def main():
 
         x_original = x.clone().detach()
     
+    origin_eval = lambda x: torch.pow(x_original - x).sum(dim=1).mean()
     sdf_eval = lambda x: torch.pow(model(x)[0], 2).sum(dim=1).mean()
+    
+    origin_eval_list = lambda x: origin_eval_list(x[0])
     sdf_eval_list = lambda x: sdf_eval(x[0])
 
     eps = args.epsilon
     
-    x_target = xyz[nearest_from_to(x, xyz)]
+    #x_target = xyz[nearest_from_to(x, xyz)]
 
     print("adam")
     optimizer = optim.Adam([x], lr = 1e-3)
@@ -185,7 +188,7 @@ def main():
 
         # update lgd parameters
         lgd_optimizer.zero_grad()
-        lgd.loss_trajectory_backward(x[sample_inds], sdf_eval_list, None, batch_size=samples_n, steps=5)
+        lgd.loss_trajectory_backward(x[sample_inds], [origin_eval_list, sdf_eval_list], None, batch_size=samples_n, steps=5)
         lgd_optimizer.step()
 
     # test LGD
@@ -194,7 +197,7 @@ def main():
         # evaluate losses
         loss = sdf_eval(x).mean()
         # update x
-        [x], hidden = lgd.step(x, sdf_eval_list, hidden, n)
+        [x], hidden = lgd.step(x, [origin_eval_list, sdf_eval_list], hidden, n)
         x = detach_var(x)
         hidden = detach_var(hidden)
 
