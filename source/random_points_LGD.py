@@ -140,7 +140,7 @@ def main():
     origin_eval = lambda x: torch.pow(x_original - x).sum(dim=1).mean()
     sdf_eval = lambda x: torch.pow(model(x)[0], 2).sum(dim=1).mean()
     
-    origin_eval_list = lambda x: origin_eval_list(x[0])
+    origin_eval_list = lambda x: origin_eval(x[0])
     sdf_eval_list = lambda x: sdf_eval(x[0])
 
     eps = args.epsilon
