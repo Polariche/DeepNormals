@@ -18,6 +18,8 @@ import argparse
 
 from sklearn.neighbors import KDTree
 
+import pcl
+
 parser = argparse.ArgumentParser(description='Test',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
@@ -171,7 +173,7 @@ def main():
     print("lgd")
     hidden = None
 
-    lgd = LGD(3, 2, k=10).to(device)
+    lgd = LGD(3, 1, k=10).to(device)
     lgd_optimizer = optim.Adam(lgd.parameters(), lr=1e-3)
 
     # train LGD
@@ -191,7 +193,7 @@ def main():
 
         # update lgd parameters
         lgd_optimizer.zero_grad()
-        lgd.loss_trajectory_backward(x[sample_inds], [origin_eval_batch_list, sdf_eval_list], None, batch_size=samples_n, steps=5)
+        lgd.loss_trajectory_backward(x[sample_inds], [sdf_eval_list], None, batch_size=samples_n, steps=5)
         lgd_optimizer.step()
 
     # test LGD
@@ -200,7 +202,7 @@ def main():
         # evaluate losses
         loss = sdf_eval(x).mean()
         # update x
-        [x], hidden = lgd.step(x, [origin_eval_list, sdf_eval_list], hidden, n)
+        [x], hidden = lgd.step(x, [sdf_eval_list], hidden, n)
         x = detach_var(x)
         hidden = detach_var(hidden)
 
@@ -208,8 +210,9 @@ def main():
             writer.add_scalars("regression_loss", {"LGD": loss}, global_step=i)
             writer.add_mesh("point cloud regression_LGD", x.unsqueeze(0), global_step=i)
 
-            #writer.add_scalars("chamfer_distance", {"LGD": chamfer_distance(x, xyz)}, global_step=i)
+            writer.add_scalars("chamfer_distance", {"LGD": chamfer_distance(x, xyz)}, global_step=i)
             
+    np.save(args.tb_save_path+'/point.npy', x.detach().cpu().numpy())
     
     writer.close()
 
