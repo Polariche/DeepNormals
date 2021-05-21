@@ -3,13 +3,12 @@ import cv2
 import torch 
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import  Dataset, DataLoader
+from torch.utils.data import  Dataset, DataLoader, WeightedRandomSampler
 import re
 import warnings
 
 from torch.utils.tensorboard import SummaryWriter
 import argparse
-
 
 
 class ObjDataset(Dataset):
@@ -99,15 +98,15 @@ class ObjDataset(Dataset):
             b = r[1]
 
         # barycentric interpolation
-        xyz = (1-a-b) * v[0] + a*v[1] + b*v[2]
+        p = (1-a-b) * v[0] + a*v[1] + b*v[2]
         n = (1-a-b) * vn[0] + a*vn[1] + b*vn[2]
         n /= torch.norm(n)
         #n = self.fn[idx]
 
-        return {'xyz': xyz,
+        return {'p': p,
                 'n': n}
 
-        #return {'xyz': self.v[idx], 'n': self.fn[idx]}
+        #return {'p': self.v[idx], 'n': self.fn[idx]}
 
     def to_obj(self):
         obj_file = open("test.obj", 'w')
@@ -120,3 +119,51 @@ class ObjDataset(Dataset):
 
         #obj = obj_file.read()
         obj_file.close()
+
+
+class ObjUniformSample(nn.Module):
+    """
+    Given an ObjDataset, sample a given number of points and their normals uniformly.
+    """
+    def __init__(self, sample_n):
+        super().__init__()
+        self.sample_n = sample_n
+
+    def forward(self, dataset):
+        fnn = torch.abs(dataset.fnn)
+        samples = list(WeightedRandomSampler(fnn.view(-1) / torch.sum(fnn), self.sample_n, replacement=True))
+
+        data = [dataset[samples[i]] for i in range(len(samples))]
+
+        p = torch.cat([d['p'].unsqueeze(0) for d in data])
+        n = torch.cat([d['n'].unsqueeze(0) for d in data])
+
+        return {'p': p, 'n': n}
+
+
+class PerturbNormal(nn.Module):
+    """
+    Perturb points by their normals, by random amount
+    """
+
+    def __init__(self, epsilon = 1.):
+        super().__init__()
+        self.epsilon = epsilon
+
+    def forward(self, dataset):
+        p = dataset['p']
+        n = dataset['n']
+
+        assert p.shape[0] == n.shape[0]
+        assert p.device == n.device
+
+        dataset_n = p.shape[0]
+        device = p.device
+
+        s = torch.rand((dataset_n, 1)).to(device)
+
+        p = torch.cat([p, p + s * n * self.epsilon])
+        n = torch.cat([n, n])
+        s = torch.cat([torch.zeros(dataset_n, 1).to(device), s])
+
+        return {'p': p, 'n': n, 's': s}

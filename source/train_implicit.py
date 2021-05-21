@@ -9,7 +9,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from models import Siren
 from utils import Sobel
-from loaders import ObjDataset
+from loaders import ObjDataset, ObjUniformSample, PerturbNormal
 import utils
 from torch.utils.data import  DataLoader, WeightedRandomSampler
 
@@ -55,10 +55,10 @@ parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE',
                         help='output file')
 
 
-def train(device, model, xyz, s_gt, n_gt, backward=True, lamb=0.005, use_abs=True):
-    s, xyz = model(xyz)
+def train(device, model, p, s_gt, n_gt, backward=True, lamb=0.005, use_abs=True):
+    s, p = model(p)
 
-    n = torch.autograd.grad(s, [xyz], grad_outputs=torch.ones_like(s), create_graph=True)[0]
+    n = torch.autograd.grad(s, [p], grad_outputs=torch.ones_like(s), create_graph=True)[0]
 
     # modified loss in SIREN 4.2 for smooth transition between surface points and non-surface points
     # use probability : exp(- s_gt / (2*eps^2))
@@ -76,8 +76,8 @@ def train(device, model, xyz, s_gt, n_gt, backward=True, lamb=0.005, use_abs=Tru
     loss = loss_grad + loss_s #+ loss_zeros + loss_ones
 
     if backward:
-        if xyz.grad != None:
-            xyz.grad.zero_()
+        if p.grad != None:
+            p.grad.zero_()
 
         for param in model.parameters():
             param.requires_grad_(True)
@@ -106,27 +106,25 @@ def main():
 
     # load 
     ds = ObjDataset(args.data)
-    fnn = torch.abs(ds.fnn)
-    samples = list(WeightedRandomSampler(fnn.view(-1) / torch.sum(fnn), 50000, replacement=True))
+    samples_n = 50000
 
-    data = [ds[samples[i]] for i in range(len(samples))]
+    augments = transforms.Compose([
+        ObjUniformSample(samples_n),
+        PerturbNormal(args.epsilon)])
 
-    xyz = torch.cat([d['xyz'].unsqueeze(0) for d in data])
-    n = torch.cat([d['n'].unsqueeze(0) for d in data])
+    ds = augments(ds)
 
-    with torch.no_grad():
-        s_aug = torch.cat([torch.zeros((xyz.shape[0], 1)), torch.rand((xyz.shape[0], 1))], dim=0)
-        xyz_aug = torch.cat([xyz, xyz + n * s_aug[xyz.shape[0]:] * args.epsilon], dim=0)
-        n_aug = n.repeat(2,1)
+    p_aug = ds['p'].to(device)
+    n_aug = ds['n'].to(device)
+    s_aug = ds['s'].to(device)
 
-        s_aug = s_aug.to(device)
-        n_aug = n_aug.to(device)
-        xyz_aug = xyz_aug.to(device)
-        
-        xyz_gt = xyz.to(device).repeat(2,1)
+    p = p_aug[:samples_n]
+    n = n_aug[:samples_n]
 
-    writer.add_mesh("1. n_gt", xyz.unsqueeze(0), colors=(n.unsqueeze(0) * 128 + 128).int())
+    p_gt = p.repeat(2,1)
 
+
+    writer.add_mesh("1. n_gt", p.unsqueeze(0), colors=(n.unsqueeze(0) * 128 + 128).int())
 
     optimizer = optim.Adam(list(model.parameters()), lr = 1e-4)
 
@@ -135,9 +133,9 @@ def main():
         
         # train
         utils.model_train(model)
-        loss_t, s, n = train(device, model, xyz_aug, s_aug, n_aug, backward=True, lamb= args.lamb, use_abs=args.abs)
+        loss_t, s, n = train(device, model, p_aug, s_aug, n_aug, backward=True, lamb= args.lamb, use_abs=args.abs)
 
-        loss_x = 1e2 * torch.sum(torch.pow(xyz_aug - xyz_gt, 2))
+        loss_x = 1e2 * torch.sum(torch.pow(p_aug - p_gt, 2))
         loss_x.backward()
 
         writer.add_scalars("loss", {'train': loss_t + loss_x.detach()}, epoch)
@@ -145,34 +143,32 @@ def main():
         # visualization
         with torch.no_grad():
             
-
             n_normalized = n / torch.norm(n, dim=1, keepdim=True)
             
             n_error = torch.sum(n_normalized * n_aug, dim=1, keepdim=True) / torch.norm(n_aug, dim=1, keepdim=True)
-                
-            #n_error = torch.acos(n_error) / np.arccos(0)
 
-            n_error_originals = n_error[:xyz.shape[0]]
+            n_error_originals = n_error[:p.shape[0]]
 
             writer.add_scalars("cosine similarity", {'train': n_error_originals[~torch.isnan(n_error_originals)].detach().mean()}, epoch)
             
             if epoch % 10 == 0:
                 print(epoch)
-                writer.add_mesh("2. n", xyz_aug[:xyz.shape[0]].unsqueeze(0).detach().clone(), 
-                                colors=(n_normalized[:xyz.shape[0]].unsqueeze(0).detach().clone() * 128 + 128).int(), 
+                writer.add_mesh("2. n", p_aug[:p.shape[0]].unsqueeze(0).detach().clone(), 
+                                colors=(n_normalized[:p.shape[0]].unsqueeze(0).detach().clone() * 128 + 128).int(), 
                                 global_step=epoch)
                 
-                writer.add_mesh("3. cosine similarity", xyz_aug[:xyz.shape[0]].unsqueeze(0).detach().clone(), 
-                                colors=(F.pad(1 - n_error[:xyz.shape[0]], (0,2)).unsqueeze(0).detach().clone() * 256).int(), 
+                writer.add_mesh("3. cosine similarity", p_aug[:p.shape[0]].unsqueeze(0).detach().clone(), 
+                                colors=(F.pad(1 - n_error[:p.shape[0]], (0,2)).unsqueeze(0).detach().clone() * 256).int(), 
                                 global_step=epoch)
                 
 
         # update
         optimizer.step()
 
+        """
         with torch.no_grad():
-            s_aug = (torch.norm(xyz_aug.detach().clone().cpu() - xyz.repeat(2,1), dim=1, keepdim=True)/args.epsilon).to(device)
-
+            s_aug = (torch.norm(p_aug.detach().clone().cpu() - p.repeat(2,1), dim=1, keepdim=True)/args.epsilon).to(device)
+        """
 
         torch.save(model.state_dict(), args.weight_save_path+'model_%03d.pth' % epoch)
         

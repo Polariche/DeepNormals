@@ -8,7 +8,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from models import Siren
 from utils import Sobel
-from loaders import ObjDataset
+from loaders import ObjDataset, ObjUniformSample
 import utils
 from torch.utils.data import  DataLoader, WeightedRandomSampler
 
@@ -122,17 +122,14 @@ def main():
 
     n = 30000
     ds = ObjDataset(args.data)
-    fnn = torch.abs(ds.fnn)
-    samples = list(WeightedRandomSampler(fnn.view(-1) / torch.sum(fnn), n, replacement=True))
-
-    data = [ds[samples[i]] for i in range(len(samples))]
-    xyz = torch.cat([d['xyz'].unsqueeze(0) for d in data])
-    xyz = xyz.to(device)
+    sampler = ObjUniformSample(n)
+    
+    p = (sampler(ds)['p']).to(device)
     
     # load 
     with torch.no_grad():
-        mm = torch.min(xyz, dim=0)[0]
-        mx = torch.max(xyz, dim=0)[0]
+        mm = torch.min(p, dim=0)[0]
+        mx = torch.max(p, dim=0)[0]
 
         x = torch.rand(n,3).to(device) * (mx - mm) + mm
         x.requires_grad_(True)
@@ -147,7 +144,7 @@ def main():
 
     eps = args.epsilon
     
-    #x_target = xyz[nearest_from_to(x, xyz)]
+    #x_target = p[nearest_from_to(x, p)]
 
     print("adam")
     optimizer = optim.Adam([x], lr = 1e-3)
@@ -164,7 +161,7 @@ def main():
             writer.add_scalars("regression_loss", {"Adam": loss}, global_step=i)
             writer.add_mesh("point cloud regression_Adam", x.unsqueeze(0), global_step=i)
 
-            writer.add_scalars("chamfer_distance", {"Adam": chamfer_distance(x, xyz)}, global_step=i)
+            writer.add_scalars("chamfer_distance", {"Adam": chamfer_distance(x, p)}, global_step=i)
 
     with torch.no_grad():
         x = x_original.clone().detach()
@@ -210,7 +207,7 @@ def main():
             writer.add_scalars("regression_loss", {"LGD": loss}, global_step=i)
             writer.add_mesh("point cloud regression_LGD", x.unsqueeze(0), global_step=i)
 
-            writer.add_scalars("chamfer_distance", {"LGD": chamfer_distance(x, xyz)}, global_step=i)
+            writer.add_scalars("chamfer_distance", {"LGD": chamfer_distance(x, p)}, global_step=i)
             
     np.save(args.tb_save_path+'/point.npy', x.detach().cpu().numpy())
     
