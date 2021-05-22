@@ -18,8 +18,6 @@ import argparse
 
 from sklearn.neighbors import KDTree
 
-import pcl
-
 parser = argparse.ArgumentParser(description='Test',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
