@@ -190,7 +190,7 @@ def main():
 
         # update lgd parameters
         lgd_optimizer.zero_grad()
-        lgd.loss_trajectory_backward(x[sample_inds], [sdf_eval_list], None, batch_size=samples_n, steps=5)
+        lgd.loss_trajectory_backward(x[sample_inds], [origin_eval_batch_list, sdf_eval_list], None, batch_size=samples_n, steps=5)
         lgd_optimizer.step()
 
     # test LGD
@@ -199,7 +199,7 @@ def main():
         # evaluate losses
         loss = sdf_eval(x).mean()
         # update x
-        [x], hidden = lgd.step(x, [sdf_eval_list], hidden, n)
+        [x], hidden = lgd.step(x, [origin_eval_list, sdf_eval_list], hidden, n)
         x = detach_var(x)
         hidden = detach_var(hidden)
 

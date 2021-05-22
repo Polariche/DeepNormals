@@ -108,7 +108,7 @@ def main():
     ds = ObjDataset(args.data)
     samples_n = 50000
 
-    augments = transforms.Compose([
+    augments = nn.Sequential([
         ObjUniformSample(samples_n),
         PerturbNormal(args.epsilon)])
 
