@@ -176,7 +176,7 @@ class ObjUniformSample(nn.Module):
         fnn = torch.abs(dataset.fnn)
         samples = list(WeightedRandomSampler(fnn.view(-1) / torch.sum(fnn), self.sample_n, replacement=True))
 
-        data = dataset[samples]
+        data = [dataset[sample] for sample in samples] 
 
         p = torch.cat([d['p'].unsqueeze(0) for d in data])
         n = torch.cat([d['n'].unsqueeze(0) for d in data])
