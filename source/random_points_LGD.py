@@ -18,39 +18,6 @@ import argparse
 
 from sklearn.neighbors import KDTree
 
-parser = argparse.ArgumentParser(description='Test',
-                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-
-parser.add_argument('data', metavar='DATA', help='path to file')
-
-parser.add_argument('--tb-save-path', dest='tb_save_path', metavar='PATH', default='../checkpoints/', 
-                        help='tensorboard checkpoints path')
-
-parser.add_argument('--weight-save-path', dest='weight_save_path', metavar='PATH', default='../weights/', 
-                        help='weight checkpoints path')
-
-parser.add_argument('--pretrained-weight', dest='weight', metavar='PATH', default=None, 
-                        help='pretrained weight')
-
-parser.add_argument('--activation', dest='activation', metavar='activation', default='relu', 
-                        help='activation of network; \'relu\' or \'sin\'')
-
-parser.add_argument('--batchsize', dest='batchsize', type=int, metavar='BATCHSIZE', default=1,
-                        help='batch size')
-parser.add_argument('--epoch', dest='epoch', type=int,metavar='EPOCH', default=100, 
-                        help='epochs')
-
-parser.add_argument('--epsilon', dest='epsilon', type=float, metavar='EPSILON', default=0.1, 
-                        help='epsilon')
-parser.add_argument('--omega', dest='omega', type=float, metavar='OMEGA', default=30, 
-                        help='hyperparameter for periodic layer')
-parser.add_argument('--lambda', dest='lamb', type=float, metavar='LAMBDA', default=0.005, 
-                        help='hyperparameter for s : normal loss ratio')
-
-
-parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE', 
-                        help='output file')
-
 def chamfer_distance(p1, p2, use_torch=False):
     if use_torch:
         # O(n^2) memory GPU computation on Torch; faster, but more expensive
@@ -100,7 +67,40 @@ def nearest_from_to(p1, p2):
 
 
 def main():
+    parser = argparse.ArgumentParser(description='Test',
+                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument('data', metavar='DATA', help='path to file')
+
+    parser.add_argument('--tb-save-path', dest='tb_save_path', metavar='PATH', default='../checkpoints/', 
+                            help='tensorboard checkpoints path')
+
+    parser.add_argument('--weight-save-path', dest='weight_save_path', metavar='PATH', default='../weights/', 
+                            help='weight checkpoints path')
+
+    parser.add_argument('--pretrained-weight', dest='weight', metavar='PATH', default=None, 
+                            help='pretrained weight')
+
+
+    parser.add_argument('--batchsize', dest='batchsize', type=int, metavar='BATCHSIZE', default=1,
+                            help='batch size')
+    parser.add_argument('--epoch', dest='epoch', type=int,metavar='EPOCH', default=500, 
+                            help='epochs for adam and lgd')
+    parser.add_argument('--lr', dest='lr', type=float,metavar='LEARNING_RATE', default=1e-3, 
+                            help='learning rate')
+    parser.add_argument('--lgd-step', dest='lgd_step_per_epoch', type=int,metavar='LGD_STEP_PER_EPOCH', default=5, 
+                            help='number of simulation steps of LGD per epoch')
+
+
+    parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE', 
+                            help='output file')
+
     args = parser.parse_args()
+
+    n = args.n
+    lr = args.lr
+    epoch = args.epoch
+    lgd_step_per_epoch = args.lgd_step_per_epoch
 
     writer = SummaryWriter(args.tb_save_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -118,7 +118,7 @@ def main():
     for param in model.parameters():
         param.requires_grad = False
 
-    n = 30000
+    
     ds = ObjDataset(args.data)
     sampler = ObjUniformSample(n)
     
@@ -140,14 +140,10 @@ def main():
     origin_eval_list = lambda x: origin_eval(x[0])
     sdf_eval_list = lambda x: sdf_eval(x[0])
 
-    eps = args.epsilon
-    
-    #x_target = p[nearest_from_to(x, p)]
-
     print("adam")
-    optimizer = optim.Adam([x], lr = 1e-3)
+    optimizer = optim.Adam([x], lr = lr)
 
-    for i in range(500):
+    for i in range(epoch):
         optimizer.zero_grad()
 
         loss = sdf_eval(x)
@@ -169,31 +165,28 @@ def main():
     hidden = None
 
     lgd = LGD(3, 2, k=10).to(device)
-    lgd_optimizer = optim.Adam(lgd.parameters(), lr=1e-3)
+    lgd_optimizer = optim.Adam(lgd.parameters(), lr= lr)
 
     # train LGD
     lgd.train()
-    for i in range(500):
+    for i in range(epoch):
         print(i)
         # evaluate losses
         samples_n = n//32
         sample_inds = torch.randperm(n)[:samples_n]
 
-        #gt_eval = lambda x: torch.clamp(torch.pow(x - x_target[sample_inds],2).sum(dim=1), -eps**2, eps**2).mean()
-        #gt_eval = lambda x: torch.pow(x - x_target[sample_inds],2).sum(dim=1).mean()
-        #gt_eval_list = lambda x: gt_eval(x[0])
-        
         origin_eval_batch = lambda x: torch.pow(x_original[sample_inds] - x, 2).sum(dim=1).mean()
         origin_eval_batch_list = lambda x: origin_eval_batch(x[0])
 
         # update lgd parameters
         lgd_optimizer.zero_grad()
-        lgd.loss_trajectory_backward(x[sample_inds], [origin_eval_batch_list, sdf_eval_list], None, batch_size=samples_n, steps=5)
+        lgd.loss_trajectory_backward(x[sample_inds], [origin_eval_batch_list, sdf_eval_list], None, 
+                                     constraints=["None", "Zero"], batch_size=samples_n, steps=lgd_step_per_epoch)
         lgd_optimizer.step()
 
     # test LGD
     lgd.eval()
-    for i in range(500):
+    for i in range(epoch):
         # evaluate losses
         loss = sdf_eval(x).mean()
         # update x
@@ -206,9 +199,7 @@ def main():
             writer.add_mesh("point cloud regression_LGD", x.unsqueeze(0), global_step=i)
 
             writer.add_scalars("chamfer_distance", {"LGD": chamfer_distance(x, p)}, global_step=i)
-            
-    np.save(args.tb_save_path+'/point.npy', x.detach().cpu().numpy())
-    
+        
     writer.close()
 
 if __name__ == "__main__":

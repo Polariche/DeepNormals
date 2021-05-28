@@ -81,9 +81,10 @@ class ObjDataset(Dataset):
         self.vnn = vnn
         self.fnn = fnn
 
+    """
     def __len__(self):
         return len(self.f)
-
+    """
     def __getitem__(self, idx):
         f = self.f[idx]
         v = self.v[f]
@@ -120,9 +121,49 @@ class ObjDataset(Dataset):
         obj_file.close()
 
 
+class UniformDataset(Dataset):
+    def __init__(self, mm, mx):
+        assert mm.shape == mx.shape
+        assert mm.device == mx.device
+
+        self.device = mm.device
+        self.dim = mm.shape[0]
+        self.mm = mm
+        self.mx = mx
+
+    def __getitem__(self, idx):
+        return torch.rand(1,self.dim, device=self.device) * (self.mx - self.mm) + self.mm
+
+
+class GridDataset(Dataset):
+    def __init__(self, mm, mx, n):
+        assert len(mm.shape) == 1
+        assert mm.shape == mx.shape and mm.shape == n.shape
+        assert mm.device == mx.device and mm.device == n.device
+
+        self.device = mm.device
+        self.dim = mm.shape[0]
+        self.mm = mm
+        self.mx = mx
+        self.n = n
+
+    def __getitem__(self, idx):
+        a = torch.zeros_like(self.n)
+        n_prod = torch.prod(self.n)
+
+        for i, n_ in enumerate(self.n):
+            n_prod /= n_
+            a[i] = int(idx / n_prod)
+            idx -= int(idx / n_prod)
+
+        return (a + 0.5) * (self.mx - self.mm) + self.mm
+
+
+### Data Augmentation Modules ###
+
 class ObjUniformSample(nn.Module):
     """
-    Given an ObjDataset, sample a given number of points and their normals uniformly.
+    Given an ObjDataset, uniformly sample n points and their normals.
     """
     def __init__(self, sample_n):
         super().__init__()
@@ -166,3 +207,4 @@ class PerturbNormal(nn.Module):
         s = torch.cat([torch.zeros(dataset_n, 1).to(device), s])
 
         return {'p': p, 'n': n, 's': s}
+

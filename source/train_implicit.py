@@ -15,45 +15,6 @@ from torch.utils.data import  DataLoader, WeightedRandomSampler
 
 import argparse
 
-parser = argparse.ArgumentParser(description='Test',
-                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-
-parser.add_argument('data', metavar='DATA', help='path to file')
-
-parser.add_argument('--tb-save-path', dest='tb_save_path', metavar='PATH', default='../checkpoints/', 
-                        help='tensorboard checkpoints path')
-
-parser.add_argument('--weight-save-path', dest='weight_save_path', metavar='PATH', default='../weights/', 
-                        help='weight checkpoints path')
-
-parser.add_argument('--pretrained-weight', dest='weight', metavar='PATH', default=None, 
-                        help='pretrained weight')
-
-parser.add_argument('--activation', dest='activation', metavar='activation', default='relu', 
-                        help='activation of network; \'relu\' or \'sin\'')
-
-parser.add_argument('--batchsize', dest='batchsize', type=int, metavar='BATCHSIZE', default=1,
-                        help='batch size')
-parser.add_argument('--epoch', dest='epoch', type=int,metavar='EPOCH', default=100, 
-                        help='epochs')
-
-
-parser.add_argument('--abs', dest='abs', type=bool, metavar='BOOL', default=False, 
-                        help='whether we should use ABS when evaluating normal loss')
-
-parser.add_argument('--epsilon', dest='epsilon', type=float, metavar='EPSILON', default=0.1, 
-                        help='epsilon')
-parser.add_argument('--omega', dest='omega', type=float, metavar='OMEGA', default=30, 
-                        help='hyperparameter for periodic layer')
-
-
-parser.add_argument('--lambda', dest='lamb', type=float, metavar='LAMBDA', default=0.005, 
-                        help='hyperparameter for s : normal loss ratio')
-
-
-parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE', 
-                        help='output file')
-
 
 def train(device, model, p, s_gt, n_gt, backward=True, lamb=0.005, use_abs=True):
     s, p = model(p)
@@ -69,9 +30,6 @@ def train(device, model, p, s_gt, n_gt, backward=True, lamb=0.005, use_abs=True)
     # instead of using n_gt, we could use ECPN tangent loss
     loss_grad = 1e2 * torch.mean((1 - torch.sum(n * n_gt, dim=1, keepdim=True) / torch.norm(n, dim=1, keepdim=True)) * p_gt)
     loss_s = 3e2 * torch.mean(torch.pow(s - s_gt,2))
-
-    #loss_zeros = 3e3 * torch.mean(torch.abs(s) * p_gt)
-    #loss_ones = 1e2 * torch.mean(torch.exp(-1e2*s) * (1-p_gt))
 
     loss = loss_grad + loss_s #+ loss_zeros + loss_ones
 
@@ -89,6 +47,41 @@ def train(device, model, p, s_gt, n_gt, backward=True, lamb=0.005, use_abs=True)
     return loss.detach(), s.detach(), n.detach()
 
 def main():
+    parser = argparse.ArgumentParser(description='Test',
+                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument('data', metavar='DATA', help='path to file')
+
+    parser.add_argument('--tb-save-path', dest='tb_save_path', metavar='PATH', default='../checkpoints/', 
+                            help='tensorboard checkpoints path')
+
+    parser.add_argument('--weight-save-path', dest='weight_save_path', metavar='PATH', default='../weights/', 
+                            help='weight checkpoints path')
+
+    parser.add_argument('--pretrained-weight', dest='weight', metavar='PATH', default=None, 
+                            help='pretrained weight')
+
+    parser.add_argument('--activation', dest='activation', metavar='activation', default='relu', 
+                            help='activation of network; \'relu\' or \'sin\'')
+
+    parser.add_argument('--batchsize', dest='batchsize', type=int, metavar='BATCHSIZE', default=1,
+                            help='batch size')
+    parser.add_argument('--epoch', dest='epoch', type=int,metavar='EPOCH', default=100, 
+                            help='epochs')
+
+
+    parser.add_argument('--abs', dest='abs', type=bool, metavar='BOOL', default=False, 
+                            help='whether we should use ABS when evaluating normal loss')
+
+    parser.add_argument('--epsilon', dest='epsilon', type=float, metavar='EPSILON', default=0.1, 
+                            help='epsilon')
+    parser.add_argument('--lambda', dest='lamb', type=float, metavar='LAMBDA', default=0.005, 
+                            help='hyperparameter for s : normal loss ratio')
+
+
+    parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE', 
+                            help='output file')
+
     args = parser.parse_args()
 
     writer = SummaryWriter(args.tb_save_path)
@@ -114,9 +107,9 @@ def main():
 
     ds = augments(ds)
 
-    p_aug = ds['p'].to(device)
-    n_aug = ds['n'].to(device)
-    s_aug = ds['s'].to(device)
+    p_aug = ds['p'].detach_().to(device)
+    n_aug = ds['n'].detach_().to(device)
+    s_aug = ds['s'].detach_().to(device)
 
     p = p_aug[:samples_n]
     n = n_aug[:samples_n]
@@ -164,11 +157,6 @@ def main():
 
         # update
         optimizer.step()
-
-        """
-        with torch.no_grad():
-            s_aug = (torch.norm(p_aug.detach().clone().cpu() - p.repeat(2,1), dim=1, keepdim=True)/args.epsilon).to(device)
-        """
 
         torch.save(model.state_dict(), args.weight_save_path+'model_%03d.pth' % epoch)
         

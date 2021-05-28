@@ -239,11 +239,16 @@ class LGD(nn.Module):
             return new_targets, hidden
  
 
-    def loss_trajectory_backward(self, targets, losses, hidden=None, batch_size=1, steps=10):
+    def loss_trajectory_backward(self, targets, losses, hidden=None, constraints = None, batch_size=1, steps=10):
         # used for training LGD model itself
  
         # since x changes after each iteration, we need to evaluate the loss again
         # so we input loss func, rather than a pre-computed loss
+
+        if constraints is None:
+            constraints = ["None"] * len(losses)
+        else:    
+            assert len(constraints) == len(losses)
         
         if type(targets) is not list:
             targets = [targets]
@@ -254,21 +259,26 @@ class LGD(nn.Module):
         lambda_sum = 0
         sigma_sum = 0
 
-        for i in range(steps):
+        for step in range(steps):
             targets, _, lr = self.step(targets, losses, hidden, batch_size, return_lr=True)
     
             # apply contraints on lambda
             lr.requires_grad_()
             lr_filtered = lr.clone().requires_grad_()
 
-            # no constraint on loss  -> lambda = 1
-            lr_filtered[:,self.num_losses+0] = 1
-            # loss = 0  -> no constratint on lambda
 
-            # loss >= 0 -> lambda <= 0
-
-            # loss <= 0 -> lambda >= 0
-
+            for i, constraint in enumerate(constraints):
+                if constraint is "None":
+                    # no constraint on loss  -> lambda = 1
+                    lr_filtered[:,self.num_losses+i] = 1
+                elif constraint is "Zero":
+                    # loss = 0  -> no constraint on lambda
+                elif constraint is "Positive":
+                    # loss >= 0 -> lambda <= 0
+                    lr_filtered[:,self.num_losses+i] = -F.relu(-lr_filtered[:,self.num_losses+i])
+                elif constraint is "Negative":
+                    # loss <= 0 -> lambda >= 0
+                    lr_filtered[:,self.num_losses+i] = F.relu(lr_filtered[:,self.num_losses+i])
 
  
             for i, loss_f in enumerate(losses):
