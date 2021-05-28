@@ -147,6 +147,9 @@ class GridDataset(Dataset):
         self.mx = mx
         self.n = n
 
+    def __len__(self):
+        return torch.prod(self.n)
+
     def __getitem__(self, idx):
         a = torch.zeros_like(self.n)
         n_prod = torch.prod(self.n)
@@ -173,15 +176,14 @@ class ObjUniformSample(nn.Module):
         fnn = torch.abs(dataset.fnn)
         samples = list(WeightedRandomSampler(fnn.view(-1) / torch.sum(fnn), self.sample_n, replacement=True))
 
-        data = [dataset[samples[i]] for i in range(len(samples))]
+        data = dataset[samples]
 
         p = torch.cat([d['p'].unsqueeze(0) for d in data])
         n = torch.cat([d['n'].unsqueeze(0) for d in data])
 
         return {'p': p, 'n': n}
 
-
-class PerturbNormal(nn.Module):
+class NormalPerturb(nn.Module):
     """
     Perturb points by their normals, by random amount
     """
@@ -208,3 +210,17 @@ class PerturbNormal(nn.Module):
 
         return {'p': p, 'n': n, 's': s}
 
+class PointTransform(nn.Module):
+
+    def __init__(self, transform_mat):
+        self.transform_mat = transform_mat
+        
+    def forward(self, dataset):
+        if dataset is dict:
+            p = dataset['p']
+            if 'n' in dataset.keys():
+                n = dataset['n']
+
+        else:
+            p = dataset
+        

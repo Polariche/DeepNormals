@@ -8,7 +8,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from models import Siren
 from utils import Sobel
-from loaders import ObjDataset, ObjUniformSample, PerturbNormal
+from loaders import ObjDataset, ObjUniformSample, NormalPerturb
 import utils
 from torch.utils.data import  DataLoader, WeightedRandomSampler
 
@@ -101,7 +101,7 @@ def main():
     samples_n = 50000
 
     augments = nn.Sequential(ObjUniformSample(samples_n),
-                             PerturbNormal(args.epsilon))
+                             NormalPerturb(args.epsilon))
 
     ds = augments(ds)
 

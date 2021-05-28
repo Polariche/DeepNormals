@@ -90,7 +90,8 @@ def main():
                             help='learning rate')
     parser.add_argument('--lgd-step', dest='lgd_step_per_epoch', type=int,metavar='LGD_STEP_PER_EPOCH', default=5, 
                             help='number of simulation steps of LGD per epoch')
-
+    parser.add_argument('--n', dest='n', type=int,metavar='N', default=30000, 
+                            help='number of points to sample')
 
     parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE', 
                             help='output file')
