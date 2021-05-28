@@ -273,6 +273,7 @@ class LGD(nn.Module):
                     lr_filtered[:,self.num_losses+i] = 1
                 elif constraint is "Zero":
                     # loss = 0  -> no constraint on lambda
+                    continue
                 elif constraint is "Positive":
                     # loss >= 0 -> lambda <= 0
                     lr_filtered[:,self.num_losses+i] = -F.relu(-lr_filtered[:,self.num_losses+i])

@@ -100,9 +100,8 @@ def main():
     ds = ObjDataset(args.data)
     samples_n = 50000
 
-    augments = nn.Sequential([
-        ObjUniformSample(samples_n),
-        PerturbNormal(args.epsilon)])
+    augments = nn.Sequential(ObjUniformSample(samples_n),
+                             PerturbNormal(args.epsilon))
 
     ds = augments(ds)
 
