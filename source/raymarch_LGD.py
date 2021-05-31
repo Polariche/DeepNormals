@@ -139,7 +139,7 @@ def main():
     for i in range(epoch):
         print(i)
         # evaluate losses
-        samples_n = width*height//32
+        samples_n = width*height//64
         sample_inds = torch.randperm(width*height)[:samples_n]
 
         sdf_eval_batch = lambda d: torch.pow(model(d * n[sample_inds] + trans)[0], 2).sum(dim=1).mean()
