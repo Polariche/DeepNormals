@@ -152,7 +152,7 @@ class GridDataset(Dataset):
 
     def __getitem__(self, idx):
         a = torch.zeros_like(self.n)
-        n_prod = torch.prod(self.n)
+        n_prod = torch.prod(self.n).item()
 
         idx = idx % n_prod
 
@@ -261,7 +261,7 @@ class PointTransform(nn.Module):
                 return {'p': p, 'n': n}
             
             else:
-                
+
                 return {'p': p}
 
         else:
