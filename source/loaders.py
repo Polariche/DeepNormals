@@ -196,7 +196,7 @@ class UniformSample(nn.Module):
         self.sample_n = sample_n
 
     def forward(self, dataset):
-        return dataset[range(self.sample_n)]
+        return dataset[list(range(self.sample_n))]
 
 class NormalPerturb(nn.Module):
     """
