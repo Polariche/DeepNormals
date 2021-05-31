@@ -8,7 +8,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from models import Siren
 from utils import Sobel
-from loaders import ObjDataset, ObjUniformSample
+from loaders import Dataset, UniformSample, GridDataset, PointTransform
 import utils
 from torch.utils.data import  DataLoader, WeightedRandomSampler
 
@@ -125,7 +125,7 @@ def main():
             writer.add_scalars("chamfer_distance", {"Adam": chamfer_distance(x, p)}, global_step=i)
 
     """
-    
+
     d = torch.ones((width*height, 1), device=device, dtype=torch.float)
 
     print("lgd")
