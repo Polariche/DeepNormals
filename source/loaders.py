@@ -158,7 +158,7 @@ class GridDataset(Dataset):
 
         for i, n_ in enumerate(self.n):
             n_prod /= n_
-            a[i] = int(idx / n_prod)
+            a[i] = int(idx // n_prod)
             idx -= a[i] * n_prod
 
         return (a + 0.5) * (self.mx - self.mm) + self.mm
@@ -196,7 +196,9 @@ class UniformSample(nn.Module):
         self.sample_n = sample_n
 
     def forward(self, dataset):
-        return torch.cat([dataset[i] for i in range(self.sample_n)])
+        data = torch.cat([dataset[i] for i in range(self.sample_n)])
+        print(data.shape)
+        return data
 
 class NormalPerturb(nn.Module):
     """
