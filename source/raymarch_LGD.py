@@ -88,7 +88,7 @@ def main():
 
     p_distribution = GridDataset(mm, mx, wh)
 
-    d = torch.ones((width*height, 1), device=device, dtype=torch.float).requires_grad_()
+    d = torch.ones((width*height, 1), device=device, dtype=torch.float).requires_grad_(True)
     
 
     sampler = nn.Sequential(UniformSample(width*height), 
@@ -131,7 +131,7 @@ def main():
     print("lgd")
     hidden = None
 
-    lgd = LGD(1, 3, k=10).to(device)
+    lgd = LGD(1, 2, k=10).to(device)
     lgd_optimizer = optim.Adam(lgd.parameters(), lr= lr)
 
     # train LGD
@@ -147,8 +147,8 @@ def main():
 
         # update lgd parameters
         lgd_optimizer.zero_grad()
-        lgd.loss_trajectory_backward(d[sample_inds], [d2_eval_list, sdf_eval_batch_list, d_eval_list], None, 
-                                     constraints=["None", "Zero", "Positive"], batch_size=samples_n, steps=lgd_step_per_epoch)
+        lgd.loss_trajectory_backward(d[sample_inds], [d2_eval_list, d_eval_list], None, 
+                                     constraints=["None", "Positive"], batch_size=samples_n, steps=lgd_step_per_epoch)
         lgd_optimizer.step()
 
     # test LGD
@@ -157,7 +157,7 @@ def main():
         # evaluate losses
         #loss = sdf_eval(x).mean()
         # update x
-        [d], hidden = lgd.step(d, [d2_eval_list, sdf_eval_list, d_eval_list], hidden, width*height)
+        [d], hidden = lgd.step(d, [d2_eval_list, d_eval_list], hidden, width*height)
         d = detach_var(d)
         hidden = detach_var(hidden)
 
