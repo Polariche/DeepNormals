@@ -154,12 +154,16 @@ class GridDataset(Dataset):
         a = torch.zeros_like(self.n)
         n_prod = torch.prod(self.n)
 
+        idx = idx % n_prod
+
         for i, n_ in enumerate(self.n):
             n_prod /= n_
             a[i] = int(idx / n_prod)
-            idx -= int(idx / n_prod)
+            idx -= a[i] * n_prod
 
         return (a + 0.5) * (self.mx - self.mm) + self.mm
+
+
 
 
 ### Data Augmentation Modules ###
@@ -183,14 +187,26 @@ class ObjUniformSample(nn.Module):
 
         return {'p': p, 'n': n}
 
+class UniformSample(nn.Module):
+    """
+    Given an Dataset, uniformly sample n points.
+    """
+    def __init__(self, sample_n):
+        super().__init__()
+        self.sample_n = sample_n
+
+    def forward(self, dataset):
+        return dataset[range(self.sample_n)]
+
 class NormalPerturb(nn.Module):
     """
     Perturb points by their normals, by random amount
     """
 
-    def __init__(self, epsilon = 1.):
+    def __init__(self, epsilon = 1., concat_original=True):
         super().__init__()
         self.epsilon = epsilon
+        self.concat_original = concat_original
 
     def forward(self, dataset):
         p = dataset['p']
@@ -204,23 +220,57 @@ class NormalPerturb(nn.Module):
 
         s = torch.rand((dataset_n, 1)).to(device)
 
-        p = torch.cat([p, p + s * n * self.epsilon])
-        n = torch.cat([n, n])
-        s = torch.cat([torch.zeros(dataset_n, 1).to(device), s])
+        if self.concat_original:
+            p = torch.cat([p, p + s * n * self.epsilon])
+            n = torch.cat([n, n])
+            s = torch.cat([torch.zeros(dataset_n, 1).to(device), s])
+        else:
+            p = p + s * n * self.epsilon
 
         return {'p': p, 'n': n, 's': s}
 
-class PointTransform(nn.Module):
 
-    def __init__(self, transform_mat):
-        self.transform_mat = transform_mat
+class PointTransform(nn.Module):
+    def __init__(self, rotation, translation = None):
+        super().__init__()
+
+        if translation is not None:
+            # rotation: (d, d), translation: (1, d)
+            assert rotation.shape[1] == translation.shape[1]
+            assert translation.shape[0] == 1
+
+        self.rotation = rotation
+        self.translation = translation
         
     def forward(self, dataset):
         if dataset is dict:
             p = dataset['p']
+            p = torch.matmul(p, self.rotation.T)    # (n, d) * (d, d) -> (n, d)
+            
+            if self.translation is not None:
+                p += self.translation
+
+            dataset['p'] = p
+
             if 'n' in dataset.keys():
                 n = dataset['n']
+                n = torch.matmul(n, self.rotation.T)
+
+                dataset['n'] = n
+            
+                return {'p': p, 'n': n}
+            
+            else:
+                
+                return {'p': p}
 
         else:
             p = dataset
+            p = torch.matmul(p, self.rotation.T)    # (n, d) * (d, d) -> (n, d)
+            
+            if self.translation is not None:
+                p += self.translation
+            
+            return p
+        
         
