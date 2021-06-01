@@ -82,7 +82,7 @@ def main():
     mx = torch.tensor([0.05, 0.05, 1], device=device, dtype=torch.float)
     wh = torch.tensor([width, height, 1], device=device, dtype=torch.int)
 
-    rot = torch.tensor([[0.01,0,0], [0,0.01,0], [0,0,0.01]], device=device, dtype=torch.float)
+    rot = torch.tensor([[1,0,0], [0,1,0], [0,0,1]], device=device, dtype=torch.float)
     trans = torch.tensor([[0, 0, -0.5]], device=device, dtype=torch.float)
 
     p_distribution = GridDataset(mm, mx, wh)
@@ -100,9 +100,7 @@ def main():
     objsampler = ObjUniformSample(1000)
     x_preview = (objsampler(ds)['p']).to(device)
 
-    print(torch.min(x_preview, dim=0), torch.max(x_preview, dim=0))
 
-    
     d2_eval = lambda d: torch.pow(d, 2).mean()
     sdf_eval = lambda d: torch.pow(model(d * ray_n + p + trans)[0], 2).sum(dim=1).mean()
     d_eval = lambda d: ((d / torch.abs(d) - 1)).mean() * 0.5
