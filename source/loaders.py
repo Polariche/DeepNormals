@@ -161,7 +161,7 @@ class GridDataset(Dataset):
             a[i] = int(idx // n_prod)
             idx -= a[i] * n_prod
 
-        return a * (self.mx - self.mm) + self.mm
+        return (a + 0.5) * (self.mx - self.mm) / self.n + self.mm
 
 
 
