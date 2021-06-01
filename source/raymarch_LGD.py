@@ -78,8 +78,8 @@ def main():
 
     
     # load 
-    mm = torch.tensor([-0.5., -0.5., 1.], device=device, dtype=torch.float)
-    mx = torch.tensor([0.5., 0.5., 1.], device=device, dtype=torch.float)
+    mm = torch.tensor([-0.5, -0.5, 1.], device=device, dtype=torch.float)
+    mx = torch.tensor([0.5, 0.5, 1.], device=device, dtype=torch.float)
     wh = torch.tensor([width, height, 1], device=device, dtype=torch.int)
 
     rot = torch.tensor([[0.1,0,0], [0,0.1,0], [0,0,0.1]], device=device, dtype=torch.float)
