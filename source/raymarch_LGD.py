@@ -31,8 +31,8 @@ def main():
     parser.add_argument('--weight-save-path', dest='weight_save_path', metavar='PATH', default='../weights/', 
                             help='weight checkpoints path')
 
-    parser.add_argument('--pretrained-weight', dest='weight', metavar='PATH', default=None, 
-                            help='pretrained weight')
+    parser.add_argument('--sdf-weight', dest='sdf_weight', metavar='PATH', default=None, 
+                            help='pretrained weight for SDF model')
 
 
     parser.add_argument('--batchsize', dest='batchsize', type=int, metavar='BATCHSIZE', default=1,
@@ -68,9 +68,9 @@ def main():
 
     if args.weight != None:
         try:
-            model.load_state_dict(torch.load(args.weight))
+            model.load_state_dict(torch.load(args.sdf_weight))
         except:
-            print("Couldn't load pretrained weight: " + args.weight)
+            print("Couldn't load pretrained weight: " + args.sdf_weight)
 
     model.eval() 
     for param in model.parameters():
@@ -93,7 +93,7 @@ def main():
     sampler = nn.Sequential(UniformSample(width*height), 
                             PointTransform(rot))
 
-    n = sampler(p_distribution)
+    p = sampler(p_distribution)
 
 
     ds = ObjDataset(args.data)
@@ -112,27 +112,7 @@ def main():
     d_eval_list = lambda d: d_eval(d[0])
 
 
-    """
-    print("adam")
-    optimizer = optim.Adam([x], lr = lr)
-
-    for i in range(epoch):
-        optimizer.zero_grad()
-
-        loss = sdf_eval(x)
-        loss.backward(retain_graph=True)
-
-        optimizer.step()
-
-        if i%10 == 0:
-            writer.add_scalars("regression_loss", {"Adam": loss}, global_step=i)
-            writer.add_mesh("point cloud regression_Adam", x.unsqueeze(0), global_step=i)
-
-            writer.add_scalars("chamfer_distance", {"Adam": chamfer_distance(x, p)}, global_step=i)
-
-    """
-
-    #d = torch.ones((width*height, 1), device=device, dtype=torch.float)
+    writer.add_mesh("preview", torch.cat([(p + trans),  x_preview]).unsqueeze(0), global_step=0)
 
     print("lgd")
     hidden = None
@@ -148,7 +128,9 @@ def main():
         samples_n = width*height//64
         sample_inds = torch.randperm(width*height)[:samples_n]
 
-        sdf_eval_batch = lambda d: torch.pow(model(d * n[sample_inds] + trans)[0], 2).sum(dim=1).mean()
+        ray_n = torch.tensor([[0,0,1]], device=device, dtype=torch.float).repeat(samples_n, 1)
+
+        sdf_eval_batch = lambda d: torch.pow(model(d * ray_n + p[sample_inds] + trans)[0], 2).sum(dim=1).mean()
         sdf_eval_batch_list = lambda d: sdf_eval_batch(d[0])
 
         # update lgd parameters
@@ -157,6 +139,7 @@ def main():
                                      constraints=["None", "Zero", "Positive"], batch_size=samples_n, steps=lgd_step_per_epoch)
         lgd_optimizer.step()
 
+    ray_n = torch.tensor([[0,0,1]], device=device, dtype=torch.float).repeat(width*height, 1)
     # test LGD
     lgd.eval()
     for i in range(epoch):
@@ -168,12 +151,7 @@ def main():
         hidden = detach_var(hidden)
 
         if i%10 == 0:
-            #writer.add_scalars("regression_loss", {"LGD": loss}, global_step=i)
-            #writer.add_mesh("point cloud regression_LGD",, global_step=i)
-
-            writer.add_mesh("point cloud regression_LGD", torch.cat([(d * n + trans),  x_preview]).unsqueeze(0), global_step=i)
-
-            #writer.add_scalars("chamfer_distance", {"LGD": chamfer_distance(x, p)}, global_step=i)
+            writer.add_mesh("point cloud regression_LGD", torch.cat([(d * ray_n + trans),  x_preview]).unsqueeze(0), global_step=i)
         
     writer.close()
 
