@@ -66,7 +66,7 @@ def main():
     # create models
     model = Siren(in_features=3, out_features=1, hidden_features=256, hidden_layers=5, outermost_linear=True).to(device) 
 
-    if args.weight != None:
+    if args.sdf_weight != None:
         try:
             model.load_state_dict(torch.load(args.sdf_weight))
         except:
