@@ -39,7 +39,7 @@ def main():
                             help='batch size')
     parser.add_argument('--epoch', dest='epoch', type=int,metavar='EPOCH', default=500, 
                             help='epochs for adam and lgd')
-    parser.add_argument('--lr', dest='lr', type=float,metavar='LEARNING_RATE', default=5e-3, 
+    parser.add_argument('--lr', dest='lr', type=float,metavar='LEARNING_RATE', default=1e-3, 
                             help='learning rate')
     parser.add_argument('--lgd-step', dest='lgd_step_per_epoch', type=int,metavar='LGD_STEP_PER_EPOCH', default=5, 
                             help='number of simulation steps of LGD per epoch')
