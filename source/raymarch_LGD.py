@@ -78,8 +78,8 @@ def main():
 
     
     # load 
-    mm = torch.tensor([-0.5, -0.5, 1.], device=device, dtype=torch.float)
-    mx = torch.tensor([0.5, 0.5, 1.], device=device, dtype=torch.float)
+    mm = torch.tensor([-0.05, -0.05, 1.], device=device, dtype=torch.float)
+    mx = torch.tensor([0.05, 0.05, 1.], device=device, dtype=torch.float)
     wh = torch.tensor([width, height, 1], device=device, dtype=torch.int)
 
     rot = torch.tensor([[0.1,0,0], [0,0.1,0], [0,0,0.1]], device=device, dtype=torch.float)
@@ -99,6 +99,8 @@ def main():
     ds = ObjDataset(args.data)
     objsampler = ObjUniformSample(1000)
     x_preview = (objsampler(ds)['p']).to(device)
+
+    print(torch.min(x_preview, dim=0), torch.max(x_preview, dim=0))
 
     
     d2_eval = lambda d: torch.pow(d, 2).mean()
@@ -155,7 +157,6 @@ def main():
                                      constraints=["None", "Zero", "Positive"], batch_size=samples_n, steps=lgd_step_per_epoch)
         lgd_optimizer.step()
 
-    x_preview = torch.cat([x_preview, torch.zeros((width*height-1000, 3), device=device, dtype=torch.float)])
     # test LGD
     lgd.eval()
     for i in range(epoch):
@@ -170,7 +171,7 @@ def main():
             #writer.add_scalars("regression_loss", {"LGD": loss}, global_step=i)
             #writer.add_mesh("point cloud regression_LGD",, global_step=i)
 
-            writer.add_mesh("point cloud regression_LGD", torch.cat([(d * n + trans).unsqueeze(0),  x_preview.unsqueeze(0)]), global_step=i)
+            writer.add_mesh("point cloud regression_LGD", torch.cat([(d * n + trans),  x_preview]).unsqueeze(0), global_step=i)
 
             #writer.add_scalars("chamfer_distance", {"LGD": chamfer_distance(x, p)}, global_step=i)
         
