@@ -8,7 +8,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from models import Siren
 from utils import Sobel
-from loaders import Dataset, UniformSample, GridDataset, PointTransform
+from loaders import ObjDataset,  ObjUniformSample, Dataset, UniformSample, GridDataset, PointTransform
 import utils
 from torch.utils.data import  DataLoader, WeightedRandomSampler
 
