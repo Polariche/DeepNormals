@@ -78,8 +78,8 @@ def main():
 
     
     # load 
-    mm = torch.tensor([-0.05, -0.05, 0], device=device, dtype=torch.float)
-    mx = torch.tensor([0.05, 0.05, 0], device=device, dtype=torch.float)
+    mm = torch.tensor([-0.05, -0.05, 1], device=device, dtype=torch.float)
+    mx = torch.tensor([0.05, 0.05, 1], device=device, dtype=torch.float)
     wh = torch.tensor([width, height, 1], device=device, dtype=torch.int)
 
     rot = torch.tensor([[0.01,0,0], [0,0.01,0], [0,0,0.01]], device=device, dtype=torch.float)
@@ -151,7 +151,7 @@ def main():
         hidden = detach_var(hidden)
 
         if i%10 == 0:
-            writer.add_mesh("point cloud regression_LGD", torch.cat([(d * ray_n + trans),  x_preview]).unsqueeze(0), global_step=i)
+            writer.add_mesh("point cloud regression_LGD", torch.cat([(d * ray_n + trans + p),  x_preview]).unsqueeze(0), global_step=i)
         
     writer.close()
 
