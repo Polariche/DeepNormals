@@ -78,11 +78,11 @@ def main():
 
     
     # load 
-    mm = torch.tensor([-0.05, -0.05, 1.], device=device, dtype=torch.float)
-    mx = torch.tensor([0.05, 0.05, 1.], device=device, dtype=torch.float)
+    mm = torch.tensor([-0.05, -0.05, 0], device=device, dtype=torch.float)
+    mx = torch.tensor([0.05, 0.05, 0], device=device, dtype=torch.float)
     wh = torch.tensor([width, height, 1], device=device, dtype=torch.int)
 
-    rot = torch.tensor([[0.1,0,0], [0,0.1,0], [0,0,0.1]], device=device, dtype=torch.float)
+    rot = torch.tensor([[0.01,0,0], [0,0.01,0], [0,0,0.01]], device=device, dtype=torch.float)
     trans = torch.tensor([[0, 0, -0.5]], device=device, dtype=torch.float)
 
     p_distribution = GridDataset(mm, mx, wh)
