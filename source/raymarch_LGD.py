@@ -39,14 +39,14 @@ def main():
                             help='batch size')
     parser.add_argument('--epoch', dest='epoch', type=int,metavar='EPOCH', default=500, 
                             help='epochs for adam and lgd')
-    parser.add_argument('--lr', dest='lr', type=float,metavar='LEARNING_RATE', default=1e-3, 
+    parser.add_argument('--lr', dest='lr', type=float,metavar='LEARNING_RATE', default=3e-3, 
                             help='learning rate')
-    parser.add_argument('--lgd-step', dest='lgd_step_per_epoch', type=int,metavar='LGD_STEP_PER_EPOCH', default=5, 
+    parser.add_argument('--lgd-step', dest='lgd_step_per_epoch', type=int,metavar='LGD_STEP_PER_EPOCH', default=10, 
                             help='number of simulation steps of LGD per epoch')
 
-    parser.add_argument('--width', dest='width', type=int,metavar='WIDTH', default=256, 
+    parser.add_argument('--width', dest='width', type=int,metavar='WIDTH', default=128, 
                             help='width for rendered image')
-    parser.add_argument('--height', dest='height', type=int,metavar='HEIGHT', default=256, 
+    parser.add_argument('--height', dest='height', type=int,metavar='HEIGHT', default=128, 
                             help='height for rendered image')
 
     parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE', 
@@ -123,7 +123,7 @@ def main():
     for i in range(epoch):
         print(i)
         # evaluate losses
-        samples_n = width*height//64
+        samples_n = width*height//128
         sample_inds = torch.randperm(width*height)[:samples_n]
 
         ray_n = torch.tensor([[0,0,1]], device=device, dtype=torch.float).repeat(samples_n, 1)
