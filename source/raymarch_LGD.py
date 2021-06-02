@@ -37,11 +37,11 @@ def main():
 
     parser.add_argument('--batchsize', dest='batchsize', type=int, metavar='BATCHSIZE', default=1,
                             help='batch size')
-    parser.add_argument('--epoch', dest='epoch', type=int,metavar='EPOCH', default=500, 
+    parser.add_argument('--epoch', dest='epoch', type=int,metavar='EPOCH', default=200, 
                             help='epochs for adam and lgd')
-    parser.add_argument('--lr', dest='lr', type=float,metavar='LEARNING_RATE', default=3e-3, 
+    parser.add_argument('--lr', dest='lr', type=float,metavar='LEARNING_RATE', default=1e-3, 
                             help='learning rate')
-    parser.add_argument('--lgd-step', dest='lgd_step_per_epoch', type=int,metavar='LGD_STEP_PER_EPOCH', default=10, 
+    parser.add_argument('--lgd-step', dest='lgd_step_per_epoch', type=int,metavar='LGD_STEP_PER_EPOCH', default=5, 
                             help='number of simulation steps of LGD per epoch')
 
     parser.add_argument('--width', dest='width', type=int,metavar='WIDTH', default=128, 
@@ -78,12 +78,12 @@ def main():
 
     
     # load 
-    mm = torch.tensor([-0.05, -0.05, 0.1], device=device, dtype=torch.float)
-    mx = torch.tensor([0.05, 0.05, 0.1], device=device, dtype=torch.float)
+    mm = torch.tensor([-0.1, -0.1, 0.1], device=device, dtype=torch.float)
+    mx = torch.tensor([0.1, 0.1, 0.1], device=device, dtype=torch.float)
     wh = torch.tensor([width, height, 1], device=device, dtype=torch.int)
 
     rot = torch.tensor([[1,0,0], [0,1,0], [0,0,1]], device=device, dtype=torch.float)
-    trans = torch.tensor([[0, 0, -0.5]], device=device, dtype=torch.float)
+    trans = torch.tensor([[0, 0, -0.8]], device=device, dtype=torch.float)
 
     p_distribution = GridDataset(mm, mx, wh)
 
