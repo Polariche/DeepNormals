@@ -134,7 +134,7 @@ def main():
 
         if i%10 == 0:
             writer.add_mesh("point cloud regression_LGD", torch.cat([(d * ray_n + trans + p),  x_preview]).unsqueeze(0), global_step=i)
-            torch.save(lgd.state_dict(), args.weight_save_path+'lgd_%03d.pth' % epoch)
+            
         
     writer.close()
 
