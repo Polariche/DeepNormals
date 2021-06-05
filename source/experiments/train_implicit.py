@@ -11,7 +11,7 @@ import os
 sys.path.append( os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) ) )
 
 from models.models import Siren
-from loaders import ObjDataset, ObjUniformSample, Dataset, UniformSample, NormalPerturb
+from loaders import ObjDataset, ObjUniformSample, Dataset, UniformSample, NormalPerturb, RandomAugment
 
 import utils 
 
@@ -25,17 +25,14 @@ def train(device, model, p, s_gt, n_gt, backward=True, lamb=0.005, use_abs=True)
 
     n = torch.autograd.grad(s, [p], grad_outputs=torch.ones_like(s), create_graph=True)[0]
 
-    # modified loss in SIREN 4.2 for smooth transition between surface points and non-surface points
-    # use probability : exp(- s_gt / (2*eps^2))
-
     with torch.no_grad():
         p_gt = torch.exp(-s_gt / (2*1e-4))
 
-    # instead of using n_gt, we could use ECPN tangent loss
-    loss_grad = 1e2 * torch.mean((1 - torch.sum(n * n_gt, dim=1, keepdim=True) / torch.norm(n, dim=1, keepdim=True)) * p_gt)
-    loss_s = 3e2 * torch.mean(torch.pow(s - s_gt,2))
+    loss_grad = (1 - torch.sum(n * n_gt, dim=1, keepdim=True) / torch.norm(n, dim=1, keepdim=True)) * p_gt
+    loss_grad[torch.norm(n, dim=1) == 0] = 0        # don't compute normal loss for normal-less points (e.g. outer points)
+    loss_s = torch.pow(s - s_gt,2)
 
-    loss = loss_grad + loss_s #+ loss_zeros + loss_ones
+    loss = 1e2 * loss_grad.mean() + 3e2 * loss_s.mean()
 
     if backward:
         if p.grad != None:
@@ -103,10 +100,11 @@ def main():
 
     # load 
     ds = ObjDataset(args.data)
-    samples_n = 50000
+    samples_n = 20000
 
     augments = nn.Sequential(ObjUniformSample(samples_n),
-                             NormalPerturb(args.epsilon))
+                             NormalPerturb(args.epsilon),
+                             RandomArgument(samples_n // 2, args.epsilon * 0.5))
 
     ds = augments(ds)
 

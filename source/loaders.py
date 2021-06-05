@@ -6,6 +6,7 @@ from torch.utils.data import  Dataset, DataLoader, WeightedRandomSampler
 import re
 import warnings
 
+from evaluate_functions import dist_from_to
 from torch.utils.tensorboard import SummaryWriter
 import argparse
 
@@ -211,6 +212,8 @@ class NormalPerturb(nn.Module):
         self.concat_original = concat_original
 
     def forward(self, dataset):
+        assert dataset is dict
+
         p = dataset['p']
         n = dataset['n']
 
@@ -275,4 +278,45 @@ class PointTransform(nn.Module):
             
             return p
         
-        
+    
+class RandomAugment(nn.Module):
+    def __init__(self, samples_n,  epsilon = 1., concat_original=True):
+        super().__init__()
+        self.epsilon = epsilon
+        self.samples_n = samples_n
+        self.concat_original = concat_original
+
+    def forward(self, dataset):
+        uniform_distribution = UniformDataset(torch.min(dataset, dim=0), torch.max(dataset, dim=0))
+        uniform_sampler = UniformSample(self.samples_n)
+        uniform_sample = uniform_sampler(uniform_distribution)
+
+        if dataset is dict:
+            p = dataset['p']
+        else:
+            p = dataset
+
+        dist = dist_from_to(uniform_sample, p, requires_graph=False).squeeze()
+
+        uniform_sample = uniform_sample[dist > self.epsilon]
+
+        if self.concat_original:
+            p = torch.cat([p, uniform_sample])
+
+            if dataset is dict:
+                ret = {'p': p}
+
+                if 'n' in dataset.keys():
+                    n = dataset['n']
+                    ret['n'] = torch.cat([n, torch.zeros_like(n)])
+
+                if 'n' in dataset.keys():
+                    s = dataset['s']
+                    ret['s'] = torch.cat([s, torch.ones_like(s)])
+                return ret
+
+            else:
+                return p
+                
+        else:
+            return uniform_sample
