@@ -197,8 +197,7 @@ class UniformSample(nn.Module):
         self.sample_n = sample_n
 
     def forward(self, dataset):
-        print(dataset[0].shape)
-        data = torch.cat([dataset[i] for i in range(self.sample_n)])
+        data = torch.cat([dataset[i].unsqueeze(0) for i in range(self.sample_n)])
         print(data.shape)
         return data
 
