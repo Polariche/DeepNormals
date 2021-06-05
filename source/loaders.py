@@ -247,7 +247,7 @@ class PointTransform(nn.Module):
         self.translation = translation
         
     def forward(self, dataset):
-        if dataset is dict:
+        if type(dataset) is dict:
             p = dataset['p']
             p = torch.matmul(p, self.rotation.T)    # (n, d) * (d, d) -> (n, d)
             
@@ -286,7 +286,7 @@ class RandomAugment(nn.Module):
         self.concat_original = concat_original
 
     def forward(self, dataset):
-        if dataset is dict:
+        if type(dataset) dict:
             p = dataset['p']
         else:
             p = dataset
@@ -296,7 +296,6 @@ class RandomAugment(nn.Module):
         uniform_sample = uniform_sampler(uniform_distribution)
 
         
-
         dist = dist_from_to(uniform_sample, p, requires_graph=False).squeeze()
 
         uniform_sample = uniform_sample[dist > self.epsilon]
