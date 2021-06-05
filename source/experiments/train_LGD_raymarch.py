@@ -103,7 +103,7 @@ def main():
 
     d2_eval = lambda d: torch.pow(d, 2).mean()
     sdf_eval = lambda d: torch.pow(model(d * ray_n + p + trans)[0], 2).sum(dim=1).mean()
-    d_eval = lambda d: 0 #((d / torch.abs(d) - 1)).mean() * 0.5
+    d_eval = lambda d: (torch.tanh(d) - 1.).mean() * 0.5
 
     d2_eval_list = lambda d: d2_eval(d[0])
     sdf_eval_list = lambda d: sdf_eval(d[0])
