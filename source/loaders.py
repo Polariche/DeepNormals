@@ -212,7 +212,6 @@ class NormalPerturb(nn.Module):
         self.concat_original = concat_original
 
     def forward(self, dataset):
-        assert dataset is dict
 
         p = dataset['p']
         n = dataset['n']
