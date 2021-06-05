@@ -40,6 +40,8 @@ def main():
                             help='epochs for adam and lgd')
     parser.add_argument('--n', dest='n', type=int,metavar='N', default=30000, 
                             help='number of points to sample')
+    parser.add_argument('--lr', dest='lr', type=float,metavar='LEARNING_RATE', default=1e-3, 
+                            help='learning rate')
 
     parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE', 
                             help='output file')
@@ -103,7 +105,7 @@ def main():
             writer.add_mesh("point cloud regression_Adam", x.unsqueeze(0), global_step=i)
 
             writer.add_scalars("chamfer_distance", {"Adam": chamfer_distance(x, p)}, global_step=i)
-            
+
     writer.close()
 
 if __name__ == "__main__":
