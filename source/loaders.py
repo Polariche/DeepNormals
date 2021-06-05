@@ -286,7 +286,7 @@ class RandomAugment(nn.Module):
         self.concat_original = concat_original
 
     def forward(self, dataset):
-        if type(dataset) dict:
+        if type(dataset) is dict:
             p = dataset['p']
         else:
             p = dataset
