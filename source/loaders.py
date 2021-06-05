@@ -291,7 +291,7 @@ class RandomAugment(nn.Module):
         else:
             p = dataset
 
-        uniform_distribution = UniformDataset(torch.min(p, dim=0), torch.max(p, dim=0))
+        uniform_distribution = UniformDataset(torch.min(p, dim=0)[0], torch.max(p, dim=0)[0])
         uniform_sampler = UniformSample(self.samples_n)
         uniform_sample = uniform_sampler(uniform_distribution)
 
