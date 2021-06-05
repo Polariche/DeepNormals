@@ -11,7 +11,7 @@ import os
 sys.path.append( os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) ) )
 
 from models.models import Siren
-from loaders import ObjDataset, ObjUniformSample, Dataset, UniformSample, GridDataset, PointTransform
+from loaders import ObjDataset, ObjUniformSample, Dataset, UniformSample, GridDataset, PointTransform, NormalPerturb
 from models.LGD import LGD, detach_var
 
 from torch.utils.data import  DataLoader, WeightedRandomSampler
