@@ -109,7 +109,7 @@ def main():
 
     print(ds)
 
-    ds = RandomAugment(samples_n // 2, args.epsilon * 0.5)(ds)
+    ds = RandomAugment(samples_n, args.epsilon * 0.5)(ds)
     print(ds)
 
     p_aug = ds['p'].detach_().to(device)

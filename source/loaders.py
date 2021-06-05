@@ -300,6 +300,8 @@ class RandomAugment(nn.Module):
 
         uniform_sample = uniform_sample[dist > self.epsilon]
 
+        samples_n = uniform_sample.shape[0]
+
         if self.concat_original:
             p = torch.cat([p, uniform_sample])
 
@@ -308,11 +310,11 @@ class RandomAugment(nn.Module):
 
                 if 'n' in dataset.keys():
                     n = dataset['n']
-                    ret['n'] = torch.cat([n, torch.zeros_like(n)])
+                    ret['n'] = torch.cat([n, torch.zeros_like(n)[:samples_n]])
 
                 if 's' in dataset.keys():
                     s = dataset['s']
-                    ret['s'] = torch.cat([s, torch.ones_like(s)])
+                    ret['s'] = torch.cat([s, torch.ones_like(s)[:samples_n]])
                 return ret
 
             else:
