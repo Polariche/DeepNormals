@@ -18,8 +18,6 @@ from torch.utils.data import  DataLoader, WeightedRandomSampler
 
 import argparse
 
-from sklearn.neighbors import KDTree
-
 
 def main():
     parser = argparse.ArgumentParser(description='Test',

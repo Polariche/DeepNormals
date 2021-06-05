@@ -4,6 +4,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
+from sklearn.neighbors import KDTree
+
 def chamfer_distance(p1, p2, use_torch=False):
     if use_torch:
         # O(n^2) memory GPU computation on Torch; faster, but more expensive
