@@ -138,6 +138,8 @@ def main():
         lgd.loss_trajectory_backward(d[sample_inds], [d2_eval_list, sdf_eval_batch_list, d_eval_list], None, 
                                      constraints=["None", "Zero", "Positive"], batch_size=samples_n, steps=lgd_step_per_epoch)
         lgd_optimizer.step()
+
+        torch.save(lgd.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
  
     writer.close()
 
