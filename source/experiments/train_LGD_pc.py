@@ -8,7 +8,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 from ../models/models import Siren
 from ../loaders import ObjDataset, ObjUniformSample
-import utils
+from ../evaluate_functions import chamfer_distance, nearest_from_to, dist_from_to
+
 from torch.utils.data import  DataLoader, WeightedRandomSampler
 
 from LGD import LGD, detach_var
