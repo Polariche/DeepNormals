@@ -6,13 +6,13 @@ import torch.optim as optim
 
 from torch.utils.tensorboard import SummaryWriter
 
-from models import Siren
+from models.models import Siren
 from loaders import ObjDataset, ObjUniformSample
 from evaluate_functions import chamfer_distance, nearest_from_to, dist_from_to
 
 from torch.utils.data import  DataLoader, WeightedRandomSampler
 
-from LGD import LGD, detach_var
+from models.LGD import LGD, detach_var
 
 import argparse
 
