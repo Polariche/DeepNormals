@@ -310,7 +310,7 @@ class RandomAugment(nn.Module):
                     n = dataset['n']
                     ret['n'] = torch.cat([n, torch.zeros_like(n)])
 
-                if 'n' in dataset.keys():
+                if 's' in dataset.keys():
                     s = dataset['s']
                     ret['s'] = torch.cat([s, torch.ones_like(s)])
                 return ret
