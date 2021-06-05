@@ -50,6 +50,7 @@ def main():
 
     n = args.n
     epoch = args.epoch
+    lr = args.lr
 
     writer = SummaryWriter(args.tb_save_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
