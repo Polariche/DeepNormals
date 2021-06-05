@@ -87,7 +87,7 @@ def main():
 
     p_distribution = GridDataset(mm, mx, wh)
 
-    d = torch.ones((width*height, 1), device=device, dtype=torch.float).requires_grad_(True)
+    d = torch.zeroes((width*height, 1), device=device, dtype=torch.float).requires_grad_(True)
     
 
     sampler = nn.Sequential(UniformSample(width*height), 
