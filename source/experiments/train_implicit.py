@@ -104,7 +104,7 @@ def main():
 
     augments = nn.Sequential(ObjUniformSample(samples_n),
                              NormalPerturb(args.epsilon),
-                             RandomArgument(samples_n // 2, args.epsilon * 0.5))
+                             RandomAugument(samples_n // 2, args.epsilon * 0.5))
 
     ds = augments(ds)
 
