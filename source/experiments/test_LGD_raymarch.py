@@ -130,7 +130,7 @@ def main():
         d = detach_var(d)
         hidden = detach_var(hidden)
 
-        if i%10 == 0:
+        if i%5 == 0:
             writer.add_mesh("raymarch_LGD", torch.cat([(d * ray_n + trans + p),  x_preview]).unsqueeze(0), global_step=i)
             
         
