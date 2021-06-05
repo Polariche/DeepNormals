@@ -286,14 +286,16 @@ class RandomAugment(nn.Module):
         self.concat_original = concat_original
 
     def forward(self, dataset):
-        uniform_distribution = UniformDataset(torch.min(dataset, dim=0), torch.max(dataset, dim=0))
-        uniform_sampler = UniformSample(self.samples_n)
-        uniform_sample = uniform_sampler(uniform_distribution)
-
         if dataset is dict:
             p = dataset['p']
         else:
             p = dataset
+
+        uniform_distribution = UniformDataset(torch.min(p, dim=0), torch.max(p, dim=0))
+        uniform_sampler = UniformSample(self.samples_n)
+        uniform_sample = uniform_sampler(uniform_distribution)
+
+        
 
         dist = dist_from_to(uniform_sample, p, requires_graph=False).squeeze()
 
