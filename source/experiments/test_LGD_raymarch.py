@@ -6,11 +6,10 @@ import torch.optim as optim
 
 from torch.utils.tensorboard import SummaryWriter
 
-from models.models import Siren
-from loaders import ObjDataset, ObjUniformSample, Dataset, UniformSample, GridDataset, PointTransform
+from ..models.models import Siren
+from ..loaders import ObjDataset, ObjUniformSample, Dataset, UniformSample, GridDataset, PointTransform
+from ..models.LGD import LGD, detach_var
 from torch.utils.data import  DataLoader, WeightedRandomSampler
-
-from models.LGD import LGD, detach_var
 
 import argparse
 

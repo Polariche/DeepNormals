@@ -6,8 +6,9 @@ import torch.optim as optim
 
 from torch.utils.tensorboard import SummaryWriter
 
-from models.models import Siren
-from loaders import ObjDataset, ObjUniformSample, NormalPerturb
+from ..models.models import Siren
+from ..loaders import ObjDataset, ObjUniformSample, Dataset, UniformSample, GridDataset, PointTransform
+
 from torch.utils.data import  DataLoader, WeightedRandomSampler
 
 import argparse
