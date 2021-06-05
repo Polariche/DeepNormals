@@ -54,7 +54,6 @@ def main():
     width = args.width
     height = args.height
     epoch = args.epoch
-    lgd_step_per_epoch = args.lgd_step_per_epoch
 
     writer = SummaryWriter(args.tb_save_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
