@@ -115,8 +115,6 @@ def main():
             writer.add_scalars("regression_loss", {"LGD": loss}, global_step=i)
             writer.add_mesh("point cloud regression_LGD", x.unsqueeze(0), global_step=i)
             writer.add_scalars("chamfer_distance", {"LGD": chamfer_distance(x, p)}, global_step=i)
-
-            torch.save(lgd.state_dict(), args.weight_save_path+'lgd_%03d.pth' % epoch)
         
     writer.close()
 
