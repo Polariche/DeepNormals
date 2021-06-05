@@ -6,10 +6,14 @@ import torch.optim as optim
 
 from torch.utils.tensorboard import SummaryWriter
 
-from ..models.models import Siren
-from ..loaders import ObjDataset, ObjUniformSample
-from ..models.LGD import LGD, detach_var
-from ..evaluate_functions import chamfer_distance, nearest_from_to, dist_from_to
+import sys
+import os
+sys.path.append( os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) ) )
+
+from models.models import Siren
+from loaders import ObjDataset, ObjUniformSample, Dataset, UniformSample, GridDataset, PointTransform
+from models.LGD import LGD, detach_var
+from evaluate_functions import chamfer_distance, nearest_from_to, dist_from_to
 
 from torch.utils.data import  DataLoader, WeightedRandomSampler
 
