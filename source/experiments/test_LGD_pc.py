@@ -50,7 +50,6 @@ def main():
     args = parser.parse_args()
 
     n = args.n
-    lr = args.lr
     epoch = args.epoch
     lgd_step_per_epoch = args.lgd_step_per_epoch
 

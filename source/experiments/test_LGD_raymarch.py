@@ -53,7 +53,6 @@ def main():
 
     width = args.width
     height = args.height
-    lr = args.lr
     epoch = args.epoch
     lgd_step_per_epoch = args.lgd_step_per_epoch
 
