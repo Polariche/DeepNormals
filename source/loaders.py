@@ -303,7 +303,7 @@ class RandomAugment(nn.Module):
         if self.concat_original:
             p = torch.cat([p, uniform_sample])
 
-            if dataset is dict:
+            if type(dataset) is dict:
                 ret = {'p': p}
 
                 if 'n' in dataset.keys():
