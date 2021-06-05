@@ -6,10 +6,8 @@ import torch.optim as optim
 
 from torch.utils.tensorboard import SummaryWriter
 
-from models import Siren
-from utils import Sobel
-from loaders import ObjDataset,  ObjUniformSample, Dataset, UniformSample, GridDataset, PointTransform
-import utils
+from ../models/models import Siren
+from ../loaders import ObjDataset, ObjUniformSample, Dataset, UniformSample, GridDataset, PointTransform
 from torch.utils.data import  DataLoader, WeightedRandomSampler
 
 from LGD import LGD, detach_var
@@ -28,9 +26,8 @@ def main():
     parser.add_argument('--tb-save-path', dest='tb_save_path', metavar='PATH', default='../checkpoints/', 
                             help='tensorboard checkpoints path')
 
-    parser.add_argument('--weight-save-path', dest='weight_save_path', metavar='PATH', default='../weights/', 
-                            help='weight checkpoints path')
-
+    parser.add_argument('--lgd-weight', dest='lgd_weight', metavar='PATH', default=None, 
+                            help='pretrained weight for LGD model')
     parser.add_argument('--sdf-weight', dest='sdf_weight', metavar='PATH', default=None, 
                             help='pretrained weight for SDF model')
 
@@ -39,10 +36,6 @@ def main():
                             help='batch size')
     parser.add_argument('--epoch', dest='epoch', type=int,metavar='EPOCH', default=200, 
                             help='epochs for adam and lgd')
-    parser.add_argument('--lr', dest='lr', type=float,metavar='LEARNING_RATE', default=1e-3, 
-                            help='learning rate')
-    parser.add_argument('--lgd-step', dest='lgd_step_per_epoch', type=int,metavar='LGD_STEP_PER_EPOCH', default=5, 
-                            help='number of simulation steps of LGD per epoch')
 
     parser.add_argument('--width', dest='width', type=int,metavar='WIDTH', default=128, 
                             help='width for rendered image')
@@ -103,7 +96,7 @@ def main():
 
     d2_eval = lambda d: torch.pow(d, 2).mean()
     sdf_eval = lambda d: torch.pow(model(d * ray_n + p + trans)[0], 2).sum(dim=1).mean()
-    d_eval = lambda d: ((d / torch.abs(d) - 1)).mean() * 0.5
+    d_eval = lambda d: 0 #((d / torch.abs(d) - 1)).mean() * 0.5
 
     d2_eval_list = lambda d: d2_eval(d[0])
     sdf_eval_list = lambda d: sdf_eval(d[0])
@@ -116,28 +109,16 @@ def main():
     hidden = None
 
     lgd = LGD(1, 3, k=10).to(device)
-    lgd_optimizer = optim.Adam(lgd.parameters(), lr= lr)
 
-    # train LGD
-    lgd.train()
-    for i in range(epoch):
-        print(i)
-        # evaluate losses
-        samples_n = width*height//128
-        sample_inds = torch.randperm(width*height)[:samples_n]
+    if args.lgd_weight != None:
+        try:
+            lgd.load_state_dict(torch.load(args.lgd_weight))
+        except:
+            print("Couldn't load pretrained weight: " + args.lgd_weight)
 
-        ray_n = torch.tensor([[0,0,1]], device=device, dtype=torch.float).repeat(samples_n, 1)
-
-        sdf_eval_batch = lambda d: torch.pow(model(d * ray_n + p[sample_inds] + trans)[0], 2).sum(dim=1).mean()
-        sdf_eval_batch_list = lambda d: sdf_eval_batch(d[0])
-
-        # update lgd parameters
-        lgd_optimizer.zero_grad()
-        lgd.loss_trajectory_backward(d[sample_inds], [d2_eval_list, sdf_eval_batch_list, d_eval_list], None, 
-                                     constraints=["None", "Zero", "Positive"], batch_size=samples_n, steps=lgd_step_per_epoch)
-        lgd_optimizer.step()
 
     ray_n = torch.tensor([[0,0,1]], device=device, dtype=torch.float).repeat(width*height, 1)
+
     # test LGD
     lgd.eval()
     for i in range(epoch):
@@ -150,6 +131,7 @@ def main():
 
         if i%10 == 0:
             writer.add_mesh("point cloud regression_LGD", torch.cat([(d * ray_n + trans + p),  x_preview]).unsqueeze(0), global_step=i)
+            torch.save(lgd.state_dict(), args.weight_save_path+'lgd_%03d.pth' % epoch)
         
     writer.close()
 
