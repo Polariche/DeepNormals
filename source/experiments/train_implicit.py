@@ -103,14 +103,10 @@ def main():
     samples_n = 20000
 
     augments = nn.Sequential(ObjUniformSample(samples_n),
-                             NormalPerturb(args.epsilon))
+                             NormalPerturb(args.epsilon),
+                             RandomAugment(samples_n, args.epsilon * 0.5)(ds))
 
     ds = augments(ds)
-
-    print(ds)
-
-    ds = RandomAugment(samples_n, args.epsilon * 0.5)(ds)
-    print(ds)
 
     p_aug = ds['p'].detach_().to(device)
     n_aug = ds['n'].detach_().to(device)
