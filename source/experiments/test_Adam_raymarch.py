@@ -104,6 +104,8 @@ def main():
     d_eval_list = lambda d: d_eval(d[0])
 
 
+    ray_n = torch.tensor([[0,0,1]], device=device, dtype=torch.float).repeat(width*height, 1)
+
     writer.add_mesh("preview", torch.cat([(p + trans),  x_preview]).unsqueeze(0), global_step=0)
 
     print("adam")
