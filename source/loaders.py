@@ -133,7 +133,7 @@ class UniformDataset(Dataset):
         self.mx = mx
 
     def __getitem__(self, idx):
-        return torch.rand(1,self.dim, device=self.device) * (self.mx - self.mm) + self.mm
+        return torch.rand(1,self.dim, device=self.device) * (self.mx - self.mm).unsqueeze(0) + self.mm.unsqueeze(0)
 
 
 class GridDataset(Dataset):

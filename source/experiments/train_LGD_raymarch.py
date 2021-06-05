@@ -41,7 +41,7 @@ def main():
                             help='epochs for adam and lgd')
     parser.add_argument('--lr', dest='lr', type=float,metavar='LEARNING_RATE', default=5e-3, 
                             help='learning rate')
-    parser.add_argument('--lgd-step', dest='lgd_step_per_epoch', type=int,metavar='LGD_STEP_PER_EPOCH', default=5, 
+    parser.add_argument('--lgd-step', dest='lgd_step_per_epoch', type=int,metavar='LGD_STEP_PER_EPOCH', default=10, 
                             help='number of simulation steps of LGD per epoch')
 
     parser.add_argument('--width', dest='width', type=int,metavar='WIDTH', default=128, 
