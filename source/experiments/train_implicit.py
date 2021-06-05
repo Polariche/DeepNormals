@@ -133,10 +133,10 @@ def main():
         utils.model_train(model)
         loss_t, s, n = train(device, model, p_aug, s_aug, n_aug, backward=True, lamb= args.lamb, use_abs=args.abs)
 
-        loss_x = 1e2 * torch.sum(torch.pow(p_aug - p_gt, 2))
-        loss_x.backward()
+        #loss_x = 1e2 * torch.sum(torch.pow(p_aug - p_gt, 2))
+        #loss_x.backward()
 
-        writer.add_scalars("loss", {'train': loss_t + loss_x.detach()}, epoch)
+        #writer.add_scalars("loss", {'train': loss_t + loss_x.detach()}, epoch)
 
         # visualization
         with torch.no_grad():
