@@ -28,9 +28,6 @@ def main():
 
     parser.add_argument('--tb-save-path', dest='tb_save_path', metavar='PATH', default='../checkpoints/', 
                             help='tensorboard checkpoints path')
-
-    parser.add_argument('--lgd-weight', dest='lgd_weight', metavar='PATH', default=None, 
-                            help='pretrained weight for LGD model')
     parser.add_argument('--sdf-weight', dest='sdf_weight', metavar='PATH', default=None, 
                             help='pretrained weight for SDF model')
 
@@ -44,6 +41,8 @@ def main():
                             help='width for rendered image')
     parser.add_argument('--height', dest='height', type=int,metavar='HEIGHT', default=128, 
                             help='height for rendered image')
+    parser.add_argument('--lr', dest='lr', type=float,metavar='LEARNING_RATE', default=1e-3, 
+                            help='learning rate')
 
     parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE', 
                             help='output file')
@@ -53,6 +52,7 @@ def main():
     width = args.width
     height = args.height
     epoch = args.epoch
+    lr = args.lr
 
     writer = SummaryWriter(args.tb_save_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
