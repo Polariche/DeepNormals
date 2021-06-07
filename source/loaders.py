@@ -6,12 +6,14 @@ from torch.utils.data import  Dataset, DataLoader, WeightedRandomSampler
 import re
 import warnings
 
+import pickle
 from evaluate_functions import dist_from_to
 from torch.utils.tensorboard import SummaryWriter
 import argparse
 
 
 class ObjDataset(Dataset):
+    # reads an obj file, and outputs a single point sampled at i-th face
 
     @torch.no_grad()
     def __init__(self, obj_path):
@@ -121,6 +123,40 @@ class ObjDataset(Dataset):
         #obj = obj_file.read()
         obj_file.close()
 
+class PlyDataset(Dataset):
+    def __init__(self):
+        raise NotImplementedError
+
+class PSGDataset(Dataset):
+    # Dataset for (2D img, ground PC data, predicted PC)
+
+    def __init__(self, data_path):
+        self.img_2d = []
+        self.pc_gt = []
+        self.pc_pred = []
+        self.n = 0
+
+        with open(data_path, 'r') as f:
+            while True:
+                try:
+                    (i,img_,pc_gt_,pc_pred_) = pickle.load(f)
+                    self.img.append(img_)
+                    self.pc_gt.append(torch.tensor(pc_gt_))
+                    self.pc_pred.append(torch.tensor(pc_pred_))
+
+                except EOFError:
+                    break
+
+                self.n = self.n + 1
+
+    def __len__(self):
+        return self.n
+
+    def __getitem__(self, idx):
+        return {'img': self.img[idx], 
+                'pc_gt': self.pc_gt[idx], 
+                'pc_pred': self.pc_pred[idx]}
+        
 
 class UniformDataset(Dataset):
     def __init__(self, mm, mx):
@@ -133,7 +169,7 @@ class UniformDataset(Dataset):
         self.mx = mx
 
     def __getitem__(self, idx):
-        return torch.rand(1,self.dim, device=self.device) * (self.mx - self.mm).unsqueeze(0) + self.mm.unsqueeze(0)
+        return torch.rand(self.dim, device=self.device) * (self.mx - self.mm) + self.mm
 
 
 class GridDataset(Dataset):
