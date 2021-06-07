@@ -1,0 +1,3 @@
+[submodule "source/baselines/siren"]
+	path = source/baselines/siren
+	url = https://github.com/vsitzmann/siren.git
