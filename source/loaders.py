@@ -131,15 +131,15 @@ class PSGDataset(Dataset):
     # Dataset for (2D img, ground PC data, predicted PC)
 
     def __init__(self, data_path):
-        self.img_2d = []
+        self.img = []
         self.pc_gt = []
         self.pc_pred = []
         self.n = 0
 
-        with open(data_path, 'r') as f:
+        with open(data_path, 'rb') as f:
             while True:
                 try:
-                    (i,img_,pc_gt_,pc_pred_) = pickle.load(f)
+                    (i,img_,pc_gt_,pc_pred_) = pickle.load(f, encoding='latin1')
                     self.img.append(img_)
                     self.pc_gt.append(torch.tensor(pc_gt_))
                     self.pc_pred.append(torch.tensor(pc_pred_))
