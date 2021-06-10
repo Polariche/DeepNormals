@@ -36,9 +36,6 @@ def main():
     parser.add_argument('--weight-save-path', dest='weight_save_path', metavar='PATH', default='../weights/', 
                             help='weight checkpoints path')
 
-    parser.add_argument('--sdf-weight', dest='sdf_weight', metavar='PATH', default=None, 
-                            help='pretrained weight for SDF model')
-
 
     parser.add_argument('--batchsize', dest='batchsize', type=int, metavar='BATCHSIZE', default=1,
                             help='batch size')
@@ -64,19 +61,6 @@ def main():
     writer = SummaryWriter(args.tb_save_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    # create models
-    model = Siren(in_features=3, out_features=1, hidden_features=256, hidden_layers=5, outermost_linear=True).to(device) 
-
-    if args.sdf_weight != None:
-        try:
-            model.load_state_dict(torch.load(args.sdf_weight))
-        except:
-            print("Couldn't load pretrained weight: " + args.sdf_weight)
-
-    model.eval() 
-    for param in model.parameters():
-        param.requires_grad = False
-
     
     ds = PSGDataset(args.data)
 
@@ -97,7 +81,7 @@ def main():
     for i in range(epoch):
         print(i)
         # evaluate losses
-        
+
         # update lgd parameters
         lgd_optimizer.zero_grad()
         lgd.loss_trajectory_backward(x, [chamfer_dist_list], None, 
