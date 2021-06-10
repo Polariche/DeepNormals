@@ -63,7 +63,7 @@ namespace {
 
       // compute dist
       // tx points to x, ty points to y
-      for (int j=0;j<c;j++) {
+      for (int j=0;j<SUBMATRIX_SIZE;j++) {
         temp = xs[tx][j] - ys[ty][j];
         sum += temp*temp;
       }
