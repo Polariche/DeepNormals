@@ -195,8 +195,8 @@ std::vector<torch::Tensor> knn_cuda_forward(
   const int sm = SUBMATRIX_SIZE;
   const int sm2 = SUBMATRIX_SIZE*SUBMATRIX_SIZE;
 
-  const dim3 d_blocks(nx/sm + nx%sm?1:0, ny/sm + ny%sm?1:0, 1);
-  const dim3 s_blocks(nx/sm2 + nx%sm2?1:0, 1, 1);
+  const dim3 d_blocks(nx/sm + (nx%sm?1:0), ny/sm + (ny%sm?1:0), 1);
+  const dim3 s_blocks(nx/sm2 + (nx%sm2?1:0), 1, 1);
 
   const dim3 d_threads(sm, sm, 1);
   const dim3 s_threads(sm2, 1, 1);
@@ -257,7 +257,7 @@ std::vector<torch::Tensor> knn_cuda_backward(
   const int sm = SUBMATRIX_SIZE;
   const int sm2 = SUBMATRIX_SIZE*SUBMATRIX_SIZE;
 
-  const dim3 s_blocks(nx/sm2 + nx%sm2?1:0, 1, 1);
+  const dim3 s_blocks(nx/sm2 + (nx%sm2)?1:0, 1, 1);
   const int threads = sm2;
 
   AT_DISPATCH_FLOATING_TYPES(x.type(), "dist_backward_cuda", ([&] {
