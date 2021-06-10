@@ -65,8 +65,10 @@ def main():
     
     ds = PSGDataset(args.data)
 
-    x = torch.cat([ds[i]['pc_pred'] for i in range(len(ds))])
-    x_gt = torch.cat([ds[i]['pc_gt'] for i in range(len(ds))])
+    x = torch.cat([ds[i]['pc_pred'] for i in range(len(ds))], dim=0)
+    x_gt = torch.cat([ds[i]['pc_gt'] for i in range(len(ds))], dim=0)
+
+    print(x.shape, x_gt.shape)
 
     knn_f = knn.apply
 
