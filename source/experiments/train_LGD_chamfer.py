@@ -15,7 +15,7 @@ from loaders import PSGDataset
 from models.LGD import LGD, detach_var
 from evaluate_functions import chamfer_distance, nearest_from_to, dist_from_to
 
-import knn_cuda
+from knn_cuda.knn import knn
 
 from torch.utils.data import  DataLoader, WeightedRandomSampler
 
@@ -67,7 +67,7 @@ def main():
     x = torch.cat([ds[i]['pc_pred'] for i in range(len(ds))])
     x_gt = torch.cat([ds[i]['pc_gt'] for i in range(len(ds))])
 
-    knn_f = knn_cuda.knn.apply
+    knn_f = knn.apply
 
     chamfer_dist = lambda x, y: knn_f(x, y, 1).mean() + knn_f(y, x, 1).mean()
     chamfer_dist_list = lambda x: sum([chamfer_dist(x[i * 1024:i * 1024 + 1024], x_gt[i * 1024:i * 1024 + 1024]) for i in range(len(ds))])
