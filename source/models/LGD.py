@@ -190,9 +190,11 @@ class LGD(nn.Module):
         for loss_f in losses:
             loss = loss_f(targets)
             targets_grad_l = torch.autograd.grad(loss, targets, grad_outputs=[torch.ones_like(loss) for _ in range(t)], create_graph=False)
-            targets_grad_l = [torch.nan_to_num(grad.view(n, -1), nan=0.0) for grad in targets_grad_l]
+            targets_grad_l = [grad.view(n, -1) for grad in targets_grad_l]
             targets_grad = torch.cat([targets_grad, *targets_grad_l], dim=1)
  
+        targets_grad[torch.isnan(targets_grad)] = 0
+        
         if self.concat_input:
             targets = [target.view(n, -1) for target in targets]
             x = torch.cat([*targets, targets_grad], dim=1)
