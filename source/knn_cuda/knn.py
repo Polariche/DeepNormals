@@ -19,8 +19,8 @@ class knn(torch.autograd.Function):
 
 
 if __name__ == "__main__":
-    x = torch.randn(3,2).cuda().requires_grad_()
-    y = torch.randn(3,2).cuda().requires_grad_()
+    x = torch.randn(33,2).cuda().requires_grad_()
+    y = torch.randn(33,2).cuda().requires_grad_()
     k = 3
 
 
