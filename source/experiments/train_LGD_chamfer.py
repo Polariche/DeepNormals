@@ -64,11 +64,11 @@ def main():
     
     ds = PSGDataset(args.data)
 
-    x = [ds[i]['pc_pred'] for i in range(len(ds))]
-    x_gt = [ds[i]['pc_gt'] for i in range(len(ds))]
+    x = torch.cat([ds[i]['pc_pred'] for i in range(len(ds))])
+    x_gt = torch.cat([ds[i]['pc_gt'] for i in range(len(ds))])
 
     chamfer_dist = lambda x, y: knn_cuda(x, y, 1).mean() + knn_cuda(y, x, 1).mean()
-    chamfer_dist_list = lambda x: sum([chamfer_dist(x[i], x_gt[i]) for i in range(len(ds))])
+    chamfer_dist_list = lambda x: sum([chamfer_dist(x[i * 1024:i * 1024 + 1024], x_gt[i * 1024:i * 1024 + 1024]) for i in range(len(ds))])
 
     print("lgd")
     hidden = None
@@ -85,7 +85,7 @@ def main():
         # update lgd parameters
         lgd_optimizer.zero_grad()
         lgd.loss_trajectory_backward(x, [chamfer_dist_list], None, 
-                                     constraints=["None"], batch_size=1024, steps=lgd_step_per_epoch)
+                                     constraints=["None"], batch_size=1024 * len(ds), steps=lgd_step_per_epoch)
         lgd_optimizer.step()
 
         torch.save(lgd.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
