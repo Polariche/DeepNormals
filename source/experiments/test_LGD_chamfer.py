@@ -34,8 +34,8 @@ def main():
     parser.add_argument('--tb-save-path', dest='tb_save_path', metavar='PATH', default='../checkpoints/', 
                             help='tensorboard checkpoints path')
 
-    parser.add_argument('--weight-save-path', dest='weight_save_path', metavar='PATH', default='../weights/', 
-                            help='weight checkpoints path')
+    parser.add_argument('--lgd-weight', dest='weight_save_path', metavar='PATH', default='../weights/', 
+                            help='pretrained weight for LGD model')
 
     parser.add_argument('--idx', dest='idx', metavar='INDEX', type=int, default=0, 
                             help='index to test')
