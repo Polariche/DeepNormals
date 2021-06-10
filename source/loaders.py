@@ -148,6 +148,9 @@ class PSGDataset(Dataset):
                     break
 
                 self.n = self.n + 1
+        
+        print(pc_gt[0].shape)
+        print(pc_pred[0].shape)
 
     def __len__(self):
         return self.n
