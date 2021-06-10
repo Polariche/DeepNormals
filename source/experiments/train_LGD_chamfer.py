@@ -67,7 +67,9 @@ def main():
     x = torch.cat([ds[i]['pc_pred'] for i in range(len(ds))])
     x_gt = torch.cat([ds[i]['pc_gt'] for i in range(len(ds))])
 
-    chamfer_dist = lambda x, y: knn_cuda(x, y, 1).mean() + knn_cuda(y, x, 1).mean()
+    knn_f = knn_cuda.apply
+    
+    chamfer_dist = lambda x, y: knn_f(x, y, 1).mean() + knn_f(y, x, 1).mean()
     chamfer_dist_list = lambda x: sum([chamfer_dist(x[i * 1024:i * 1024 + 1024], x_gt[i * 1024:i * 1024 + 1024]) for i in range(len(ds))])
 
     print("lgd")
