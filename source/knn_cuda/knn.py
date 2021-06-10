@@ -21,12 +21,12 @@ class knn(torch.autograd.Function):
 if __name__ == "__main__":
     x = torch.randn(33,2).cuda().requires_grad_()
     y = torch.randn(33,2).cuda().requires_grad_()
-    k = 3
+    k = 33
 
 
     torch.sqrt(torch.pow(x.unsqueeze(0) - y.unsqueeze(1), 2).sum(dim=2)).sum().backward()
 
-    print(x.grad, y.grad)
+    #print(x.grad, y.grad)
 
     x.grad = None
     y.grad = None
@@ -34,8 +34,8 @@ if __name__ == "__main__":
     knn_f = knn.apply
     dist = knn_f(x,y,k)
     dist.sum().backward()
-
-    print(x.grad, y.grad)
+    print(dist)
+    #print(x.grad, y.grad)
 
 
 

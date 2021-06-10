@@ -32,17 +32,17 @@ namespace {
     const int ty = threadIdx.y;
 
     // for copying
-    const int m = blockIdx.x * blockDim.x + tx;
-    const int n = blockIdx.y * blockDim.y + tx;
+    const int m = blockIdx.x * SUBMATRIX_SIZE + tx;
+    const int n = blockIdx.y * SUBMATRIX_SIZE + tx;
 
     int m_within = m < nx;
     int n_within = n < ny;
 
     // for computation
-    const int a = blockIdx.x * blockDim.x + tx;
-    const int b = blockIdx.y * blockDim.y + ty;
+    const int a = blockIdx.x * SUBMATRIX_SIZE + tx;
+    const int b = blockIdx.y * SUBMATRIX_SIZE + ty;
 
-    // is my location within the boundary, which is indicated by nx and ny?
+    // is my location within the boundary, indicated by nx and ny?
     int a_within = a < nx;
     int b_within = b < ny;
 
@@ -72,7 +72,7 @@ namespace {
     }
 
     if (a_within && b_within)
-      dist[a][b] = sqrt(sum);
+      dist[a][b] = a * ny + b;//sqrt(sum);
 
   }
 
@@ -113,7 +113,7 @@ namespace {
           }
         }
         
-        if (dist[i][ws] > cur_dist) {
+        if (dist[i][ws] >= cur_dist) {
           // shift everything
           we = j < k-1? j : k-1;
           for (w=we;w>ws;w--) {
