@@ -65,7 +65,7 @@ def main():
     
     ds = PSGDataset(args.data)
 
-    x = torch.cat([ds[i]['pc_pred'] for i in range(len(ds))], dim=0).to(device)
+    x = torch.cat([ds[i]['pc_pred'] for i in range(len(ds))], dim=0).to(device).requires_grad_()
     x_gt = torch.cat([ds[i]['pc_gt'] for i in range(len(ds))], dim=0).to(device)
 
     knn_f = knn.apply
