@@ -37,6 +37,9 @@ def main():
     parser.add_argument('--weight-save-path', dest='weight_save_path', metavar='PATH', default='../weights/', 
                             help='weight checkpoints path')
 
+    parser.add_argument('--idx', dest='idx', metavar='INDEX', type=int, default=0, 
+                            help='index to test')
+
 
     parser.add_argument('--batchsize', dest='batchsize', type=int, metavar='BATCHSIZE', default=1,
                             help='batch size')
@@ -58,6 +61,7 @@ def main():
     lr = args.lr
     epoch = args.epoch
     lgd_step_per_epoch = args.lgd_step_per_epoch
+    idx = args.idx
 
     writer = SummaryWriter(args.tb_save_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -65,13 +69,13 @@ def main():
     
     ds = PSGDataset(args.data)
 
-    x = torch.cat([ds[i]['pc_pred'] for i in range(len(ds))], dim=0).to(device).requires_grad_()
-    x_gt = torch.cat([ds[i]['pc_gt'] for i in range(len(ds))], dim=0).to(device)
+    x = ds[idx]['pc_pred'].to(device).requires_grad_()
+    x_gt = ds[idx]['pc_gt'].to(device)
 
     knn_f = knn.apply
 
     chamfer_dist = lambda x, y: knn_f(x, y, 1).mean() + knn_f(y, x, 1).mean()
-    chamfer_dist_list = lambda x: sum([chamfer_dist(x[0][i * 1024:i * 1024 + 1024], x_gt[i * 16384:i * 16384 + 16384]) for i in range(len(ds))])
+    chamfer_dist_list = lambda x: sum([chamfer_dist(x[0][i * 1024:i * 1024 + 1024], x_gt[i * 16384:i * 16384 + 16384]) for i in range(1)])
 
     print("lgd")
     hidden = None
