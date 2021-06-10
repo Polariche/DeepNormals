@@ -64,7 +64,7 @@ namespace {
       // compute dist
       // tx points to x, ty points to y
       for (int j=0;j<c;j++) {
-        temp = xs[a][j] - ys[b][j];
+        temp = xs[tx][j] - ys[ty][j];
         sum += temp*temp;
       }
 
