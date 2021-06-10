@@ -93,7 +93,7 @@ def main():
     lgd.eval()
     for i in range(epoch):
         # evaluate losses
-        loss = chamfer_dist(x).mean()
+        loss = chamfer_dist(x, x_gt).mean()
         # update x
         [x], hidden = lgd.step(x, [chamfer_dist_list], hidden, n)
         x = detach_var(x)
