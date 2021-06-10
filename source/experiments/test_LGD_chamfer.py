@@ -74,7 +74,7 @@ def main():
 
     knn_f = knn.apply
 
-    chamfer_dist = lambda x, y: knn_f(x, y, 1).mean() + knn_f(y, x, 1).mean()
+    chamfer_dist = lambda x, y: knn_f(x, y, 1).mean()# + knn_f(y, x, 1).mean()
     chamfer_dist_list = lambda x: sum([chamfer_dist(x[0][i * 1024:i * 1024 + 1024], x_gt[i * 16384:i * 16384 + 16384]) for i in range(1)])
 
     print("lgd")
@@ -94,6 +94,7 @@ def main():
     for i in range(epoch):
         # evaluate losses
         loss = chamfer_dist(x, x_gt).mean()
+        print(torch.autograd.grad(loss, x, grad_outputs=[torch.ones_like(loss)], create_graph=False))
         # update x
         [x], hidden = lgd.step(x, [chamfer_dist_list], hidden, 1024)
         x = detach_var(x)

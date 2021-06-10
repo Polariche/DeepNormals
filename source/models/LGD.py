@@ -194,7 +194,8 @@ class LGD(nn.Module):
             targets_grad = torch.cat([targets_grad, *targets_grad_l], dim=1)
  
         targets_grad[torch.isnan(targets_grad)] = 0
-        
+        targets_grad[torch.isinf(targets_grad)] = 0
+
         if self.concat_input:
             targets = [target.view(n, -1) for target in targets]
             x = torch.cat([*targets, targets_grad], dim=1)
