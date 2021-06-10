@@ -95,7 +95,7 @@ def main():
         # evaluate losses
         loss = chamfer_dist(x, x_gt).mean()
         # update x
-        [x], hidden = lgd.step(x, [chamfer_dist_list], hidden, n)
+        [x], hidden = lgd.step(x, [chamfer_dist_list], hidden, 1024)
         x = detach_var(x)
         hidden = detach_var(hidden)
 
