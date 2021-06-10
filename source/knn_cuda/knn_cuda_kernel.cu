@@ -28,8 +28,8 @@ namespace {
     scalar_t sum = 0;
 
     // locate my dim & ind
-    const int tx = threadIdx.x % SUBMATRIX_SIZE;
-    const int ty = threadIdx.x / SUBMATRIX_SIZE;
+    const int tx = threadIdx.x;
+    const int ty = threadIdx.y;
 
     // for copying
     const int m = blockIdx.x * blockDim.x + tx;
@@ -198,12 +198,12 @@ std::vector<torch::Tensor> knn_cuda_forward(
   const dim3 d_blocks(nx/sm + nx%sm?1:0, ny/sm + ny%sm?1:0, 1);
   const dim3 s_blocks(nx/sm2 + nx%sm2?1:0, 1, 1);
 
-  const int threads = sm2;
-
+  const dim3 d_threads(sm, sm, 1);
+  const dim3 s_threads(sm2, 1, 1);
 
   // compute distance
   AT_DISPATCH_FLOATING_TYPES(x.type(), "dist_forward_cuda", ([&] {
-    dist_cuda_forward_kernel<scalar_t><<<d_blocks, threads>>>(
+    dist_cuda_forward_kernel<scalar_t><<<d_blocks, d_threads>>>(
         x.packed_accessor<scalar_t,2,torch::RestrictPtrTraits,size_t>(),
         y.packed_accessor<scalar_t,2,torch::RestrictPtrTraits,size_t>(),
         nx,
@@ -216,7 +216,7 @@ std::vector<torch::Tensor> knn_cuda_forward(
 
   // sort
   AT_DISPATCH_FLOATING_TYPES(dist_origin.type(), "sort_cuda", ([&] {
-    sort_cuda_kernel<scalar_t><<<s_blocks, threads>>>(
+    sort_cuda_kernel<scalar_t><<<s_blocks, s_threads>>>(
         nx,
         ny,
         cx,
