@@ -73,7 +73,7 @@ def main():
     knn_f = knn.apply
 
     chamfer_dist = lambda x, y: knn_f(x, y, 1).mean() + knn_f(y, x, 1).mean()
-    chamfer_dist_list = lambda x: sum([chamfer_dist(x[i * 1024:i * 1024 + 1024], x_gt[i * 16384:i * 16384 + 16384]) for i in range(len(ds))])
+    chamfer_dist_list = lambda x: sum([chamfer_dist(x[0][i * 1024:i * 1024 + 1024], x_gt[i * 16384:i * 16384 + 16384]) for i in range(len(ds))])
 
     print("lgd")
     hidden = None
