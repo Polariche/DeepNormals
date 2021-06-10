@@ -72,7 +72,7 @@ namespace {
     }
 
     if (a_within && b_within)
-      dist[a][b] = a * ny + b;//sqrt(sum);
+      dist[a][b] = sqrt(sum);
 
   }
 
