@@ -15,13 +15,14 @@ from loaders import PSGDataset
 from models.LGD import LGD, detach_var
 from evaluate_functions import chamfer_distance, nearest_from_to, dist_from_to
 
-from knn.knn import knn
+from knn import knn
 
 from torch.utils.data import  DataLoader, WeightedRandomSampler
 
 import argparse
 
 from sklearn.neighbors import KDTree
+
 
 
 def main():
