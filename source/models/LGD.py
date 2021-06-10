@@ -23,13 +23,15 @@ def knn(x, k=10, return_dist=False):
         return ind
 
 def graph_features(x, k=10):
-    n = x.shape[0]
+    n = x.shape[-2]
     ind = knn(x, k)
 
-    x_ = x.unsqueeze(1).repeat(1,k,1)
-    feat = torch.cat([x[ind] - x_, x_], dim=2)
+    ones = [1]*(len(x.shape)-1)
 
-    return feat.view(n*k, -1)
+    x_ = x.unsqueeze(-2).repeat(*ones,k,1)
+    feat = torch.cat([x[ind] - x_, x_], dim=-1)
+
+    return feat.view(*x.shape[:-2], n*k, -1)
     
 
 
@@ -48,7 +50,7 @@ class EdgeConv(nn.Module):
 
     def forward(self, x):
         k = self.k
-        n = x.shape[0]                                      # n x c
+        n = x.shape[-2]                                      # n x c
 
         #x = graph_features(x, k=k)                          # (n*k) x c
         x = self.layers(x)                                   # (n*k) x c'
