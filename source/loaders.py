@@ -141,8 +141,8 @@ class PSGDataset(Dataset):
                 try:
                     (i,img_,pc_gt_,pc_pred_) = pickle.load(f, encoding='latin1')
                     self.img.append(img_)
-                    self.pc_gt.append(torch.tensor(pc_gt_))
-                    self.pc_pred.append(torch.tensor(pc_pred_))
+                    self.pc_gt.append(torch.tensor(pc_gt_).squeeze())
+                    self.pc_pred.append(torch.tensor(pc_pred_).squeeze())
 
                 except EOFError:
                     break
