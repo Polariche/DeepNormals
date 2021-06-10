@@ -68,7 +68,7 @@ def main():
     x = torch.cat([ds[i]['pc_pred'] for i in range(len(ds))], dim=0)
     x_gt = torch.cat([ds[i]['pc_gt'] for i in range(len(ds))], dim=0)
 
-    print(x[i * 1024:i * 1024 + 1024])
+    print(x[:1024])
 
     knn_f = knn.apply
 
