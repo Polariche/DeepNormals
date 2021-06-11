@@ -90,8 +90,7 @@ def main():
                                      constraints=["None"], batch_size=1024 * len(ds), steps=lgd_step_per_epoch)
         lgd_optimizer.step()
 
-        print(i, loss_sum.item())
-
+        writer.add_scalars("train_loss", {"LGD": loss_sum.detach().item()}, global_step=i)
         torch.save(lgd.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
         
     writer.close()
