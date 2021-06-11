@@ -94,7 +94,8 @@ def main():
     for i in range(epoch):
         # evaluate losses
         loss = chamfer_dist(x, x_gt).mean()
-        print(torch.autograd.grad(loss, x, grad_outputs=[torch.ones_like(loss)], create_graph=False))
+        if i < 5:
+            print(torch.autograd.grad(loss, x, grad_outputs=[torch.ones_like(loss)], create_graph=False))
         # update x
         [x], hidden = lgd.step(x, [chamfer_dist_list], hidden, 1024)
         x = detach_var(x)

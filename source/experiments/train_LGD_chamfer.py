@@ -82,14 +82,15 @@ def main():
     # train LGD
     lgd.train()
     for i in range(epoch):
-        print(i)
         # evaluate losses
 
         # update lgd parameters
         lgd_optimizer.zero_grad()
-        lgd.loss_trajectory_backward(x, [chamfer_dist_list], None, 
+        loss_sum, _, _ = lgd.loss_trajectory_backward(x, [chamfer_dist_list], None, 
                                      constraints=["None"], batch_size=1024 * len(ds), steps=lgd_step_per_epoch)
         lgd_optimizer.step()
+
+        print(i, loss_sum.item())
 
         torch.save(lgd.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
         
