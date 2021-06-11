@@ -72,7 +72,7 @@ namespace {
     }
 
     if (a_within && b_within)
-      dist[a][b] = sqrt(sum);
+      dist[a][b] = sum; //sqrt(sum);
 
   }
 
@@ -156,7 +156,7 @@ namespace {
 
     if (i < nx) {
       for (j = 0; j<k; j++) {
-        scalar_t g = (1 / dist[i][j]) * d_dist[i][j];   // d(dist)^2 / d(dist) * dL / d(dist); chain rule
+        scalar_t g = d_dist[i][j];   // dL / d(dist^2); chain rule
         int t = (int) ind[i][j];
 
         for (w=0; w<c; w++) {
