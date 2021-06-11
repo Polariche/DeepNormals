@@ -88,9 +88,12 @@ def main():
         lgd_optimizer.zero_grad()
         loss_sum, _, _ = lgd.loss_trajectory_backward(x, [chamfer_dist_list], None, 
                                      constraints=["None"], batch_size=1024 * len(ds), steps=lgd_step_per_epoch)
+        
         lgd_optimizer.step()
 
-        writer.add_scalars("train_loss", {"LGD": loss_sum.detach().item()}, global_step=i)
+        loss_sum.detach_()
+        print(i, loss_sum)
+        writer.add_scalars("train_loss", {"LGD": loss_sum}, global_step=i)
         torch.save(lgd.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
         
     writer.close()
