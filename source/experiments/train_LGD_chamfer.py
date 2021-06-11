@@ -83,11 +83,13 @@ def main():
     lgd.train()
     for i in range(epoch):
         # evaluate losses
+        rands = [torch.randperm(1024)[:256] for i in range(len(ds))]
+        chamfer_dist_small_list = lambda x: sum([chamfer_dist(x[0][i * 1024 + rands[i]], x_gt[i * 16384:i * 16384 + 16384]) for i in range(len(ds))])
 
         # update lgd parameters
         lgd_optimizer.zero_grad()
-        loss_sum, _, _ = lgd.loss_trajectory_backward(x, [chamfer_dist_list], None, 
-                                     constraints=["None"], batch_size=1024 * len(ds), steps=lgd_step_per_epoch)
+        loss_sum, _, _ = lgd.loss_trajectory_backward(x, [chamfer_dist_small_list], None, 
+                                     constraints=["None"], batch_size=256 * len(ds), steps=lgd_step_per_epoch)
         
         lgd_optimizer.step()
 
