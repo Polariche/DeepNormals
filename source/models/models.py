@@ -272,7 +272,7 @@ class PointSetGenerator(nn.Module):
 
         #24 32
         self.block3 = nn.Sequential(Conv2d_relu(128, 128, (3,3), stride=1),
-                                    Conv2d_relu(128, 128, (3,3), stride=1)
+                                    Conv2d_relu(128, 128, (3,3), stride=1))
         self.block3_cont = Conv2d_relu(128, 256, (3,3), stride=2))
 
         #12 16
