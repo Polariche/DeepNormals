@@ -225,14 +225,12 @@ class LGD(nn.Module):
         # lr[:, self.num_losses:] = evaluation rate (lambda)
 
         d_target = (lr[:,:self.num_losses].unsqueeze(-1) * dx).sum(dim=1)
-
-        new_targets = []
         k = 0
  
         for target in targets:
             d = target.shape[1]
  
-            target.dx = d_target[:,k:k+d]
+            target.grad = d_target[:,k:k+d]
  
             k += d
 
