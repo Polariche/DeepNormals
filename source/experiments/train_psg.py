@@ -62,7 +62,7 @@ def main():
     knn_f = knn.apply
     chamfer_dist = lambda x, y: knn_f(x, y, 1).mean() + knn_f(y, x, 1).mean()
 
-    psg = PointSetGenerator()
+    psg = PointSetGenerator().to(device)
 
     optimizer = optim.Adam(psg.parameters(), lr = lr)
     psg.train()
