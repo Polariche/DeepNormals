@@ -23,7 +23,7 @@ import argparse
 
 from sklearn.neighbors import KDTree
 
-class VanilaOptimizer(Optimizer):
+class VanilaOptimizer(optim.Optimizer):
     def __init__(self, params):
         defaults = dict()
         super(VanilaOptimizer, self).__init__(params, defaults)
