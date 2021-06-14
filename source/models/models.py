@@ -332,6 +332,7 @@ class PointSetGenerator(nn.Module):
 
         x = self.trans5(x)
         x5 = self.conv5(x5)
+        print(x.shape, x5.shape)
         x = F.relu(x + x5)
 
         x = self.trans4(x)
