@@ -208,7 +208,34 @@ class LGD(nn.Module):
         lr, hidden = self.layers(x, hidden)
  
         return lr, hidden, x
+    
+    def learned_gradient(self, targets, losses, hidden=None, batch_size=1, return_lr=False):
+        if type(targets) is not list:
+            targets = [targets]
+        if type(losses) is not list:
+            losses = [losses]
+
+        lr, hidden, dx = self(targets, losses, hidden, batch_size)
+
+        idx_start = self.dim_targets if self.concat_input else 0
+
+        dx = dx[:,idx_start:].view(batch_size, self.num_losses, self.dim_targets)
+
+        # lr[:, :self.num_losses] = learning rate (sigma)
+        # lr[:, self.num_losses:] = evaluation rate (lambda)
+
+        d_target = (lr[:,:self.num_losses].unsqueeze(-1) * dx).sum(dim=1)
+
+        new_targets = []
+        k = 0
  
+        for target in targets:
+            d = target.shape[1]
+ 
+            target.dx = d_target[:,k:k+d]
+ 
+            k += d
+
  
     def step(self, targets, losses, hidden=None, batch_size=1, return_lr=False):
         if type(targets) is not list:
