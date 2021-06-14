@@ -114,9 +114,10 @@ def main():
 
         optimizer.step()
 
-        print(i, loss(y))
+        loss_eval = loss(y)
+        print(i, loss_eval.item())
 
-        writer.add_scalars("train_loss", {"Adam": loss}, global_step=i)
+        writer.add_scalars("train_loss", {"Adam": loss_eval}, global_step=i)
         torch.save(psg.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
         
     writer.close()
