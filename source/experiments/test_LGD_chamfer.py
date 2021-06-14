@@ -10,7 +10,6 @@ import sys
 import os
 sys.path.append( os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) ) )
 
-from models.models import Siren
 from loaders import PSGDataset
 from models.LGD import LGD, detach_var
 from evaluate_functions import chamfer_distance, nearest_from_to, dist_from_to
@@ -49,15 +48,12 @@ def main():
                             help='learning rate')
     parser.add_argument('--lgd-step', dest='lgd_step_per_epoch', type=int,metavar='LGD_STEP_PER_EPOCH', default=5, 
                             help='number of simulation steps of LGD per epoch')
-    parser.add_argument('--n', dest='n', type=int,metavar='N', default=30000, 
-                            help='number of points to sample')
 
     parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE', 
                             help='output file')
 
     args = parser.parse_args()
 
-    n = args.n
     lr = args.lr
     epoch = args.epoch
     lgd_step_per_epoch = args.lgd_step_per_epoch

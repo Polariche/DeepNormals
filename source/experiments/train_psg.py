@@ -10,6 +10,7 @@ import sys
 import os
 sys.path.append( os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) ) )
 
+from models.models import PointSetGenerator
 from loaders import PSGDataset
 from models.LGD import LGD, detach_var
 from evaluate_functions import chamfer_distance, nearest_from_to, dist_from_to
@@ -32,7 +33,6 @@ def main():
 
     parser.add_argument('--tb-save-path', dest='tb_save_path', metavar='PATH', default='../checkpoints/', 
                             help='tensorboard checkpoints path')
-
     parser.add_argument('--weight-save-path', dest='weight_save_path', metavar='PATH', default='../weights/', 
                             help='weight checkpoints path')
 
@@ -43,54 +43,46 @@ def main():
                             help='epochs for adam and lgd')
     parser.add_argument('--lr', dest='lr', type=float,metavar='LEARNING_RATE', default=1e-3, 
                             help='learning rate')
-    parser.add_argument('--lgd-step', dest='lgd_step_per_epoch', type=int,metavar='LGD_STEP_PER_EPOCH', default=5, 
-                            help='number of simulation steps of LGD per epoch')
+
 
     args = parser.parse_args()
 
     lr = args.lr
     epoch = args.epoch
-    lgd_step_per_epoch = args.lgd_step_per_epoch
+    batchsize = batchsize
 
     writer = SummaryWriter(args.tb_save_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     
     ds = PSGDataset(args.data)
+    dl = DataLoader(ds, batch_size=batchsize, shuffle=True)
 
-    x = torch.cat([ds[i]['pc_pred'] for i in range(len(ds))], dim=0).to(device).requires_grad_()
-    x_gt = torch.cat([ds[i]['pc_gt'] for i in range(len(ds))], dim=0).to(device)
 
     knn_f = knn.apply
-
     chamfer_dist = lambda x, y: knn_f(x, y, 1).mean() + knn_f(y, x, 1).mean()
-    chamfer_dist_list = lambda x: sum([chamfer_dist(x[0][i * 1024:i * 1024 + 1024], x_gt[i * 16384:i * 16384 + 16384]) for i in range(len(ds))])
 
-    print("lgd")
-    hidden = None
+    psg = PointSetGenerator()
 
-    lgd = LGD(3, 1, k=10).to(device)
-    lgd_optimizer = optim.Adam(lgd.parameters(), lr= lr)
-
-    # train LGD
-    lgd.train()
+    optimizer = optim.Adam(psg.parameters(), lr = lr)
+    psg.train()
     for i in range(epoch):
-        # evaluate losses
-        rands = [torch.randperm(1024)[:256] for i in range(len(ds))]
-        chamfer_dist_small_list = lambda x: sum([chamfer_dist(x[0][i * 256 : i * 256 + 256], x_gt[i * 16384:i * 16384 + 16384]) for i in range(len(ds))])
-        x_small = torch.cat([x[i*1024 + rands[i]] for i in range(len(ds))], dim=0)
-        
-        # update lgd parameters
-        lgd_optimizer.zero_grad()
-        loss_sum, _, _ = lgd.loss_trajectory_backward(x_small, [chamfer_dist_small_list], None, 
-                                     constraints=["None"], batch_size=256 * len(ds), steps=lgd_step_per_epoch)
-        
-        lgd_optimizer.step()
+        # select batches
+        sample_batched = next(iter(dl))
 
-        loss_sum.detach_()
-        print(i, loss_sum)
-        writer.add_scalars("train_loss", {"LGD": loss_sum}, global_step=i)
-        torch.save(lgd.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
+        x = sample_batched['img']
+        y = psg(x)
+        y_gt = sample_batched['pc_gt']
+
+        optimizer.zero_grad()
+
+        loss = torch.cat([chamfer_dist(y[i], y_gt[i]) for i in range(x.shape[0])]).mean()
+        loss.backward()
+
+        optimizer.step()
+
+        writer.add_scalars("train_loss", {"Adam": loss}, global_step=i)
+        torch.save(psg.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
         
     writer.close()
 
