@@ -292,23 +292,23 @@ class PointSetGenerator(nn.Module):
 
 
 
-        self.trans5 = nn.ConvTranspose2d(512, 256, (5,5), stride=2, padding=(2, 2))
-        self.conv5 = nn.Conv2d(512, 256, (3,3), stride=1)
+        self.trans5 = nn.ConvTranspose2d(512, 256, (5,5), stride=2, padding=2)
+        self.conv5 = nn.Conv2d(512, 256, (3,3), stride=1, padding=1)
         # relu(x+x5)
 
-        self.trans4 = nn.Sequential(nn.Conv2d(256, 256, (3,3), stride=1),
-                                    nn.ConvTranspose2d(256, 128, (5,5), stride=2, padding=(2, 2)))
-        self.conv4 = nn.Conv2d(256, 128, (3,3), stride=1)
+        self.trans4 = nn.Sequential(nn.Conv2d(256, 256, (3,3), stride=1, padding=1),
+                                    nn.ConvTranspose2d(256, 128, (5,5), stride=2, padding=2))
+        self.conv4 = nn.Conv2d(256, 128, (3,3), stride=1, padding=1)
         # relu(x+x4)
 
-        self.trans3 = nn.Sequential(nn.Conv2d(128, 128, (3,3), stride=1),
-                                    nn.ConvTranspose2d(128, 64, (5,5), stride=2, padding=(2, 2)))
-        self.conv3 = nn.Conv2d(128, 64, (3,3), stride=1)
+        self.trans3 = nn.Sequential(nn.Conv2d(128, 128, (3,3), stride=1, padding=1),
+                                    nn.ConvTranspose2d(128, 64, (5,5), stride=2, padding=2))
+        self.conv3 = nn.Conv2d(128, 64, (3,3), stride=1, padding=1)
         # relu(x+x3)
 
-        self.final = nn.Sequential(nn.Conv2d(64, 64, (3,3), stride=1),
-                                    nn.Conv2d(64, 64, (3,3), stride=1),
-                                    nn.Conv2d(64, 3, (3,3), stride=1))
+        self.final = nn.Sequential(nn.Conv2d(64, 64, (3,3), stride=1, padding=1),
+                                    nn.Conv2d(64, 64, (3,3), stride=1, padding=1),
+                                    nn.Conv2d(64, 3, (3,3), stride=1, padding=1))
 
 
     
@@ -330,16 +330,15 @@ class PointSetGenerator(nn.Module):
         x_additional = self.block_additional(x.reshape(-1, 512*12))
         x_additional = x_additional.reshape(-1, 256, 3)
 
-        x = self.trans5(x)
+        x = self.trans5(x, output_size=x5.shape)
         x5 = self.conv5(x5)
-        print(x.shape, x5.shape)
         x = F.relu(x + x5)
 
-        x = self.trans4(x)
+        x = self.trans4(x, output_size=x4.shape)
         x4 = self.conv4(x4)
         x = F.relu(x + x4)
 
-        x = self.trans3(x)
+        x = self.trans3(x, output_size=x3.shape)
         x3 = self.conv3(x3)
         x = F.relu(x + x3)
 
