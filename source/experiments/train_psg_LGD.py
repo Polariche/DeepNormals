@@ -114,7 +114,7 @@ def main():
 
         optimizer.step()
 
-        loss_eval = loss(y)
+        loss_eval = loss([y])
         print(i, loss_eval.item())
 
         writer.add_scalars("train_loss", {"Adam": loss_eval}, global_step=i)
