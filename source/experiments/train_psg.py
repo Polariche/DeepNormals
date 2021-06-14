@@ -76,10 +76,12 @@ def main():
 
         optimizer.zero_grad()
 
-        loss = torch.cat([chamfer_dist(y[i], y_gt[i]) for i in range(x.shape[0])]).mean()
+        loss = torch.cat([chamfer_dist(y[i], y_gt[i]).unsqueeze(0) for i in range(x.shape[0])]).mean()
         loss.backward()
 
         optimizer.step()
+
+        print(i, loss.item())
 
         writer.add_scalars("train_loss", {"Adam": loss}, global_step=i)
         torch.save(psg.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
