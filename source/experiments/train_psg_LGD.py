@@ -55,7 +55,7 @@ def main():
     parser.add_argument('--weight-save-path', dest='weight_save_path', metavar='PATH', default='../weights/', 
                             help='weight checkpoints path')
 
-    parser.add_argument('--lgd-weight', dest='weight_save_path', metavar='PATH', default='../weights/', 
+    parser.add_argument('--lgd-weight', dest='lgd_weight', metavar='PATH', default='../weights/', 
                             help='weight checkpoints path')
 
 
