@@ -70,7 +70,7 @@ def main():
         # select batches
         sample_batched = next(iter(dl))
 
-        x = sample_batched['img']
+        x = sample_batched['img'].squeeze()
         y = psg(x)
         y_gt = sample_batched['pc_gt']
 
