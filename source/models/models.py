@@ -14,7 +14,6 @@ from torch.hub import load_state_dict_from_url
 from torch.autograd import Variable, grad
 from typing import Type, Any, Callable, Union, List, Optional, Tuple
 
-from torch.nn import Conv2D, Linear
 
 # from explore_siren
 class SineLayer(nn.Module):
@@ -240,13 +239,13 @@ class PositionalEncoding(nn.Module):
 
 
 def Conv2d_relu(in_channels, out_channels, kernel_size, stride=1, padding=1, dilation=1, groups=1, bias=True, padding_mode='zeros'):
-    return nn.Sequential(Conv2d(in_channels, out_channels, kernel_size, 
+    return nn.Sequential(nn.Conv2d(in_channels, out_channels, kernel_size, 
                             stride=stride, padding=padding, dilation=dilation, 
                             groups=groups, bias=bias, padding_mode=padding_mode), 
                         nn.ReLU())
 
 def Linear_relu(in_channels, out_channels, bias=True):
-    return nn.Sequential(Linear(in_channels, out_channels, bias=bias),
+    return nn.Sequential(nn.Linear(in_channels, out_channels, bias=bias),
                         nn.ReLU())
 
 
@@ -289,27 +288,27 @@ class PointSetGenerator(nn.Module):
 
         self.block_additional = nn.Sequential(Linear_relu(512*12, 2048),
                                             Linear_relu(2048, 1024),
-                                            Linear(1024, 256*3))
+                                            nn.Linear(1024, 256*3))
 
 
 
         self.trans5 = ConvTranspose2d(512, 256, (5,5), stride=2, padding=(2, 2))
-        self.conv5 = Conv2d(512, 256, (3,3), stride=1)
+        self.conv5 = nn.Conv2d(512, 256, (3,3), stride=1)
         # relu(x+x5)
 
-        self.trans4 = nn.Sequential(Conv2d(256, 256, (3,3), stride=1),
-                                    ConvTranspose2d(256, 128, (5,5), stride=2, padding=(2, 2)))
-        self.conv4 = Conv2d(256, 128, (3,3), stride=1)
+        self.trans4 = nn.Sequential(nn.Conv2d(256, 256, (3,3), stride=1),
+                                    nn.ConvTranspose2d(256, 128, (5,5), stride=2, padding=(2, 2)))
+        self.conv4 = nn.Conv2d(256, 128, (3,3), stride=1)
         # relu(x+x4)
 
-        self.trans3 = nn.Sequential(Conv2d(128, 128, (3,3), stride=1),
-                                    ConvTranspose2d(128, 64, (5,5), stride=2, padding=(2, 2)))
-        self.conv3 = Conv2d(128, 64, (3,3), stride=1)
+        self.trans3 = nn.Sequential(nn.Conv2d(128, 128, (3,3), stride=1),
+                                    nn.ConvTranspose2d(128, 64, (5,5), stride=2, padding=(2, 2)))
+        self.conv3 = nn.Conv2d(128, 64, (3,3), stride=1)
         # relu(x+x3)
 
-        self.final = nn.Sequential(Conv2d(64, 64, (3,3), stride=1),
-                                    Conv2d(64, 64, (3,3), stride=1),
-                                    Conv2d(64, 3, (3,3), stride=1))
+        self.final = nn.Sequential(nn.Conv2d(64, 64, (3,3), stride=1),
+                                    nn.Conv2d(64, 64, (3,3), stride=1),
+                                    nn.Conv2d(64, 3, (3,3), stride=1))
 
 
     
