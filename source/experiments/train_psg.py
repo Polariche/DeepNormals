@@ -49,7 +49,7 @@ def main():
 
     lr = args.lr
     epoch = args.epoch
-    batchsize = batchsize
+    batchsize = args.batchsize
 
     writer = SummaryWriter(args.tb_save_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
