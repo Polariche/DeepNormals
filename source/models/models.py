@@ -292,7 +292,7 @@ class PointSetGenerator(nn.Module):
 
 
 
-        self.trans5 = ConvTranspose2d(512, 256, (5,5), stride=2, padding=(2, 2))
+        self.trans5 = nn.ConvTranspose2d(512, 256, (5,5), stride=2, padding=(2, 2))
         self.conv5 = nn.Conv2d(512, 256, (3,3), stride=1)
         # relu(x+x5)
 
