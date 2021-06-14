@@ -70,9 +70,9 @@ def main():
         # select batches
         sample_batched = next(iter(dl))
 
-        x = sample_batched['img'].squeeze()
+        x = sample_batched['img'].to(device)
         y = psg(x)
-        y_gt = sample_batched['pc_gt']
+        y_gt = sample_batched['pc_gt'].to(device)
 
         optimizer.zero_grad()
 

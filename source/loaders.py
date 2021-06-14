@@ -140,7 +140,7 @@ class PSGDataset(Dataset):
             while True:
                 try:
                     (i,img_,pc_gt_,pc_pred_) = pickle.load(f, encoding='latin1')
-                    self.img.append(img_)
+                    self.img.append(torch.tensor(img_).squeeze().permute(2,0,1)) #HWC to CHW notation
                     self.pc_gt.append(torch.tensor(pc_gt_).squeeze())
                     self.pc_pred.append(torch.tensor(pc_pred_).squeeze())
 
