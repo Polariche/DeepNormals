@@ -6,10 +6,16 @@ from torch import Tensor
 
 from torch.autograd import Variable
 import numpy as np
+import knn_cuda
 
 # referenced https://github.com/WangYueFt/dgcnn/blob/master/pytorch/model.py
 
-def knn(x, k=10, return_dist=False):
+def knn_self(x, k=10, return_dist=False):
+    _, ind = knn_cuda.forward(x,x,k)
+
+    return ind
+
+    """
     with torch.no_grad():
         xx = torch.sum(x**2, dim=1, keepdim=True)
         d = xx.repeat(1, xx.shape[0]).add_(xx.T)
@@ -21,10 +27,11 @@ def knn(x, k=10, return_dist=False):
         return ind, d[ind]
     else:
         return ind
+    """
 
 def graph_features(x, k=10):
     n = x.shape[-2]
-    ind = knn(x, k)
+    ind = knn_self(x, k)
 
     ones = [1]*(len(x.shape)-1)
 
@@ -52,10 +59,10 @@ class EdgeConv(nn.Module):
         k = self.k
         n = x.shape[-2]                                      # n x c
 
-        #x = graph_features(x, k=k)                          # (n*k) x c
+        x = graph_features(x, k=k)                          # (n*k) x c
         x = self.layers(x)                                   # (n*k) x c'
-        #x = x.view(n, k, -1)                                # n x k x c'
-        #x = x.max(dim=1, keepdim=False)[0].contiguous()     # n x c'
+        x = x.view(n, k, -1)                                # n x k x c'
+        x = x.max(dim=1, keepdim=False)[0].contiguous()     # n x c'
 
         return x
 
@@ -77,9 +84,9 @@ class DGCNN(nn.Module):
         super(DGCNN, self).__init__()
         self.k=k
 
-        self.conv1 = EdgeConv(nn.Sequential(lin(in_channels, 64), lin(64, 64)), k=k)
-        self.conv2 = EdgeConv(nn.Sequential(lin(64, 64), lin(64, 64)), k=k)
-        self.conv3 = EdgeConv(lin(64, 64), k=k)
+        self.conv1 = EdgeConv(nn.Sequential(lin(in_channels*2, 64), lin(64, 64)), k=k)
+        self.conv2 = EdgeConv(nn.Sequential(lin(64*2, 64), lin(64, 64)), k=k)
+        self.conv3 = EdgeConv(lin(64*2, 64), k=k)
         self.conv4 = lin(64*3, 1024)
 
         self.linear1 = lin(1024 + 64*3, 256)
