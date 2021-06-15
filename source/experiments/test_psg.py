@@ -42,9 +42,6 @@ def main():
 
 
     args = parser.parse_args()
-
-    lr = args.lr
-    epoch = args.epoch
     batchsize = args.batchsize
 
     writer = SummaryWriter(args.tb_save_path)
