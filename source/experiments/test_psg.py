@@ -63,7 +63,7 @@ def main():
             print("Couldn't load pretrained weight: " + args.psg_weight)
 
     loss = 0
-    psg.test()
+    psg.eval()
     for sample_batched in dl_iter:
         x = sample_batched['img'].to(device)
         y = psg(x)
