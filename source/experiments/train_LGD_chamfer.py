@@ -43,6 +43,8 @@ def main():
                             help='epochs for adam and lgd')
     parser.add_argument('--lr', dest='lr', type=float,metavar='LEARNING_RATE', default=1e-3, 
                             help='learning rate')
+    parser.add_argument('--perturb', dest='perturb', type=float,metavar='PERTURBATION', default=1e-2, 
+                            help='perturbation')
     parser.add_argument('--lgd-step', dest='lgd_step_per_epoch', type=int,metavar='LGD_STEP_PER_EPOCH', default=5, 
                             help='number of simulation steps of LGD per epoch')
 
@@ -51,20 +53,19 @@ def main():
     lr = args.lr
     epoch = args.epoch
     lgd_step_per_epoch = args.lgd_step_per_epoch
+    batchsize = args.batchsize
+    pertub = args.perturb
 
     writer = SummaryWriter(args.tb_save_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     
     ds = PSGDataset(args.data)
-
-    x = torch.cat([ds[i]['pc_pred'] for i in range(len(ds))], dim=0).to(device).requires_grad_()
-    x_gt = torch.cat([ds[i]['pc_gt'] for i in range(len(ds))], dim=0).to(device)
+    dl = DataLoader(ds, batch_size=batchsize, shuffle=True)
 
     knn_f = knn.apply
 
     chamfer_dist = lambda x, y: knn_f(x, y, 1).mean() + knn_f(y, x, 1).mean()
-    chamfer_dist_list = lambda x: sum([chamfer_dist(x[0][i * 1024:i * 1024 + 1024], x_gt[i * 16384:i * 16384 + 16384]) for i in range(len(ds))])
 
     print("lgd")
     hidden = None
@@ -76,14 +77,20 @@ def main():
     lgd.train()
     for i in range(epoch):
         # evaluate losses
-        rands = [torch.randperm(1024)[:256] for i in range(len(ds))]
-        chamfer_dist_small_list = lambda x: sum([chamfer_dist(x[0][i * 256 : i * 256 + 256], x_gt[i * 16384:i * 16384 + 16384]) for i in range(len(ds))])
-        x_small = torch.cat([x[i*1024 + rands[i]] for i in range(len(ds))], dim=0)
+        sample_batched = next(iter(dl))
+
+        x = sample_batched['pc_pred'].to(device)
+        x_gt = sample_batched['pc_gt'].to(device)
+        x = x.view(-1,3)
+        x += torch.randn_like(x) * perturb
+        x.requires_grad_()
+        
+        chamfer_dist_list = lambda x: torch.cat([chamfer_dist(x[0][i * 1024 : (i+1)*1024], x_gt[i]).unsqueeze(0) for i in range(x.shape[0])]).mean()
         
         # update lgd parameters
         lgd_optimizer.zero_grad()
-        loss_sum, _, _ = lgd.loss_trajectory_backward(x_small, [chamfer_dist_small_list], None, 
-                                     constraints=["None"], batch_size=256 * len(ds), steps=lgd_step_per_epoch)
+        loss_sum, _, _ = lgd.loss_trajectory_backward(x, [chamfer_dist_list], None, 
+                                     constraints=["None"], batch_size=1024 * batchsize, steps=lgd_step_per_epoch)
         
         lgd_optimizer.step()
 
