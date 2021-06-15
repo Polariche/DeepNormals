@@ -71,7 +71,7 @@ def main():
 
         loss += sum([chamfer_dist(y[i], y_gt[i]) for i in range(y.shape[0])])
 
-    print("chamfer dist mean: ", loss / len(ds))
+    print("chamfer dist mean: ", loss.item() / len(ds))
 
 
         
