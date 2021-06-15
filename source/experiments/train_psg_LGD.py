@@ -95,7 +95,7 @@ def main():
         except:
             print("Couldn't load pretrained weight: " + args.lgd_weight)
 
-    optimizer = VanilaOptimizer(psg.parameters())
+    optimizer = optim.Adam(psg.parameters(), lr=lr) #VanilaOptimizer(psg.parameters())
     psg.train()
     for i in range(epoch):
         # select batches
