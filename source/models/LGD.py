@@ -31,7 +31,7 @@ def knn_self(x, k=10, return_dist=False):
 
 def graph_features(x, k=10):
     n = x.shape[-2]
-    ind = knn_self(x, k)
+    ind = knn_self(x, k).long()
 
     ones = [1]*(len(x.shape)-1)
 
