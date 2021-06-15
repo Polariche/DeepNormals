@@ -85,7 +85,7 @@ def main():
         x += torch.randn_like(x) * perturb
         x.requires_grad_()
 
-        chamfer_dist_list = lambda x: torch.cat([chamfer_dist(x[0][i * 1024 : (i+1)*1024], x_gt[i]).unsqueeze(0) for i in range(x.shape[0])]).mean()
+        chamfer_dist_list = lambda x: torch.cat([chamfer_dist(x[0][i * 1024 : (i+1)*1024], x_gt[i]).unsqueeze(0) for i in range(batchsize)]).mean()
         
         # update lgd parameters
         lgd_optimizer.zero_grad()
