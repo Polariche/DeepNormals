@@ -54,7 +54,7 @@ def main():
     epoch = args.epoch
     lgd_step_per_epoch = args.lgd_step_per_epoch
     batchsize = args.batchsize
-    pertub = args.perturb
+    perturb = args.perturb
 
     writer = SummaryWriter(args.tb_save_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -84,7 +84,7 @@ def main():
         x = x.view(-1,3)
         x += torch.randn_like(x) * perturb
         x.requires_grad_()
-        
+
         chamfer_dist_list = lambda x: torch.cat([chamfer_dist(x[0][i * 1024 : (i+1)*1024], x_gt[i]).unsqueeze(0) for i in range(x.shape[0])]).mean()
         
         # update lgd parameters
