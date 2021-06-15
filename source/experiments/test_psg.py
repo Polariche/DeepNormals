@@ -56,11 +56,11 @@ def main():
     chamfer_dist = lambda x, y: knn_f(x, y, 1).mean() + knn_f(y, x, 1).mean()
 
     psg = PointSetGenerator().to(device)
-    if args.args_weight != None:
+    if args.psg_weight != None:
         try:
-            psg.load_state_dict(torch.load(args.args_weight))
+            psg.load_state_dict(torch.load(args.psg_weight))
         except:
-            print("Couldn't load pretrained weight: " + args.args_weight)
+            print("Couldn't load pretrained weight: " + args.psg_weight)
 
     loss = 0
     psg.test()
