@@ -109,8 +109,9 @@ def main():
 
         y = y.view(-1,3)
         loss = lambda y: torch.cat([chamfer_dist(y[0][i * 1024 : (i+1)*1024], y_gt[i]).unsqueeze(0) for i in range(x.shape[0])]).sum()
-        lgd.learned_gradient(y, loss, batch_size=1024 * x.shape[0])
-        y.backward(y.grad / batchsize)
+        #lgd.learned_gradient(y, loss, batch_size=1024 * x.shape[0])
+        y_clone = lgd.step(y.clone(), loss, batch_size=1024 * x.shape[0])
+        y.backward(- (y_clone - y) / batchsize)
 
         optimizer.step()
 
