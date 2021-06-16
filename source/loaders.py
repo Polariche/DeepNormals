@@ -11,6 +11,7 @@ from evaluate_functions import dist_from_to
 from torch.utils.tensorboard import SummaryWriter
 import argparse
 
+import zlib
 import os
 
 class ObjDataset(Dataset):
