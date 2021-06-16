@@ -8,6 +8,9 @@ from torch.autograd import Variable
 import numpy as np
 import knn_cuda
 
+
+import numpy as np
+
 # referenced https://github.com/WangYueFt/dgcnn/blob/master/pytorch/model.py
 
 def knn_self(x, k=10, return_dist=False):
@@ -62,7 +65,7 @@ class EdgeConv(nn.Module):
         x = graph_features(x, k=k)                          # (n*k) x c
         x = self.layers(x)                                   # (n*k) x c'
         x = x.view(n, k, -1)                                # n x k x c'
-        x = x.max(dim=1, keepdim=False)[0].contiguous()     # n x c'
+        x = x.max(dim=-2, keepdim=False)[0].contiguous()     # n x c'
 
         return x
 
@@ -110,11 +113,11 @@ class DGCNN(nn.Module):
         x2 = self.conv2(x1)         # n x 64
         x3 = self.conv3(x2)         # n x 64
         
-        x4 = torch.cat([x1, x2, x3], dim=1)                 # n x 192
+        x4 = torch.cat([x1, x2, x3], dim=-1)                 # n x 192
         
         x5 = self.conv4(x4)                                 # n x 1024
         x5 = x5.max(dim=0, keepdim=True)[0].repeat(n,1)     # n x 1024
-        x = torch.cat([x1, x2, x3, x5], dim=1)              # n x (1024 + 64*3)
+        x = torch.cat([x1, x2, x3, x5], dim=-1)              # n x (1024 + 64*3)
 
         x = self.linears(x)         # n x co
         
@@ -180,12 +183,14 @@ class LGD(nn.Module):
         if type(losses) is not list:
             losses = [losses]
 
+        h = self.hidden_features
+        n = np.prod(list(targets[0].shape[:-1])) #flatten the batch groups such that our input is in the shape (n, c)
+        t = len(targets)
+
         assert sum([target.shape[1] for target in targets]) == self.dim_targets
         assert len(losses) == self.num_losses
- 
-        h = self.hidden_features
-        n = batch_size
-        t = len(targets)
+        assert np.prod([np.prod(list(target.shape[:-1])) == n for target in targets]) == 1      # assume batch size is same for every parameter
+        
  
         targets_grad = torch.zeros((n, 0)).to(targets[0].device)
  
@@ -215,32 +220,6 @@ class LGD(nn.Module):
         lr, hidden = self.layers(x, hidden)
  
         return lr, hidden, x
-    
-    def learned_gradient(self, targets, losses, hidden=None, batch_size=1, return_lr=False):
-        if type(targets) is not list:
-            targets = [targets]
-        if type(losses) is not list:
-            losses = [losses]
-
-        lr, hidden, dx = self(targets, losses, hidden, batch_size)
-
-        idx_start = self.dim_targets if self.concat_input else 0
-
-        dx = dx[:,idx_start:].view(batch_size, self.num_losses, self.dim_targets)
-
-        # lr[:, :self.num_losses] = learning rate (sigma)
-        # lr[:, self.num_losses:] = evaluation rate (lambda)
-
-        d_target = (lr[:,:self.num_losses].unsqueeze(-1) * dx).sum(dim=1)
-        k = 0
- 
-        for target in targets:
-            d = target.shape[1]
- 
-            target.grad = d_target[:,k:k+d]
- 
-            k += d
-
  
     def step(self, targets, losses, hidden=None, batch_size=1, return_lr=False):
         if type(targets) is not list:
@@ -265,7 +244,7 @@ class LGD(nn.Module):
         for target in targets:
             d = target.shape[1]
  
-            new_targets.append(target + d_target[:,k:k+d])
+            new_targets.append(target + d_target[:,k:k+d].view(target.shape))
  
             k += d
         

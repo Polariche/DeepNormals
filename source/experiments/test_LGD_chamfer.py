@@ -39,40 +39,35 @@ def main():
     parser.add_argument('--idx', dest='idx', metavar='INDEX', type=int, default=0, 
                             help='index to test')
 
-
-    parser.add_argument('--batchsize', dest='batchsize', type=int, metavar='BATCHSIZE', default=1,
-                            help='batch size')
     parser.add_argument('--epoch', dest='epoch', type=int,metavar='EPOCH', default=500, 
                             help='epochs for adam and lgd')
-    parser.add_argument('--lr', dest='lr', type=float,metavar='LEARNING_RATE', default=1e-3, 
-                            help='learning rate')
-    parser.add_argument('--lgd-step', dest='lgd_step_per_epoch', type=int,metavar='LGD_STEP_PER_EPOCH', default=5, 
-                            help='number of simulation steps of LGD per epoch')
-
+    parser.add_argument('--batchsize', dest='batchsize', type=int, metavar='BATCHSIZE', default=1,
+                            help='batch size')
+    parser.add_argument('--perturb', dest='perturb', type=float,metavar='PERTURBATION', default=1e-2, 
+                            help='perturbation')
     parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE', 
                             help='output file')
 
     args = parser.parse_args()
 
-    lr = args.lr
     epoch = args.epoch
-    lgd_step_per_epoch = args.lgd_step_per_epoch
-    idx = args.idx
+    perturb = args.perturb
+    batchsize = args.batchsize
+
 
     writer = SummaryWriter(args.tb_save_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     
     ds = PSGDataset(args.data)
-
-    x = ds[idx]['pc_pred'].to(device).requires_grad_()
-    x_gt = ds[idx]['pc_gt'].to(device)
+    dl = DataLoader(ds, batch_size=batchsize, shuffle=False)
+    dl_iter = iter(dl)
 
     knn_f = knn.apply
 
-    chamfer_dist = lambda x, y: knn_f(x, y, 1).mean()# + knn_f(y, x, 1).mean()
-    chamfer_dist_list = lambda x: sum([chamfer_dist(x[0][i * 1024:i * 1024 + 1024], x_gt[i * 16384:i * 16384 + 16384]) for i in range(1)])
-
+    chamfer_dist = lambda x, y: knn_f(x, y, 1).mean() + knn_f(y, x, 1).mean()
+    chamfer_dist_list = lambda x: torch.cat([chamfer_dist(x[0][i], x_gt[i]).unsqueeze(0) for i in range(x_gt.shape[0])]).mean()
+    
     print("lgd")
     hidden = None
 
@@ -87,21 +82,27 @@ def main():
 
     # test LGD
     lgd.eval()
-    for i in range(epoch):
-        # evaluate losses
-        loss = chamfer_dist(x, x_gt).mean()
-        if i < 5:
-            print(torch.autograd.grad(loss, x, grad_outputs=[torch.ones_like(loss)], create_graph=False))
-        # update x
-        [x], hidden = lgd.step(x, [chamfer_dist_list], hidden, 1024)
-        x = detach_var(x)
-        hidden = detach_var(hidden)
+    loss = 0
+    for sample_batched in dl_iter:
+        x_gt = sample_batched['pc_gt'].reshape(-1,16384,3).to(device)
+        x = x_gt.clone().detach()
+        x += torch.randn_like(x) * perturb
+        x.requires_grad_()
 
-        if i%10 == 0:
-            writer.add_scalars("regression_loss", {"LGD": loss}, global_step=i)
-            writer.add_mesh("point cloud regression_LGD", x.unsqueeze(0), global_step=i)
+        for i in range(epoch):
+            # evaluate losses
+            loss = chamfer_dist(x, x_gt).mean()
+            # update x
+            [x], hidden = lgd.step(x, [chamfer_dist_list], hidden, x_gt.shape[0]*16384)
+            x = detach_var(x)
+            hidden = detach_var(hidden)
         
+        loss += sum([chamfer_dist(x[i], x_gt[i]) for i in range(x.shape[0])])
+
+    print("chamfer dist mean: ", loss.item() / len(ds))    
+    
     writer.close()
+
 
 if __name__ == "__main__":
     main()

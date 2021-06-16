@@ -67,6 +67,9 @@ def main():
 
     chamfer_dist = lambda x, y: knn_f(x, y, 1).mean() + knn_f(y, x, 1).mean()
 
+    #chamfer_dist_list = lambda x: torch.cat([chamfer_dist(x[0][i * 1024 : (i+1)*1024], x_gt[i]).unsqueeze(0) for i in range(batchsize)]).mean()
+    chamfer_dist_list = lambda x: torch.cat([chamfer_dist(x[0][i], x_gt[i]).unsqueeze(0) for i in range(x_gt.shape[0])]).mean()
+
     print("lgd")
     hidden = None
 
@@ -79,18 +82,18 @@ def main():
         # evaluate losses
         sample_batched = next(iter(dl))
 
-        x = sample_batched['pc_pred'].to(device)
-        x_gt = sample_batched['pc_gt'].to(device)
-        x = x.view(-1,3)
+        #x = sample_batched['pc_pred'].to(device)
+        #x = x.view(-1,3)
+
+        x_gt = sample_batched['pc_gt'].reshape(-1,16384,3).to(device)
+        x = x_gt.clone().detach()
         x += torch.randn_like(x) * perturb
         x.requires_grad_()
-
-        chamfer_dist_list = lambda x: torch.cat([chamfer_dist(x[0][i * 1024 : (i+1)*1024], x_gt[i]).unsqueeze(0) for i in range(batchsize)]).mean()
         
         # update lgd parameters
         lgd_optimizer.zero_grad()
         loss_sum, _, _ = lgd.loss_trajectory_backward(x, [chamfer_dist_list], None, 
-                                     constraints=["None"], batch_size=1024 * batchsize, steps=lgd_step_per_epoch)
+                                     constraints=["None"], batch_size=x_gt.shape[0]*16384, steps=lgd_step_per_epoch)
         
         lgd_optimizer.step()
 
