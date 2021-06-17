@@ -62,6 +62,20 @@ def writePLY_mesh(filename, X, normal, color, eps=0.1):
             ply_file.write("3 %d %d %d\n" % (p0, p3, p1))
 
 
+def writePLY(filename, X):
+    ply_file = open(filename,'w')
+    ply_file.write("ply\n")
+    ply_file.write("format ascii 1.0\n")
+    ply_file.write("element vertex %d\n"%(X.shape[0]))
+    ply_file.write("property float x\n")
+    ply_file.write("property float y\n")
+    ply_file.write("property float z\n")
+    ply_file.write("end_header\n")
+
+    for i in range(X.shape[0]):
+        ply_file.write("%f %f %f\n" % (X[i,0], X[i,1], X[i,2]))
+
+
 def model_train(model):
     model.train()
     for param in model.parameters():

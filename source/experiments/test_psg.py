@@ -65,13 +65,15 @@ def main():
     loss = 0
     psg.eval()
     for sample_batched in dl_iter:
-        x = sample_batched['img'].reshape(-1,3,192,256).to(device)
+        x = sample_batched['img'].reshape(-1,4,192,256).to(device)
         y_gt = sample_batched['pc_gt'].reshape(-1,16384,3).to(device)
         y = psg(x)
 
         loss += sum([chamfer_dist(y[i], y_gt[i]) for i in range(y.shape[0])])
 
-    print("chamfer dist mean: ", loss.item() / len(ds))
+        
+
+    print("chamfer dist mean: ", loss.item() / 300000)
 
 
         

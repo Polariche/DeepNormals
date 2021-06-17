@@ -187,7 +187,7 @@ class LGD(nn.Module):
         n = np.prod(list(targets[0].shape[:-1])) #flatten the batch groups such that our input is in the shape (n, c)
         t = len(targets)
 
-        assert sum([target.shape[1] for target in targets]) == self.dim_targets
+        assert sum([target.shape[-1] for target in targets]) == self.dim_targets
         assert len(losses) == self.num_losses
         assert np.prod([np.prod(list(target.shape[:-1])) == n for target in targets]) == 1      # assume batch size is same for every parameter
         
