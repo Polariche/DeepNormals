@@ -153,7 +153,8 @@ class PSGDataset(Dataset):
             print ("error! data file not exists: %s"%path)
             print ("please KILL THIS PROGRAM otherwise it will bear undefined behaviors")
             assert False,"data file not exists: %s"%path
-        binfile=zlib.decompress(open(path,'r').read())
+        gz = open(path,'r', encoding='utf-16').read()
+        binfile=zlib.decompress(gz)
         p=0
         color=np.fromstring(binfile[p:p+FETCH_BATCH_SIZE*HEIGHT*WIDTH*3],dtype='uint8').reshape((FETCH_BATCH_SIZE,HEIGHT,WIDTH,3))
         p+=FETCH_BATCH_SIZE*HEIGHT*WIDTH*3
