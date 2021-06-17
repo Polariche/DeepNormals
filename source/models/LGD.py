@@ -38,7 +38,7 @@ def graph_features(x, k=10):
     shp = x.shape[:-2]
 
     x = x.view(-1, n, c)
-    feat = torch.zeros(x.shape[0], n, k, 2*c)
+    feat = torch.zeros(x.shape[0], n, k, 2*c, device=x.device)
 
     for i, x_ in enumerate(x):
         ind = knn_self(x_, k).long()
@@ -202,8 +202,8 @@ class LGD(nn.Module):
  
         targets_grad = torch.zeros((*shp, 0)).to(targets[0].device)
  
-        #if hidden is None:
-        #    hidden = torch.zeros((2, n, h)).to(targets[0].device)
+        if hidden is None:
+            hidden = torch.zeros((2, n, h)).to(targets[0].device)
  
         # input : dL1/dx1, dL1/dx2, ..., dL2/dx1, dL2/dx2, ..., hidden
         # input size : L*D + H
