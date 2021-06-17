@@ -176,7 +176,7 @@ class PSGDataset(Dataset):
         p+=FETCH_BATCH_SIZE*POINTCLOUDSIZE*3
         reeb=np.fromstring(binfile[p:p+FETCH_BATCH_SIZE*REEBSIZE*2*4],dtype='uint16').reshape((FETCH_BATCH_SIZE,REEBSIZE,4))
         p+=FETCH_BATCH_SIZE*REEBSIZE*2*4
-        keynames=binfile[p:].split('\n')
+        keynames=binfile[p:].decode().split('\n')
         reeb=reeb.astype('float32')/65535
         for i in range(FETCH_BATCH_SIZE):
             reeb[i,:,:3]=((reeb[i,:,:3]-[0.7,0.5,0.5])/0.4).dot(rotmat[i])+[1,0,0]
