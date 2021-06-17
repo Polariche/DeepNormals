@@ -105,7 +105,7 @@ def main():
         y_gt = sample_batched['pc_gt'].reshape(-1,16384,3).to(device)
         y = psg(x)
         
-        ind = [torch.randperm(16384)[:256] for i in range(y.shape[0])]
+        ind = [torch.randperm(1024)[:256] for i in range(y.shape[0])]
 
         y = torch.cat([y[i][ind[i]].unsqueeze(0) for i in range(y.shape[0])])
 
