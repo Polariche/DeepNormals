@@ -34,14 +34,19 @@ def knn_self(x, k=10, return_dist=False):
 
 def graph_features(x, k=10):
     n = x.shape[-2]
-    ind = knn_self(x, k).long()
+    c = x.shape[-1]
+    shp = x.shape[:-2]
 
-    ones = [1]*(len(x.shape)-1)
+    x = x.view(-1, n, c)
+    feat = torch.zeros(x.shape[0], n, k, 2*c)
 
-    x_ = x.unsqueeze(-2).repeat(*ones,k,1)
-    feat = torch.cat([x[ind] - x_, x_], dim=-1)
+    for i, x_ in enumerate(x):
+        ind = knn_self(x_, k).long()
 
-    return feat.view(*x.shape[:-2], n*k, -1)
+        x_rep = x_.unsqueeze(-2).repeat(1,k,1)
+        feat[i] = torch.cat([x_[ind,:] - x_rep, x_rep], dim=-1)
+
+    return feat.view(*shp, n*k, 2*c)
     
 
 
@@ -59,12 +64,14 @@ class EdgeConv(nn.Module):
         self.k = k
 
     def forward(self, x):
+        shp = targets[0].shape[:-2]
+
         k = self.k
         n = x.shape[-2]                                      # n x c
 
         x = graph_features(x, k=k)                          # (n*k) x c
         x = self.layers(x)                                   # (n*k) x c'
-        x = x.view(n, k, -1)                                # n x k x c'
+        x = x.view(*shp, n, k, -1)                                # n x k x c'
         x = x.max(dim=-2, keepdim=False)[0].contiguous()     # n x c'
 
         return x
@@ -107,7 +114,7 @@ class DGCNN(nn.Module):
                                      self.linear4)
     
     def forward(self, x, hidden):
-        n = x.shape[0]              # n x ci
+        n = x.shape[-2]              # n x ci
 
         x1 = self.conv1(x)          # n x 64
         x2 = self.conv2(x1)         # n x 64
@@ -116,7 +123,7 @@ class DGCNN(nn.Module):
         x4 = torch.cat([x1, x2, x3], dim=-1)                 # n x 192
         
         x5 = self.conv4(x4)                                 # n x 1024
-        x5 = x5.max(dim=0, keepdim=True)[0].repeat(n,1)     # n x 1024
+        x5 = x5.max(dim=-2, keepdim=True)[0].repeat([1]*(len(x.shape)-2), n, 1)     # n x 1024
         x = torch.cat([x1, x2, x3, x5], dim=-1)              # n x (1024 + 64*3)
 
         x = self.linears(x)         # n x co
@@ -184,7 +191,8 @@ class LGD(nn.Module):
             losses = [losses]
 
         h = self.hidden_features
-        n = np.prod(list(targets[0].shape[:-1])) #flatten the batch groups such that our input is in the shape (n, c)
+        n = np.prod(list(targets[0].shape[:-1])) # flatten the batch groups such that our input is in the shape (n, c)
+        shp = targets[0].shape[:-1]
         t = len(targets)
 
         assert sum([target.shape[-1] for target in targets]) == self.dim_targets
@@ -192,25 +200,25 @@ class LGD(nn.Module):
         assert np.prod([np.prod(list(target.shape[:-1])) == n for target in targets]) == 1      # assume batch size is same for every parameter
         
  
-        targets_grad = torch.zeros((n, 0)).to(targets[0].device)
+        targets_grad = torch.zeros((*shp, 0)).to(targets[0].device)
  
-        if hidden is None:
-            hidden = torch.zeros((2, n, h)).to(targets[0].device)
+        #if hidden is None:
+        #    hidden = torch.zeros((2, n, h)).to(targets[0].device)
  
         # input : dL1/dx1, dL1/dx2, ..., dL2/dx1, dL2/dx2, ..., hidden
         # input size : L*D + H
         for loss_f in losses:
             loss = loss_f(targets)
             targets_grad_l = torch.autograd.grad(loss, targets, grad_outputs=[torch.ones_like(loss) for _ in range(t)], create_graph=False)
-            targets_grad_l = [grad.view(n, -1) for grad in targets_grad_l]
-            targets_grad = torch.cat([targets_grad, *targets_grad_l], dim=1)
+            targets_grad_l = [grad.view(*shp, -1) for grad in targets_grad_l]
+            targets_grad = torch.cat([targets_grad, *targets_grad_l], dim=-1)
  
         targets_grad[torch.isnan(targets_grad)] = 0
         targets_grad[torch.isinf(targets_grad)] = 0
 
         if self.concat_input:
-            targets = [target.view(n, -1) for target in targets]
-            x = torch.cat([*targets, targets_grad], dim=1)
+            targets = [target.view(*shp, -1) for target in targets]
+            x = torch.cat([*targets, targets_grad], dim=-1)
         
         else:
             x = targets_grad
@@ -227,16 +235,18 @@ class LGD(nn.Module):
         if type(losses) is not list:
             losses = [losses]
 
+        shp = targets[0].shape[:-1]
+
         lr, hidden, dx = self(targets, losses, hidden, batch_size)
 
         idx_start = self.dim_targets if self.concat_input else 0
 
-        dx = dx[:,idx_start:].view(batch_size, self.num_losses, self.dim_targets)
+        dx = dx[...,idx_start:].view(*shp, self.num_losses, self.dim_targets)
 
-        # lr[:, :self.num_losses] = learning rate (sigma)
-        # lr[:, self.num_losses:] = evaluation rate (lambda)
+        # lr[..., :self.num_losses] = learning rate (sigma)
+        # lr[..., self.num_losses:] = evaluation rate (lambda)
 
-        d_target = (lr[:,:self.num_losses].unsqueeze(-1) * dx).sum(dim=1)
+        d_target = (lr[...,:self.num_losses].unsqueeze(-1) * dx).sum(dim=-2)
 
         new_targets = []
         k = 0
@@ -244,7 +254,7 @@ class LGD(nn.Module):
         for target in targets:
             d = target.shape[1]
  
-            new_targets.append(target + d_target[:,k:k+d].view(target.shape))
+            new_targets.append(target + d_target[...,k:k+d].view(target.shape))
  
             k += d
         
