@@ -88,7 +88,7 @@ def main():
 
         ind = [torch.randperm(16384)[:1024] for i in range(x_gt.shape[0])]
 
-        x = torch.cat([x_gt[i][ind].unsqueeze(0) for i in range(x_gt.shape[0])]).detach_()
+        x = torch.cat([x_gt[i][ind[i]].unsqueeze(0) for i in range(x_gt.shape[0])]).detach_()
         x += torch.randn_like(x) * perturb
         x.requires_grad_()
         
