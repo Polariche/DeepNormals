@@ -109,7 +109,7 @@ def main():
         optimizer.zero_grad()
 
         loss = torch.cat([chamfer_dist(y[i], y_gt[i]).unsqueeze(0) for i in range(x.shape[0])]).mean()
-        lgd.learned_gradient(y, loss, batch_size=1024 * y.shape[0])
+        lgd.gradient(y, loss)
         y.backward(- y.grad)
 
         optimizer.step()

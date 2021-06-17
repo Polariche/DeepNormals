@@ -82,8 +82,6 @@ def main():
         # evaluate losses
         sample_batched = next(iter(dl))
 
-        #x = sample_batched['pc_pred'].to(device)
-        #x = x.view(-1,3)
         x_gt = sample_batched['pc_gt'].reshape(-1,16384,3).to(device)
 
         ind = [torch.randperm(16384)[:512] for i in range(x_gt.shape[0])]
@@ -100,7 +98,7 @@ def main():
         lgd_optimizer.step()
 
         loss_sum.detach_()
-        print(i, loss_sum)
+        print(i, loss_sum.item())
         writer.add_scalars("train_loss", {"LGD": loss_sum}, global_step=i)
         torch.save(lgd.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
         

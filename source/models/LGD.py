@@ -262,6 +262,40 @@ class LGD(nn.Module):
             return new_targets, hidden, lr
         else:
             return new_targets, hidden
+
+    def gradient(self, targets, losses, hidden=None, batch_size=1, return_lr=False):
+        if type(targets) is not list:
+            targets = [targets]
+        if type(losses) is not list:
+            losses = [losses]
+
+        shp = targets[0].shape[:-1]
+
+        lr, hidden, dx = self(targets, losses, hidden, batch_size)
+
+        idx_start = self.dim_targets if self.concat_input else 0
+
+        dx = dx[...,idx_start:].view(*shp, self.num_losses, self.dim_targets)
+
+        # lr[..., :self.num_losses] = learning rate (sigma)
+        # lr[..., self.num_losses:] = evaluation rate (lambda)
+
+        d_target = (lr[...,:self.num_losses].unsqueeze(-1) * dx).sum(dim=-2)
+
+        new_targets = []
+        k = 0
+ 
+        for target in targets:
+            d = target.shape[1]
+ 
+            target.grad = d_target[...,k:k+d].view(target.shape)
+ 
+            k += d
+        
+        if return_lr:
+            return new_targets, hidden, lr
+        else:
+            return new_targets, hidden
  
 
     def loss_trajectory_backward(self, targets, losses, hidden=None, constraints = None, batch_size=1, steps=10):
