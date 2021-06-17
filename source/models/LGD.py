@@ -64,7 +64,7 @@ class EdgeConv(nn.Module):
         self.k = k
 
     def forward(self, x):
-        shp = targets[0].shape[:-2]
+        shp = x.shape[:-2]
 
         k = self.k
         n = x.shape[-2]                                      # n x c
