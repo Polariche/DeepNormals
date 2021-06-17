@@ -101,7 +101,7 @@ def main():
         # select batches
         sample_batched = next(iter(dl))
 
-        x = sample_batched['img'].reshape(-1,3,192,256).to(device)
+        x = sample_batched['img'].reshape(-1,4,192,256).to(device)
         y_gt = sample_batched['pc_gt'].reshape(-1,16384,3).to(device)
         y = psg(x)
         

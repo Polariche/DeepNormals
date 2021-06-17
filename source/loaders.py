@@ -12,6 +12,7 @@ from torch.utils.tensorboard import SummaryWriter
 import argparse
 
 import zlib
+import math
 import os
 
 class ObjDataset(Dataset):
@@ -153,7 +154,7 @@ class PSGDataset(Dataset):
             print ("error! data file not exists: %s"%path)
             print ("please KILL THIS PROGRAM otherwise it will bear undefined behaviors")
             assert False,"data file not exists: %s"%path
-        gz = open(path,'r', encoding='utf-16').read()
+        gz = open(path,'rb').read()
         binfile=zlib.decompress(gz)
         p=0
         color=np.fromstring(binfile[p:p+FETCH_BATCH_SIZE*HEIGHT*WIDTH*3],dtype='uint8').reshape((FETCH_BATCH_SIZE,HEIGHT,WIDTH,3))
@@ -170,14 +171,14 @@ class PSGDataset(Dataset):
             0,1,0],[
             np.sin(beta),0,np.cos(beta)]],dtype='float32')
         rotmat=rotmat.dot(np.linalg.inv(viewmat))
-        for i in xrange(FETCH_BATCH_SIZE):
+        for i in range(FETCH_BATCH_SIZE):
             ptcloud[i]=((ptcloud[i]-[0.7,0.5,0.5])/0.4).dot(rotmat[i])+[1,0,0]
         p+=FETCH_BATCH_SIZE*POINTCLOUDSIZE*3
         reeb=np.fromstring(binfile[p:p+FETCH_BATCH_SIZE*REEBSIZE*2*4],dtype='uint16').reshape((FETCH_BATCH_SIZE,REEBSIZE,4))
         p+=FETCH_BATCH_SIZE*REEBSIZE*2*4
         keynames=binfile[p:].split('\n')
         reeb=reeb.astype('float32')/65535
-        for i in xrange(FETCH_BATCH_SIZE):
+        for i in range(FETCH_BATCH_SIZE):
             reeb[i,:,:3]=((reeb[i,:,:3]-[0.7,0.5,0.5])/0.4).dot(rotmat[i])+[1,0,0]
         data=np.zeros((FETCH_BATCH_SIZE,HEIGHT,WIDTH,4),dtype='float32')
         data[:,:,:,:3]=color*(1/255.0)
