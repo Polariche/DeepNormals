@@ -108,7 +108,7 @@ def main():
 
         optimizer.zero_grad()
 
-        loss = torch.cat([chamfer_dist(y[i], y_gt[i]).unsqueeze(0) for i in range(x.shape[0])]).mean()
+        loss = lambda y: torch.cat([chamfer_dist(y[0][i], y_gt[i]).unsqueeze(0) for i in range(x.shape[0])]).mean()
         lgd.gradient(y, loss)
         y.backward(- y.grad)
 
