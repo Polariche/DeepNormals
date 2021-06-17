@@ -86,7 +86,7 @@ def main():
         #x = x.view(-1,3)
         x_gt = sample_batched['pc_gt'].reshape(-1,16384,3).to(device)
 
-        ind = [torch.randperm(16384)[:1024] for i in range(x_gt.shape[0])]
+        ind = [torch.randperm(16384)[:512] for i in range(x_gt.shape[0])]
 
         x = torch.cat([x_gt[i][ind[i]].unsqueeze(0) for i in range(x_gt.shape[0])]).detach_()
         x += torch.randn_like(x) * perturb
@@ -95,7 +95,7 @@ def main():
         # update lgd parameters
         lgd_optimizer.zero_grad()
         loss_sum, _, _ = lgd.loss_trajectory_backward(x, [chamfer_dist_list], None, 
-                                     constraints=["None"], batch_size=x_gt.shape[0]*16384, steps=lgd_step_per_epoch)
+                                     constraints=["None"], steps=lgd_step_per_epoch)
         
         lgd_optimizer.step()
 
