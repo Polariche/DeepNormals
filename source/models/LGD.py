@@ -123,7 +123,7 @@ class DGCNN(nn.Module):
         x4 = torch.cat([x1, x2, x3], dim=-1)                 # n x 192
         
         x5 = self.conv4(x4)                                 # n x 1024
-        x5 = x5.max(dim=-2, keepdim=True)[0].repeat([1]*(len(x5.shape)-2), n, 1)     # n x 1024
+        x5 = x5.max(dim=-2, keepdim=True)[0].repeat(*([1]*(len(x5.shape)-2)), n, 1)     # n x 1024
         x = torch.cat([x1, x2, x3, x5], dim=-1)              # n x (1024 + 64*3)
 
         x = self.linears(x)         # n x co
