@@ -10,6 +10,8 @@ sys.path.append( os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) )
 
 import argparse
 
+from loaders import PSGDataset
+
 
 parser = argparse.ArgumentParser(description='Test',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
