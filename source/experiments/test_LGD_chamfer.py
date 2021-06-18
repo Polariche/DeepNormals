@@ -88,11 +88,13 @@ def main():
         x += torch.randn_like(x) * perturb
         x.requires_grad_()
 
+        print(x.shape)
+
         for i in range(epoch):
             # evaluate losses
             loss = chamfer_dist(x, x_gt).mean()
             # update x
-            [x], hidden = lgd.step(x, [chamfer_dist_list], hidden, x_gt.shape[0]*16384)
+            [x], hidden = lgd.step(x, [chamfer_dist_list], hidden)
             x = detach_var(x)
             hidden = detach_var(hidden)
         
