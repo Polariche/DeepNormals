@@ -84,7 +84,9 @@ def main():
     loss = 0
     for sample_batched in dl_iter:
         x_gt = sample_batched['pc_gt'].reshape(-1,16384,3).to(device)
-        x = x_gt.clone().detach()
+        ind = [torch.randperm(16384)[:512] for i in range(x_gt.shape[0])]
+        x = torch.cat([x_gt[i][ind[i]].unsqueeze(0) for i in range(x_gt.shape[0])]).detach_()
+
         x += torch.randn_like(x) * perturb
         x.requires_grad_()
 
@@ -94,9 +96,11 @@ def main():
             x = detach_var(x)
             hidden = detach_var(hidden)
         
-        loss += sum([chamfer_dist(x[i], x_gt[i]) for i in range(x.shape[0])])
+        loss_ = sum([chamfer_dist(x[i], x_gt[i]) for i in range(x.shape[0])])
+        print(loss_)
+        loss += loss_
 
-    print("chamfer dist mean: ", loss.item() / len(ds))    
+    print("chamfer dist mean: ", loss.item() / len(ds)*32)    
     
     writer.close()
 
