@@ -64,7 +64,7 @@ def main():
 
     psg = PointSetGenerator().to(device)
 
-    optimizer = optim.Adam(psg.parameters(), lr = lr)
+    optimizer = optim.Adam(psg.parameters(), lr = lr, weight_decay=1e-3)
     psg.train()
     for i in range(epoch):
         # select batches
@@ -73,11 +73,13 @@ def main():
         x = sample_batched['img'].reshape(-1,4,192,256).to(device)
         y_gt = sample_batched['pc_gt'].reshape(-1,16384,3).to(device)
         y = psg(x)
+
+        validating = sample_batched['validating'].reshape(-1).to(device)
         
 
         optimizer.zero_grad()
 
-        loss = torch.cat([chamfer_dist(y[i], y_gt[i]).unsqueeze(0) for i in range(x.shape[0])]).mean()
+        loss = torch.cat([chamfer_dist(y[i], y_gt[i]).unsqueeze(0) * validating[i] for i in range(x.shape[0])]).mean()
         loss.backward()
 
         optimizer.step()

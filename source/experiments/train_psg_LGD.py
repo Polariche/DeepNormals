@@ -95,7 +95,7 @@ def main():
         except:
             print("Couldn't load pretrained weight: " + args.lgd_weight)
 
-    optimizer = optim.Adam(psg.parameters(), lr=lr) #VanilaOptimizer(psg.parameters())
+    optimizer = optim.Adam(psg.parameters(), lr=lr, weight_decay=1e-3) #VanilaOptimizer(psg.parameters())
     psg.train()
     for i in range(epoch):
         # select batches
@@ -104,6 +104,8 @@ def main():
         x = sample_batched['img'].reshape(-1,4,192,256).to(device)
         y_gt = sample_batched['pc_gt'].reshape(-1,16384,3).to(device)
         y = psg(x)
+
+        validating = sample_batched['validating'].reshape(-1).to(device)
         
         ind = [torch.randperm(1024)[:256] for i in range(y.shape[0])]
 
@@ -111,7 +113,7 @@ def main():
 
         optimizer.zero_grad()
 
-        loss = lambda y: torch.cat([chamfer_dist(y[0][i], y_gt[i]).unsqueeze(0) for i in range(x.shape[0])]).mean()
+        loss = lambda y: torch.cat([chamfer_dist(y[0][i], y_gt[i]).unsqueeze(0) * validating[i] for i in range(x.shape[0])]).mean()
         lgd.gradient(y, loss)
         y.backward(- y.grad)
 
