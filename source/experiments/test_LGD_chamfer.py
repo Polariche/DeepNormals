@@ -90,6 +90,8 @@ def main():
         x += torch.randn_like(x) * perturb
         x.requires_grad_()
 
+        loss_old = sum([chamfer_dist(x[i], x_gt[i]) for i in range(x.shape[0])])
+
         for i in range(epoch):
             # update x
             [x], hidden = lgd.step(x, [chamfer_dist_list], hidden)
@@ -97,7 +99,7 @@ def main():
             hidden = detach_var(hidden)
         
         loss_ = sum([chamfer_dist(x[i], x_gt[i]) for i in range(x.shape[0])])
-        print(loss_)
+        print(loss_old.item(), loss_.item())
         loss += loss_
 
     print("chamfer dist mean: ", loss.item() / len(ds)*32)    
