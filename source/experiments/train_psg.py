@@ -74,7 +74,7 @@ def main():
         y_gt = sample_batched['pc_gt'].reshape(-1,16384,3).to(device)
         y = psg(x)
 
-        validating = sample_batched['validating'].reshape(-1).to(device)
+        validating = (1 - sample_batched['validating']).reshape(-1).to(device)
         
 
         optimizer.zero_grad()

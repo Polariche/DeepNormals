@@ -90,7 +90,7 @@ def main():
         x += torch.randn_like(x) * perturb
         x.requires_grad_()
 
-        validating = sample_batched['validating'].reshape(-1).to(device)
+        validating = (1 - sample_batched['validating']).reshape(-1).to(device)
 
         chamfer_dist_list = lambda x: torch.cat([chamfer_dist(x[0][i], x_gt[i]).unsqueeze(0) * validating[i] for i in range(x_gt.shape[0])]).mean()
         
