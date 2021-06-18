@@ -191,6 +191,35 @@ class PSGDataset(Dataset):
 
         return {'img': data, 'pc_gt': ptcloud, 'validating': validating}
 
+class PSGDataset_old(Dataset):
+    # Dataset for (2D img, ground PC data, predicted PC)
+
+    def __init__(self, data_path):
+        self.img = []
+        self.pc_gt = []
+        self.pc_pred = []
+        self.n = 0
+
+        with open(data_path, 'rb') as f:
+            while True:
+                try:
+                    (i,img_,pc_gt_,pc_pred_) = pickle.load(f, encoding='latin1')
+                    self.img.append(torch.tensor(img_).squeeze().permute(2,0,1)) #HWC to CHW notation
+                    self.pc_gt.append(torch.tensor(pc_gt_).squeeze())
+                    self.pc_pred.append(torch.tensor(pc_pred_).squeeze())
+
+                except EOFError:
+                    break
+
+                self.n = self.n + 1
+
+    def __len__(self):
+        return self.n
+
+    def __getitem__(self, idx):
+        return {'img': self.img[idx], 
+                'pc_gt': self.pc_gt[idx], 
+                'pc_pred': self.pc_pred[idx]}
         
 
 class UniformDataset(Dataset):

@@ -10,9 +10,8 @@ import sys
 import os
 sys.path.append( os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) ) )
 
-from loaders import PSGDataset
+from loaders import PSGDataset_old
 from models.LGD import LGD, detach_var
-from evaluate_functions import chamfer_distance, nearest_from_to, dist_from_to
 
 from knn import knn
 
@@ -60,7 +59,7 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     
-    ds = PSGDataset(args.data)
+    ds = PSGDataset_old(args.data)
     dl = DataLoader(ds, batch_size=batchsize, shuffle=True)
 
     knn_f = knn.apply
