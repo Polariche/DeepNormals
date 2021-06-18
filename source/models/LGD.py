@@ -212,9 +212,6 @@ class LGD(nn.Module):
             targets_grad_l = torch.autograd.grad(loss, targets, grad_outputs=[torch.ones_like(loss) for _ in range(t)], create_graph=False)
             targets_grad_l = [grad.view(*shp, -1) for grad in targets_grad_l]
             targets_grad = torch.cat([targets_grad, *targets_grad_l], dim=-1)
- 
-        targets_grad[torch.isnan(targets_grad)] = 0
-        targets_grad[torch.isinf(targets_grad)] = 0
 
         if self.concat_input:
             targets = [target.view(*shp, -1) for target in targets]
