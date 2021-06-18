@@ -72,7 +72,6 @@ def main():
     hidden = None
 
     lgd = LGD(3, 1, k=10).to(device)
-    lgd_optimizer = optim.Adam(lgd.parameters(), lr= lr)
 
     if args.lgd_weight != None:
         try:
