@@ -4,3 +4,9 @@
 [submodule "source/baselines/PointSetGeneration"]
 	path = source/baselines/PointSetGeneration
 	url = https://github.com/fanhqme/PointSetGeneration.git
+[submodule "source/baselines/DeepSDF"]
+	path = source/baselines/DeepSDF
+	url = https://github.com/facebookresearch/DeepSDF.git
+[submodule "source/baselines/scene-representation-networks"]
+	path = source/baselines/scene-representation-networks
+	url = https://github.com/vsitzmann/scene-representation-networks.git
