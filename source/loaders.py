@@ -2,12 +2,11 @@ import numpy as np
 import torch 
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import  Dataset
+from torch.utils.data import  Dataset, DataLoader
 import re
 import warnings
 
 import pickle
-from evaluate_functions import dist_from_to
 from torch.utils.tensorboard import SummaryWriter
 import argparse
 
@@ -135,87 +134,54 @@ class PlyDataset(Dataset):
         raise NotImplementedError
 
 
-class UniformDataset(Dataset):
-    def __init__(self, mm, mx):
-        assert mm.shape == mx.shape
-        assert mm.device == mx.device
-
-        self.device = mm.device
-        self.dim = mm.shape[0]
-        self.mm = mm
-        self.mx = mx
-
-    def __getitem__(self, idx):
-        with torch.no_grad():
-            return torch.rand(self.dim, device=self.device) * (self.mx - self.mm) + self.mm
-
-
-class GridDataset(Dataset):
-    def __init__(self, mm, mx, shape):
-        assert len(mm.shape) == 1
-        assert mm.shape == mx.shape and mm.shape == shape.shape
-        assert mm.device == mx.device and mm.device == shape.device
-
-        self.device = mm.device
-        self.dim = mm.shape[0]
-        self.mm = mm
-        self.mx = mx
-        self.shape = shape
-
-    def __len__(self):
-        return torch.prod(self.shape)
-
-    def __getitem__(self, idx):
-        with torch.no_grad():
-            a = torch.zeros_like(self.shape)
-            shape_prod = torch.prod(self.shape).item()
-
-            idx = idx % n_prod
-
-            for i, s_ in enumerate(self.shape):
-                shape_prod /= s_
-                a[i] = int(idx // shape_prod)
-                idx -= a[i] * shape_prod
-
-            return (a + 0.5) * (self.mx - self.mm) / self.shape + self.mm
-
-
-class RayDataset(GridDataset):
-    def __init__(self, width, height, focal_length, requires_grad=True, orthogonal=False):
-        
-        mm = torch.tensor([-1, -1, focal_length], dtype=torch.float).cuda()
-        mx = torch.zeros([1, 1, focal_length], dtype=torch.float).cuda()
-        shape = torch.tensor([width, height, 1], dtype=torch.int).cuda()
-
-        super().__init__(mm, mx, shape)
-        self.depth = torch.zeros(torch.prod(self.shape).item(), device=self.device)
-
+class RayDataset(Dataset):
+    def __init__(self, width, height, focal_length=1, requires_grad=True, orthogonal=False, pose=None):
+        self.width = width
+        self.height = height
         self.focal_length = focal_length
         self.orthogonal = orthogonal
 
+        self.depth = torch.zeros(width*height)
         self.depth.requires_grad_(requires_grad)
 
-        self.pose = PointTransform()
+        if pose is None:
+            pose = PointTransform()
+        self.apply_pose(pose)
 
     def set_focal_length(focal_length):
         self.focal_length = focal_length
         self.mm[2] = focal_length
         self.mx[2] = focal_length
+        self.t = (self.mx - self.mm) / self.shape
 
+    def apply_pose(self, pose):
+        self.p = torch.from_numpy(np.mgrid[:width, :height]).permute(2,1,0).reshape(-1,2) + 0.5
+        self.p = self.p / torch.tensor([width, height])
+        self.p = torch.cat([self.p, torch.ones((self.p.shape[0], 1)) * focal_length], dim=1)
+        self.n = self.p / focal_length
+
+        self.pose = pose
+        self.p = self.pose(self.p)
+        self.n = self.pose(self.n, False)
+
+        self.ortho_n = torch.zeros((3), dtype=torch.float)
+        self.ortho_n[2] = 1
+        self.ortho_n = self.pose(self.ortho_n, False)
+
+    def __len__(self):
+        return self.width * self.height
+    
     def __getitem__(self, idx):
-        p = super().__getitem__(idx)
-        d = self.depth[i]
+        p = self.p[idx]
+        d = self.depth[idx]
         
-        if orthogonal:
-            n = torch.tensor([0, 0, 1], dtype=torch.float, device=self.device)
+        if self.orthogonal:
+            n = self.ortho_n
         else:
-            with torch.no_grad():
-                n = p / self.focal_length
-
-        p = self.pose(p)
-        n = self.pose(n, False)
+            n = self.n[idx]
 
         return {'p': p, 'd': d, 'n': n}
+
 
 # refer to SRN/dataio.py for original implementation
 
@@ -403,7 +369,7 @@ def dict_collate_fn(batch):
         for key, value in d.items():
             d[key] = torch.cat([t.unsqueeze(0) for t in value])
         
-        return d
+        return dict(d)
 
 
 def get_obj_dataloader(dataset, num_samples, num_workers=0, batch_size=1):
@@ -453,99 +419,3 @@ class PointTransform(nn.Module):
         data = data.view(*(original_shape[:-1]), out_dim)
 
         return data
-
-"""
-TODO: change to per-point implementation
-      OR perform matrix multiplication on the last dim only (like pytorch FC)
-
-class PointTransform(nn.Module):
-    def __init__(self, rotation, translation = None):
-        super().__init__()
-
-        if translation is not None:
-            # rotation: (d, d), translation: (1, d)
-            assert rotation.shape[1] == translation.shape[1]
-            assert translation.shape[0] == 1
-
-        self.rotation = rotation
-        self.translation = translation
-        
-    def forward(self, dataset):
-        if type(dataset) is dict:
-            p = dataset['p']
-            p = torch.matmul(p, self.rotation.T)    # (n, d) * (d, d) -> (n, d)
-            
-            if self.translation is not None:
-                p += self.translation
-
-            dataset['p'] = p
-
-            if 'n' in dataset.keys():
-                n = dataset['n']
-                n = torch.matmul(n, self.rotation.T)
-
-                dataset['n'] = n
-            
-                return {'p': p, 'n': n}
-            
-            else:
-
-                return {'p': p}
-
-        else:
-            p = dataset
-            p = torch.matmul(p, self.rotation.T)    # (n, d) * (d, d) -> (n, d)
-            
-            if self.translation is not None:
-                p += self.translation
-            
-            return p
-        
-
-
-class RandomAugment(nn.Module):
-    def __init__(self, samples_n,  epsilon = 1., concat_original=True):
-        super().__init__()
-        self.epsilon = epsilon
-        self.samples_n = samples_n
-        self.concat_original = concat_original
-
-    def forward(self, dataset):
-        if type(dataset) is dict:
-            p = dataset['p']
-        else:
-            p = dataset
-
-        uniform_distribution = UniformDataset(torch.min(p, dim=0)[0], torch.max(p, dim=0)[0])
-        uniform_sampler = UniformSample(self.samples_n)
-        uniform_sample = uniform_sampler(uniform_distribution)
-
-        
-        dist = dist_from_to(uniform_sample, p, requires_graph=False).squeeze()
-
-        uniform_sample = uniform_sample[dist > self.epsilon]
-
-        samples_n = uniform_sample.shape[0]
-
-        if self.concat_original:
-            p = torch.cat([p, uniform_sample])
-
-            if type(dataset) is dict:
-                ret = {'p': p}
-
-                if 'n' in dataset.keys():
-                    n = dataset['n']
-                    ret['n'] = torch.cat([n, torch.zeros_like(n)[:samples_n]])
-
-                if 's' in dataset.keys():
-                    s = dataset['s']
-                    ret['s'] = torch.cat([s, torch.ones_like(s)[:samples_n]])
-                return ret
-
-            else:
-                return p
-                
-        else:
-            return uniform_sample
-
-"""

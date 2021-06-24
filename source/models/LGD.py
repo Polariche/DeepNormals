@@ -208,11 +208,11 @@ class LGD(nn.Module):
 
         shp = targets[0].shape[:-1]
 
-        lr, hidden, dx = self(targets, losses, hidden, batch_size)
+        lr, hidden, x = self(targets, losses, hidden, batch_size)
 
         idx_start = self.dim_targets if self.concat_input else 0
 
-        dx = dx[...,idx_start:].view(*shp, self.num_losses, self.dim_targets)
+        dx = x[...,idx_start:].view(*shp, self.num_losses, self.dim_targets)
 
         # lr[..., :self.num_losses] = learning rate (sigma)
         # lr[..., self.num_losses:] = evaluation rate (lambda)
@@ -298,9 +298,9 @@ class LGD(nn.Module):
 
 
             for i, constraint in enumerate(constraints):
-                if constraint is "None":
+                if type(constraint) is float or type(constraint) is int:
                     # no constraint on loss  -> lambda = 1
-                    lr_filtered[:,self.num_losses+i] = 1
+                    lr_filtered[:,self.num_losses+i] = constraint
                 elif constraint is "Zero":
                     # loss = 0  -> no constraint on lambda
                     continue
@@ -310,6 +310,8 @@ class LGD(nn.Module):
                 elif constraint is "Negative":
                     # loss <= 0 -> lambda >= 0
                     lr_filtered[:,self.num_losses+i] = F.relu(lr_filtered[:,self.num_losses+i])
+                else:
+                    lr_filtered[:,self.num_losses+i] = 1
 
  
             for i, loss_f in enumerate(losses):
