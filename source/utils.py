@@ -76,6 +76,9 @@ def writePLY(filename, X):
         ply_file.write("%f %f %f\n" % (X[i,0], X[i,1], X[i,2]))
 
 
+
+# implementation from SRN
+
 def model_train(model):
     model.train()
     for param in model.parameters():
@@ -85,3 +88,54 @@ def model_test(model):
     model.eval()
     for param in model.parameters():
         param.requires_grad = False
+
+
+
+def load_rgb(path, sidelength=None):
+    img = imageio.imread(path)[:, :, :3]
+    img = skimage.img_as_float32(img)
+
+    img = square_crop_img(img)
+
+    if sidelength is not None:
+        img = cv2.resize(img, (sidelength, sidelength), interpolation=cv2.INTER_AREA)
+
+    img -= 0.5
+    img *= 2.
+    img = img.transpose(2, 0, 1)
+    return img
+
+
+def load_depth(path, sidelength=None):
+    img = cv2.imread(path, cv2.IMREAD_UNCHANGED).astype(np.float32)
+
+    if sidelength is not None:
+        img = cv2.resize(img, (sidelength, sidelength), interpolation=cv2.INTER_NEAREST)
+
+    img *= 1e-4
+
+    if len(img.shape) == 3:
+        img = img[:, :, :1]
+        img = img.transpose(2, 0, 1)
+    else:
+        img = img[None, :, :]
+    return img
+
+
+def load_pose(filename):
+    lines = open(filename).read().splitlines()
+    if len(lines) == 1:
+        pose = np.zeros((4, 4), dtype=np.float32)
+        for i in range(16):
+            pose[i // 4, i % 4] = lines[0].split(" ")[i]
+        return pose.squeeze()
+    else:
+        lines = [[x[0], x[1], x[2], x[3]] for x in (x.split(" ") for x in lines[:4])]
+        return np.asarray(lines).astype(np.float32).squeeze()
+
+
+def load_params(filename):
+    lines = open(filename).read().splitlines()
+
+    params = np.array([float(x) for x in lines[0].split()]).astype(np.float32).squeeze()
+    return params

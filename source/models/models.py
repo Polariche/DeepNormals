@@ -1,123 +1,18 @@
 import numpy as np
 import torch
 import torch.nn as nn
+from torchmeta.modules import (MetaModule, MetaSequential)
+from torchmeta.modules.utils import get_subdict
+import numpy as np
+from collections import OrderedDict
+import math
 import torch.nn.functional as F
-import torch.optim as optim
-from torch.autograd import Variable, grad
-import torch.sparse
-from torch import Tensor
-import torch.optim as optim
-from torch.utils.data import Dataset, ConcatDataset, Sampler, RandomSampler, BatchSampler
-
-from torch.hub import load_state_dict_from_url
-
-from torch.autograd import Variable, grad
-from typing import Type, Any, Callable, Union, List, Optional, Tuple
 
 
-# from explore_siren
-class SineLayer(nn.Module):
-    # See paper sec. 3.2, final paragraph, and supplement Sec. 1.5 for discussion of omega_0.
-    
-    # If is_first=True, omega_0 is a frequency factor which simply multiplies the activations before the 
-    # nonlinearity. Different signals may require different omega_0 in the first layer - this is a 
-    # hyperparameter.
-    
-    # If is_first=False, then the weights will be divided by omega_0 so as to keep the magnitude of 
-    # activations constant, but boost gradients to the weight matrix (see supplement Sec. 1.5)
-    
-    def __init__(self, in_features, out_features, bias=True,
-                 is_first=False, omega_0=30):
-        super().__init__()
-        self.omega_0 = omega_0
-        self.is_first = is_first
-        
-        self.in_features = in_features
-        self.linear = nn.Linear(in_features, out_features, bias=bias)
-        
-        self.init_weights()
-    
-    def init_weights(self):
-        with torch.no_grad():
-            if self.is_first:
-                self.linear.weight.uniform_(-1 / self.in_features, 
-                                             1 / self.in_features)      
-            else:
-                self.linear.weight.uniform_(-np.sqrt(6 / self.in_features) / self.omega_0, 
-                                             np.sqrt(6 / self.in_features) / self.omega_0)
-        
-    def forward(self, input):
-        return torch.sin(self.omega_0 * self.linear(input))
-    
-    def forward_with_intermediate(self, input): 
-        # For visualization of activation distributions
-        intermediate = self.omega_0 * self.linear(input)
-        return torch.sin(intermediate), intermediate
-    
-    
-class Siren(nn.Module):
-    def __init__(self, in_features, out_features, hidden_features=5, hidden_layers=256, outermost_linear=True, 
-                 first_omega_0=30, hidden_omega_0=30., bias=True):
-        super().__init__()
-        
-        self.net = []
-        self.net.append(SineLayer(in_features, hidden_features, 
-                                  is_first=True, omega_0=first_omega_0, bias=bias))
+# DeepSDF decoder model
+# from https://github.com/facebookresearch/DeepSDF/blob/master/networks/deep_sdf_decoder.py
 
-        for i in range(hidden_layers):
-            self.net.append(SineLayer(hidden_features, hidden_features, 
-                                      is_first=False, omega_0=hidden_omega_0, bias=bias))
-
-        if outermost_linear:
-            final_linear = nn.Linear(hidden_features, out_features, bias=bias)
-            
-            with torch.no_grad():
-                final_linear.weight.uniform_(-np.sqrt(6 / hidden_features) / hidden_omega_0, 
-                                              np.sqrt(6 / hidden_features) / hidden_omega_0)
-                
-            self.net.append(final_linear)
-        else:
-            self.net.append(SineLayer(hidden_features, out_features, 
-                                      is_first=False, omega_0=hidden_omega_0, bias=bias))
-        
-        self.net = nn.Sequential(*self.net)
-    
-    def forward(self, coords):
-        coords = coords.requires_grad_(True) # allows to take derivative w.r.t. input
-        output = self.net(coords)
-        return output, coords        
-
-    def forward_with_activations(self, coords, retain_grad=False):
-        '''Returns not only model output, but also intermediate activations.
-        Only used for visualizing activations later!'''
-        activations = OrderedDict()
-
-        activation_count = 0
-        x = coords.clone().detach().requires_grad_(True)
-        activations['input'] = x
-        for i, layer in enumerate(self.net):
-            if isinstance(layer, SineLayer):
-                x, intermed = layer.forward_with_intermediate(x)
-                
-                if retain_grad:
-                    x.retain_grad()
-                    intermed.retain_grad()
-                    
-                activations['_'.join((str(layer.__class__), "%d" % activation_count))] = intermed
-                activation_count += 1
-            else: 
-                x = layer(x)
-                
-                if retain_grad:
-                    x.retain_grad()
-                    
-            activations['_'.join((str(layer.__class__), "%d" % activation_count))] = x
-            activation_count += 1
-
-        return activations
-
-# basecode from https://github.com/facebookresearch/DeepSDF/blob/master/networks/deep_sdf_decoder.py
-class DeepSDF(nn.Module):
+class DeepSDFDecoder(nn.Module):
     def __init__(
         self,
         latent_size,
@@ -219,138 +114,275 @@ class DeepSDF(nn.Module):
 
         return x
 
-class PositionalEncoding(nn.Module):
-    def __init__(self, n):
-        assert n % 6 == 0
-        super(PositionalEncoding, self).__init__()
-        self.pi = torch.acos(torch.zeros(1)).item()
-        self.n = n
-        
-    def forward(self, x):
-        pi = self.pi
-        n = self.n
-        
-        x = torch.cat([x/(2**i)*pi for i in range(n//6)], dim=1)
-        x = torch.cat([torch.cos(x), torch.sin(x)], dim=1)
-        
-        return x
-    
-    
+
+# from https://github.com/vsitzmann/siren/blob/master/modules.py
+
+class BatchLinear(nn.Linear, MetaModule):
+    '''A linear meta-layer that can deal with batched weight matrices and biases, as for instance output by a
+    hypernetwork.'''
+    __doc__ = nn.Linear.__doc__
+
+    def forward(self, input, params=None):
+        if params is None:
+            params = OrderedDict(self.named_parameters())
+
+        bias = params.get('bias', None)
+        weight = params['weight']
+
+        output = input.matmul(weight.permute(*[i for i in range(len(weight.shape) - 2)], -1, -2))
+        output += bias.unsqueeze(-2)
+        return output
 
 
-def Conv2d_relu(in_channels, out_channels, kernel_size, stride=1, padding=1, dilation=1, groups=1, bias=True, padding_mode='zeros'):
-    return nn.Sequential(nn.Conv2d(in_channels, out_channels, kernel_size, 
-                            stride=stride, padding=padding, dilation=dilation, 
-                            groups=groups, bias=bias, padding_mode=padding_mode), 
-                        nn.ReLU())
+class Sine(nn.Module):
+    def __init(self):
+        super().__init__()
 
-def Linear_relu(in_channels, out_channels, bias=True):
-    return nn.Sequential(nn.Linear(in_channels, out_channels, bias=bias),
-                        nn.ReLU())
+    def forward(self, input):
+        # See paper sec. 3.2, final paragraph, and supplement Sec. 1.5 for discussion of factor 30
+        return torch.sin(30 * input)
 
 
+class FCBlock(MetaModule):
+    '''A fully connected neural network that also allows swapping out the weights when used with a hypernetwork.
+    Can be used just as a normal neural network though, as well.
+    '''
 
-class PointSetGenerator(nn.Module):
-    def __init__(self):
-        super(PointSetGenerator, self).__init__()
+    def __init__(self, in_features, out_features, num_hidden_layers, hidden_features,
+                 outermost_linear=False, nonlinearity='relu', weight_init=None):
+        super().__init__()
 
-        # 192 256
-        self.block0 = nn.Sequential(Conv2d_relu(4, 16, (3,3), stride=1),
-                                    Conv2d_relu(16, 16, (3,3), stride=1),
-                                    Conv2d_relu(16, 32, (3,3), stride=2))
+        self.first_layer_init = None
 
-        # 96 128
-        self.block1 = nn.Sequential(Conv2d_relu(32, 32, (3,3), stride=1),
-                                    Conv2d_relu(32, 32, (3,3), stride=1),
-                                    Conv2d_relu(32, 64, (3,3), stride=2))
+        # Dictionary that maps nonlinearity name to the respective function, initialization, and, if applicable,
+        # special first-layer initialization scheme
+        nls_and_inits = {'sine':(Sine(), sine_init, first_layer_sine_init),
+                         'relu':(nn.ReLU(inplace=True), init_weights_normal, None),
+                         'sigmoid':(nn.Sigmoid(), init_weights_xavier, None),
+                         'tanh':(nn.Tanh(), init_weights_xavier, None),
+                         'selu':(nn.SELU(inplace=True), init_weights_selu, None),
+                         'softplus':(nn.Softplus(), init_weights_normal, None),
+                         'elu':(nn.ELU(inplace=True), init_weights_elu, None)}
 
-        #48 64
-        self.block2 = nn.Sequential(Conv2d_relu(64, 64, (3,3), stride=1),
-                                    Conv2d_relu(64, 64, (3,3), stride=1),
-                                    Conv2d_relu(64, 128, (3,3), stride=2))
+        nl, nl_weight_init, first_layer_init = nls_and_inits[nonlinearity]
 
-        #24 32
-        self.block3 = nn.Sequential(Conv2d_relu(128, 128, (3,3), stride=1),
-                                    Conv2d_relu(128, 128, (3,3), stride=1))
-        self.block3_cont = Conv2d_relu(128, 256, (3,3), stride=2)
+        if weight_init is not None:  # Overwrite weight init if passed
+            self.weight_init = weight_init
+        else:
+            self.weight_init = nl_weight_init
 
-        #12 16
-        self.block4 = nn.Sequential(Conv2d_relu(256, 256, (3,3), stride=1),
-                                    Conv2d_relu(256, 256, (3,3), stride=1))
-        self.block4_cont = Conv2d_relu(256, 512, (3,3), stride=2)
+        self.net = []
+        self.net.append(MetaSequential(
+            BatchLinear(in_features, hidden_features), nl
+        ))
 
-        #6 8
-        self.block5 = nn.Sequential(Conv2d_relu(512, 512, (3,3), stride=1),
-                                    Conv2d_relu(512, 512, (3,3), stride=1),
-                                    Conv2d_relu(512, 512, (3,3), stride=1))
+        for i in range(num_hidden_layers):
+            self.net.append(MetaSequential(
+                BatchLinear(hidden_features, hidden_features), nl
+            ))
 
-        self.block5_cont = Conv2d_relu(512, 512, (5,5), stride=2, padding=2)
+        if outermost_linear:
+            self.net.append(MetaSequential(BatchLinear(hidden_features, out_features)))
+        else:
+            self.net.append(MetaSequential(
+                BatchLinear(hidden_features, out_features), nl
+            ))
 
-        self.block_additional = nn.Sequential(Linear_relu(512*12, 2048),
-                                            Linear_relu(2048, 1024),
-                                            nn.Linear(1024, 256*3))
+        self.net = MetaSequential(*self.net)
+        if self.weight_init is not None:
+            self.net.apply(self.weight_init)
+
+        if first_layer_init is not None: # Apply special initialization to first layer, if applicable.
+            self.net[0].apply(first_layer_init)
+
+    def forward(self, coords, params=None, **kwargs):
+        if params is None:
+            params = OrderedDict(self.named_parameters())
+
+        output = self.net(coords, params=get_subdict(params, 'net'))
+        return output
+
+    def forward_with_activations(self, coords, params=None, retain_grad=False):
+        '''Returns not only model output, but also intermediate activations.'''
+        if params is None:
+            params = OrderedDict(self.named_parameters())
+
+        activations = OrderedDict()
+
+        x = coords.clone().detach().requires_grad_(True)
+        activations['input'] = x
+        for i, layer in enumerate(self.net):
+            subdict = get_subdict(params, 'net.%d' % i)
+            for j, sublayer in enumerate(layer):
+                if isinstance(sublayer, BatchLinear):
+                    x = sublayer(x, params=get_subdict(subdict, '%d' % j))
+                else:
+                    x = sublayer(x)
+
+                if retain_grad:
+                    x.retain_grad()
+                activations['_'.join((str(sublayer.__class__), "%d" % i))] = x
+        return activations
+
+
+class SingleBVPNet(MetaModule):
+    '''A canonical representation network for a BVP.'''
+
+    def __init__(self, out_features=1, type='sine', in_features=2,
+                 mode='mlp', hidden_features=256, num_hidden_layers=3, **kwargs):
+        super().__init__()
+        self.mode = mode
+
+        if self.mode == 'rbf':
+            self.rbf_layer = RBFLayer(in_features=in_features, out_features=kwargs.get('rbf_centers', 1024))
+            in_features = kwargs.get('rbf_centers', 1024)
+        elif self.mode == 'nerf':
+            self.positional_encoding = PosEncodingNeRF(in_features=in_features,
+                                                       sidelength=kwargs.get('sidelength', None),
+                                                       fn_samples=kwargs.get('fn_samples', None),
+                                                       use_nyquist=kwargs.get('use_nyquist', True))
+            in_features = self.positional_encoding.out_dim
+
+        self.image_downsampling = ImageDownsampling(sidelength=kwargs.get('sidelength', None),
+                                                    downsample=kwargs.get('downsample', False))
+        self.net = FCBlock(in_features=in_features, out_features=out_features, num_hidden_layers=num_hidden_layers,
+                           hidden_features=hidden_features, outermost_linear=True, nonlinearity=type)
+        print(self)
+
+    def forward(self, model_input, params=None):
+        if params is None:
+            params = OrderedDict(self.named_parameters())
+
+        # Enables us to compute gradients w.r.t. coordinates
+        coords_org = model_input['coords'].clone().detach().requires_grad_(True)
+        coords = coords_org
+
+        # various input processing methods for different applications
+        if self.image_downsampling.downsample:
+            coords = self.image_downsampling(coords)
+        if self.mode == 'rbf':
+            coords = self.rbf_layer(coords)
+        elif self.mode == 'nerf':
+            coords = self.positional_encoding(coords)
+
+        output = self.net(coords, get_subdict(params, 'net'))
+        return {'model_in': coords_org, 'model_out': output}
+
+    def forward_with_activations(self, model_input):
+        '''Returns not only model output, but also intermediate activations.'''
+        coords = model_input['coords'].clone().detach().requires_grad_(True)
+        activations = self.net.forward_with_activations(coords)
+        return {'model_in': coords, 'model_out': activations.popitem(), 'activations': activations}
 
 
 
-        self.trans5 = nn.ConvTranspose2d(512, 256, (5,5), stride=2, padding=2)
-        self.conv5 = nn.Conv2d(512, 256, (3,3), stride=1, padding=1)
-        # relu(x+x5)
+class ImageDownsampling(nn.Module):
+    '''Generate samples in u,v plane according to downsampling blur kernel'''
 
-        self.trans4_1 = nn.Conv2d(256, 256, (3,3), stride=1, padding=1)
-        self.trans4_2 = nn.ConvTranspose2d(256, 128, (5,5), stride=2, padding=2)
-        self.conv4 = nn.Conv2d(256, 128, (3,3), stride=1, padding=1)
-        # relu(x+x4)
+    def __init__(self, sidelength, downsample=False):
+        super().__init__()
+        if isinstance(sidelength, int):
+            self.sidelength = (sidelength, sidelength)
+        else:
+            self.sidelength = sidelength
 
-        self.trans3_1 = nn.Conv2d(128, 128, (3,3), stride=1, padding=1)
-        self.trans3_2 = nn.ConvTranspose2d(128, 64, (5,5), stride=2, padding=2)
-        self.conv3 = nn.Conv2d(128, 64, (3,3), stride=1, padding=1)
-        # relu(x+x3)
+        if self.sidelength is not None:
+            self.sidelength = torch.Tensor(self.sidelength).cuda().float()
+        else:
+            assert downsample is False
+        self.downsample = downsample
 
-        self.final = nn.Sequential(nn.Conv2d(64, 64, (3,3), stride=1, padding=1),
-                                    nn.Conv2d(64, 64, (3,3), stride=1, padding=1),
-                                    nn.Conv2d(64, 3, (3,3), stride=1, padding=1))
+    def forward(self, coords):
+        if self.downsample:
+            return coords + self.forward_bilinear(coords)
+        else:
+            return coords
+
+    def forward_box(self, coords):
+        return 2 * (torch.rand_like(coords) - 0.5) / self.sidelength
+
+    def forward_bilinear(self, coords):
+        Y = torch.sqrt(torch.rand_like(coords)) - 1
+        Z = 1 - torch.sqrt(torch.rand_like(coords))
+        b = torch.rand_like(coords) < 0.5
+
+        Q = (b * Y + ~b * Z) / self.sidelength
+        return Q
 
 
-    
-    def forward(self, x):
-        x = self.block0(x)
-        x = self.block1(x)
-        x = self.block2(x)
+class PosEncodingNeRF(nn.Module):
+    '''Module to add positional encoding as in NeRF [Mildenhall et al. 2020].'''
+    def __init__(self, in_features, sidelength=None, fn_samples=None, use_nyquist=True):
+        super().__init__()
 
-        x3 = self.block3(x)
-        x = self.block3_cont(x3)
+        self.in_features = in_features
 
-        x4 = self.block4(x)
-        x = self.block4_cont(x4)
+        if self.in_features == 3:
+            self.num_frequencies = 10
+        elif self.in_features == 2:
+            assert sidelength is not None
+            if isinstance(sidelength, int):
+                sidelength = (sidelength, sidelength)
+            self.num_frequencies = 4
+            if use_nyquist:
+                self.num_frequencies = self.get_num_frequencies_nyquist(min(sidelength[0], sidelength[1]))
+        elif self.in_features == 1:
+            assert fn_samples is not None
+            self.num_frequencies = 4
+            if use_nyquist:
+                self.num_frequencies = self.get_num_frequencies_nyquist(fn_samples)
 
-        x5 = self.block5(x)
-        x = self.block5_cont(x5)
+        self.out_dim = in_features + 2 * in_features * self.num_frequencies
 
-        # is it the right way to do this??
-        x_additional = self.block_additional(x.reshape(-1, 512*12))
-        x_additional = x_additional.reshape(-1, 256, 3)
+    def get_num_frequencies_nyquist(self, samples):
+        nyquist_rate = 1 / (2 * (2 * 1 / samples))
+        return int(math.floor(math.log(nyquist_rate, 2)))
 
-        x = self.trans5(x, output_size=x5.shape)
-        x5 = self.conv5(x5)
-        x = F.relu(x + x5)
+    def forward(self, coords):
+        coords = coords.view(coords.shape[0], -1, self.in_features)
 
-        x = self.trans4_1(x)
-        x = self.trans4_2(x, output_size=x4.shape)
-        x4 = self.conv4(x4)
-        x = F.relu(x + x4)
+        coords_pos_enc = coords
+        for i in range(self.num_frequencies):
+            for j in range(self.in_features):
+                c = coords[..., j]
 
-        x = self.trans3_1(x)
-        x = self.trans3_2(x, output_size=x3.shape)
-        x3 = self.conv3(x3)
-        x = F.relu(x + x3)
+                sin = torch.unsqueeze(torch.sin((2 ** i) * np.pi * c), -1)
+                cos = torch.unsqueeze(torch.cos((2 ** i) * np.pi * c), -1)
 
-        x = self.final(x)
-        x = x.reshape(-1, 32*24, 3)
-        x = torch.cat([x_additional, x], axis=1)
-        x = x.reshape(-1, 1024, 3)
+                coords_pos_enc = torch.cat((coords_pos_enc, sin, cos), axis=-1)
 
-        return x
+        return coords_pos_enc.reshape(coords.shape[0], -1, self.out_dim)
 
-        
 
-    
+class RBFLayer(nn.Module):
+    '''Transforms incoming data using a given radial basis function.
+        - Input: (1, N, in_features) where N is an arbitrary batch size
+        - Output: (1, N, out_features) where N is an arbitrary batch size'''
+
+    def __init__(self, in_features, out_features):
+        super().__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.centres = nn.Parameter(torch.Tensor(out_features, in_features))
+        self.sigmas = nn.Parameter(torch.Tensor(out_features))
+        self.reset_parameters()
+
+        self.freq = nn.Parameter(np.pi * torch.ones((1, self.out_features)))
+
+    def reset_parameters(self):
+        nn.init.uniform_(self.centres, -1, 1)
+        nn.init.constant_(self.sigmas, 10)
+
+    def forward(self, input):
+        input = input[0, ...]
+        size = (input.size(0), self.out_features, self.in_features)
+        x = input.unsqueeze(1).expand(size)
+        c = self.centres.unsqueeze(0).expand(size)
+        distances = (x - c).pow(2).sum(-1) * self.sigmas.unsqueeze(0)
+        return self.gaussian(distances).unsqueeze(0)
+
+    def gaussian(self, alpha):
+        phi = torch.exp(-1 * alpha.pow(2))
+        return phi
+
+

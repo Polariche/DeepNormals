@@ -2,7 +2,7 @@ import numpy as np
 import torch 
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import  Dataset, DataLoader, WeightedRandomSampler
+from torch.utils.data import  Dataset
 import re
 import warnings
 
@@ -11,9 +11,13 @@ from evaluate_functions import dist_from_to
 from torch.utils.tensorboard import SummaryWriter
 import argparse
 
-import zlib
 import math
 import os
+from glob import glob
+
+from collections import defaultdict
+
+import utils
 
 class ObjDataset(Dataset):
     # reads an obj file, and outputs a single point sampled at i-th face
@@ -87,10 +91,10 @@ class ObjDataset(Dataset):
         self.vnn = vnn
         self.fnn = fnn
 
-    """
+    
     def __len__(self):
         return len(self.f)
-    """
+    
     def __getitem__(self, idx):
         f = self.f[idx]
         v = self.v[f]
@@ -130,97 +134,6 @@ class PlyDataset(Dataset):
     def __init__(self):
         raise NotImplementedError
 
-class PSGDataset(Dataset):
-    # Dataset for (2D img, GT pointcloud data, validation)
-
-    def __init__(self, data_path):
-        self.datadir = data_path
-
-    def __len__(self):
-        return 300000
-
-    def __getitem__(self, bno):
-        FETCH_BATCH_SIZE=32
-        BATCH_SIZE=32
-        HEIGHT=192
-        WIDTH=256
-        POINTCLOUDSIZE=16384
-        OUTPUTPOINTS=1024
-        REEBSIZE=1024
-
-        path = os.path.join(self.datadir,'%d/%d.gz'%(bno//1000,bno))
-        if not os.path.exists(path):
-            self.stopped=True
-            print ("error! data file not exists: %s"%path)
-            print ("please KILL THIS PROGRAM otherwise it will bear undefined behaviors")
-            assert False,"data file not exists: %s"%path
-        gz = open(path,'rb').read()
-        binfile=zlib.decompress(gz)
-        p=0
-        color=np.fromstring(binfile[p:p+FETCH_BATCH_SIZE*HEIGHT*WIDTH*3],dtype='uint8').reshape((FETCH_BATCH_SIZE,HEIGHT,WIDTH,3))
-        p+=FETCH_BATCH_SIZE*HEIGHT*WIDTH*3
-        depth=np.fromstring(binfile[p:p+FETCH_BATCH_SIZE*HEIGHT*WIDTH*2],dtype='uint16').reshape((FETCH_BATCH_SIZE,HEIGHT,WIDTH))
-        p+=FETCH_BATCH_SIZE*HEIGHT*WIDTH*2
-        rotmat=np.fromstring(binfile[p:p+FETCH_BATCH_SIZE*3*3*4],dtype='float32').reshape((FETCH_BATCH_SIZE,3,3))
-        p+=FETCH_BATCH_SIZE*3*3*4
-        ptcloud=np.fromstring(binfile[p:p+FETCH_BATCH_SIZE*POINTCLOUDSIZE*3],dtype='uint8').reshape((FETCH_BATCH_SIZE,POINTCLOUDSIZE,3))
-        ptcloud=ptcloud.astype('float32')/255
-        beta=math.pi/180*20
-        viewmat=np.array([[
-            np.cos(beta),0,-np.sin(beta)],[
-            0,1,0],[
-            np.sin(beta),0,np.cos(beta)]],dtype='float32')
-        rotmat=rotmat.dot(np.linalg.inv(viewmat))
-        for i in range(FETCH_BATCH_SIZE):
-            ptcloud[i]=((ptcloud[i]-[0.7,0.5,0.5])/0.4).dot(rotmat[i])+[1,0,0]
-        p+=FETCH_BATCH_SIZE*POINTCLOUDSIZE*3
-        reeb=np.fromstring(binfile[p:p+FETCH_BATCH_SIZE*REEBSIZE*2*4],dtype='uint16').reshape((FETCH_BATCH_SIZE,REEBSIZE,4))
-        p+=FETCH_BATCH_SIZE*REEBSIZE*2*4
-        keynames=binfile[p:].decode().split('\n')
-        reeb=reeb.astype('float32')/65535
-        for i in range(FETCH_BATCH_SIZE):
-            reeb[i,:,:3]=((reeb[i,:,:3]-[0.7,0.5,0.5])/0.4).dot(rotmat[i])+[1,0,0]
-        data=np.zeros((FETCH_BATCH_SIZE,HEIGHT,WIDTH,4),dtype='float32')
-        data[:,:,:,:3]=color*(1/255.0)
-        data[:,:,:,3]=depth==0
-        validating=np.array([i[0]=='f' for i in keynames],dtype='float32')
-
-        data = torch.tensor(data).permute(0,3,1,2)
-        ptcloud = torch.tensor(ptcloud)
-        validating = torch.tensor(validating)
-
-        return {'img': data, 'pc_gt': ptcloud, 'validating': validating}
-
-class PSGDataset_old(Dataset):
-    # Dataset for (2D img, ground PC data, predicted PC)
-
-    def __init__(self, data_path):
-        self.img = []
-        self.pc_gt = []
-        self.pc_pred = []
-        self.n = 0
-
-        with open(data_path, 'rb') as f:
-            while True:
-                try:
-                    (i,img_,pc_gt_,pc_pred_) = pickle.load(f, encoding='latin1')
-                    self.img.append(torch.tensor(img_).squeeze().permute(2,0,1)) #HWC to CHW notation
-                    self.pc_gt.append(torch.tensor(pc_gt_).squeeze())
-                    self.pc_pred.append(torch.tensor(pc_pred_).squeeze())
-
-                except EOFError:
-                    break
-
-                self.n = self.n + 1
-
-    def __len__(self):
-        return self.n
-
-    def __getitem__(self, idx):
-        return {'img': self.img[idx], 
-                'pc_gt': self.pc_gt[idx], 
-                'pc_pred': self.pc_pred[idx]}
-        
 
 class UniformDataset(Dataset):
     def __init__(self, mm, mx):
@@ -233,106 +146,317 @@ class UniformDataset(Dataset):
         self.mx = mx
 
     def __getitem__(self, idx):
-        return torch.rand(self.dim, device=self.device) * (self.mx - self.mm) + self.mm
+        with torch.no_grad():
+            return torch.rand(self.dim, device=self.device) * (self.mx - self.mm) + self.mm
 
 
 class GridDataset(Dataset):
-    def __init__(self, mm, mx, n):
+    def __init__(self, mm, mx, shape):
         assert len(mm.shape) == 1
-        assert mm.shape == mx.shape and mm.shape == n.shape
-        assert mm.device == mx.device and mm.device == n.device
+        assert mm.shape == mx.shape and mm.shape == shape.shape
+        assert mm.device == mx.device and mm.device == shape.device
 
         self.device = mm.device
         self.dim = mm.shape[0]
         self.mm = mm
         self.mx = mx
-        self.n = n
+        self.shape = shape
 
     def __len__(self):
-        return torch.prod(self.n)
+        return torch.prod(self.shape)
 
     def __getitem__(self, idx):
-        a = torch.zeros_like(self.n)
-        n_prod = torch.prod(self.n).item()
+        with torch.no_grad():
+            a = torch.zeros_like(self.shape)
+            shape_prod = torch.prod(self.shape).item()
 
-        idx = idx % n_prod
+            idx = idx % n_prod
 
-        for i, n_ in enumerate(self.n):
-            n_prod /= n_
-            a[i] = int(idx // n_prod)
-            idx -= a[i] * n_prod
+            for i, s_ in enumerate(self.shape):
+                shape_prod /= s_
+                a[i] = int(idx // shape_prod)
+                idx -= a[i] * shape_prod
 
-        return (a + 0.5) * (self.mx - self.mm) / self.n + self.mm
+            return (a + 0.5) * (self.mx - self.mm) / self.shape + self.mm
 
 
+class RayDataset(GridDataset):
+    def __init__(self, width, height, focal_length, requires_grad=True, orthogonal=False):
+        
+        mm = torch.tensor([-1, -1, focal_length], dtype=torch.float).cuda()
+        mx = torch.zeros([1, 1, focal_length], dtype=torch.float).cuda()
+        shape = torch.tensor([width, height, 1], dtype=torch.int).cuda()
+
+        super().__init__(mm, mx, shape)
+        self.depth = torch.zeros(torch.prod(self.shape).item(), device=self.device)
+
+        self.focal_length = focal_length
+        self.orthogonal = orthogonal
+
+        self.depth.requires_grad_(requires_grad)
+
+        self.pose = PointTransform()
+
+    def set_focal_length(focal_length):
+        self.focal_length = focal_length
+        self.mm[2] = focal_length
+        self.mx[2] = focal_length
+
+    def __getitem__(self, idx):
+        p = super().__getitem__(idx)
+        d = self.depth[i]
+        
+        if orthogonal:
+            n = torch.tensor([0, 0, 1], dtype=torch.float, device=self.device)
+        else:
+            with torch.no_grad():
+                n = p / self.focal_length
+
+        p = self.pose(p)
+        n = self.pose(n, False)
+
+        return {'p': p, 'd': d, 'n': n}
+
+# refer to SRN/dataio.py for original implementation
+
+class SceneInstanceDataset():
+    """This creates a dataset class for a single object instance (such as a single car)."""
+
+    def __init__(self,
+                 instance_idx,
+                 instance_dir,
+                 specific_observation_idcs=None,  # For few-shot case: Can pick specific observations only
+                 img_sidelength=None,
+                 num_images=-1):
+        self.instance_idx = instance_idx
+        self.img_sidelength = img_sidelength
+        self.instance_dir = instance_dir
+
+        color_dir = os.path.join(instance_dir, "rgb")
+        pose_dir = os.path.join(instance_dir, "pose")
+        param_dir = os.path.join(instance_dir, "params")
+
+        if not os.path.isdir(color_dir):
+            print("Error! root dir %s is wrong" % instance_dir)
+            return
+
+        self.has_params = os.path.isdir(param_dir)
+        self.color_paths = sorted(util.glob_imgs(color_dir))
+        self.pose_paths = sorted(glob(os.path.join(pose_dir, "*.txt")))
+
+        if self.has_params:
+            self.param_paths = sorted(glob(os.path.join(param_dir, "*.txt")))
+        else:
+            self.param_paths = []
+
+        if specific_observation_idcs is not None:
+            self.color_paths = pick(self.color_paths, specific_observation_idcs)
+            self.pose_paths = pick(self.pose_paths, specific_observation_idcs)
+            self.param_paths = pick(self.param_paths, specific_observation_idcs)
+        elif num_images != -1:
+            idcs = np.linspace(0, stop=len(self.color_paths), num=num_images, endpoint=False, dtype=int)
+            self.color_paths = pick(self.color_paths, idcs)
+            self.pose_paths = pick(self.pose_paths, idcs)
+            self.param_paths = pick(self.param_paths, idcs)
+
+    def set_img_sidelength(self, new_img_sidelength):
+        """For multi-resolution training: Updates the image sidelength with whichimages are loaded."""
+        self.img_sidelength = new_img_sidelength
+
+    def __len__(self):
+        return len(self.pose_paths)
+
+    def __getitem__(self, idx):
+        intrinsics, _, _, _ = util.parse_intrinsics(os.path.join(self.instance_dir, "intrinsics.txt"),
+                                                                  trgt_sidelength=self.img_sidelength)
+        intrinsics = torch.Tensor(intrinsics).float()
+
+        rgb = util.load_rgb(self.color_paths[idx], sidelength=self.img_sidelength)
+        rgb = rgb.reshape(3, -1).transpose(1, 0)
+
+        pose = util.load_pose(self.pose_paths[idx])
+
+        if self.has_params:
+            params = util.load_params(self.param_paths[idx])
+        else:
+            params = np.array([0])
+
+        uv = np.mgrid[0:self.img_sidelength, 0:self.img_sidelength].astype(np.int32)
+        uv = torch.from_numpy(np.flip(uv, axis=0).copy()).long()
+        uv = uv.reshape(2, -1).transpose(1, 0)
+
+        sample = {
+            "instance_idx": torch.Tensor([self.instance_idx]).squeeze(),
+            "rgb": torch.from_numpy(rgb).float(),
+            "pose": torch.from_numpy(pose).float(),
+            "uv": uv,
+            "param": torch.from_numpy(params).float(),
+            "intrinsics": intrinsics
+        }
+        return sample
+
+
+class SceneClassDataset(torch.utils.data.Dataset):
+    """Dataset for a class of objects, where each datapoint is a SceneInstanceDataset."""
+
+    def __init__(self,
+                 root_dir,
+                 img_sidelength=None,
+                 max_num_instances=-1,
+                 max_observations_per_instance=-1,
+                 specific_observation_idcs=None,  # For few-shot case: Can pick specific observations only
+                 samples_per_instance=2):
+
+        self.samples_per_instance = samples_per_instance
+        self.instance_dirs = sorted(glob(os.path.join(root_dir, "*/")))
+
+        assert (len(self.instance_dirs) != 0), "No objects in the data directory"
+
+        if max_num_instances != -1:
+            self.instance_dirs = self.instance_dirs[:max_num_instances]
+
+        self.all_instances = [SceneInstanceDataset(instance_idx=idx,
+                                                   instance_dir=dir,
+                                                   specific_observation_idcs=specific_observation_idcs,
+                                                   img_sidelength=img_sidelength,
+                                                   num_images=max_observations_per_instance)
+                              for idx, dir in enumerate(self.instance_dirs)]
+
+        self.num_per_instance_observations = [len(obj) for obj in self.all_instances]
+        self.num_instances = len(self.all_instances)
+
+    def set_img_sidelength(self, new_img_sidelength):
+        """For multi-resolution training: Updates the image sidelength with whichimages are loaded."""
+        for instance in self.all_instances:
+            instance.set_img_sidelength(new_img_sidelength)
+
+    def __len__(self):
+        return np.sum(self.num_per_instance_observations)
+
+    def get_instance_idx(self, idx):
+        """Maps an index into all tuples of all objects to the idx of the tuple relative to the other tuples of that
+        object
+        """
+        obj_idx = 0
+        while idx >= 0:
+            idx -= self.num_per_instance_observations[obj_idx]
+            obj_idx += 1
+        return obj_idx - 1, int(idx + self.num_per_instance_observations[obj_idx - 1])
+
+    def collate_fn(self, batch_list):
+        batch_list = zip(*batch_list)
+
+        all_parsed = []
+        for entry in batch_list:
+            # make them all into a new dict
+            ret = {}
+            for k in entry[0][0].keys():
+                ret[k] = []
+            # flatten the list of list
+            for b in entry:
+                for k in entry[0][0].keys():
+                    ret[k].extend( [bi[k] for bi in b])
+            for k in ret.keys():
+                if type(ret[k][0]) == torch.Tensor:
+                   ret[k] = torch.stack(ret[k])
+            all_parsed.append(ret)
+
+        return tuple(all_parsed)
+
+    def __getitem__(self, idx):
+        """Each __getitem__ call yields a list of self.samples_per_instance observations of a single scene (each a dict),
+        as well as a list of ground-truths for each observation (also a dict)."""
+        obj_idx, rel_idx = self.get_instance_idx(idx)
+
+        observations = []
+        observations.append(self.all_instances[obj_idx][rel_idx])
+
+        for i in range(self.samples_per_instance - 1):
+            observations.append(self.all_instances[obj_idx][np.random.randint(len(self.all_instances[obj_idx]))])
+
+        ground_truth = [{'rgb':ray_bundle['rgb']} for ray_bundle in observations]
+
+        return observations, ground_truth
 
 
 ### Data Augmentation Modules ###
 
-class ObjUniformSample(nn.Module):
-    """
-    Given an ObjDataset, uniformly sample n points and their normals.
-    """
-    def __init__(self, sample_n):
+def dict_collate_fn(batch):
+    # concat a list of dicts into a single dict with lists as values
+    # [{'a': x}, {'a': y}] -> {'a': [x, y]}
+
+    d = defaultdict(list)
+
+    for item in batch:
+        if type(item) is dict:
+            for key, value in item.items():
+                d[key].append(value)
+        else:
+            d[None].append(item)
+    
+    keylist = list(d.keys())
+
+    if len(keylist) == 1 and keylist[0] is None:
+        return torch.cat([t.unsqueeze(0) for t in d[None]])
+    
+    else:
+        for key, value in d.items():
+            d[key] = torch.cat([t.unsqueeze(0) for t in value])
+        
+        return d
+
+
+def get_obj_dataloader(dataset, num_samples, num_workers=0, batch_size=1):
+    fnn = torch.abs(dataset.fnn)
+    sampler = WeightedRandomSampler(fnn.view(-1) / torch.sum(fnn), self.sample_n, replacement=True)
+
+    return DataLoader(dataset, 
+                      batch_size=batch_size, 
+                      shuffle=False, 
+                      sampler=sampler, 
+                      batch_sampler=None, 
+                      num_workers=num_workers,
+                      collate_fn=dict_collate_fn)
+
+class PointTransform(nn.Module):
+    def __init__(self, rotation = None, translation = None):
         super().__init__()
-        self.sample_n = sample_n
 
-    def forward(self, dataset):
-        fnn = torch.abs(dataset.fnn)
-        samples = list(WeightedRandomSampler(fnn.view(-1) / torch.sum(fnn), self.sample_n, replacement=True))
+        if rotation is None:
+            rotation = torch.eye(3)
+        if translation is None:
+            translation = torch.zeros((1,3))
 
-        data = [dataset[sample] for sample in samples] 
+        self.rotation = rotation
+        self.translation = translation
 
-        p = torch.cat([d['p'].unsqueeze(0) for d in data])
-        n = torch.cat([d['n'].unsqueeze(0) for d in data])
+    def forward(self, data, translate = True):
+        in_dim = self.rotation.shape[1]
+        out_dim = self.rotation.shape[0]
+        original_shape = data.shape
 
-        return {'p': p, 'n': n}
+        if data.device != self.rotation.device:
+            rotation = self.rotation.to(data.device)
+        else:
+            rotation = self.rotation
 
-class UniformSample(nn.Module):
-    """
-    Given an Dataset, uniformly sample n points.
-    """
-    def __init__(self, sample_n):
-        super().__init__()
-        self.sample_n = sample_n
+        data = torch.matmul(data.view(-1, in_dim), rotation.T)
 
-    def forward(self, dataset):
-        data = torch.cat([dataset[i].unsqueeze(0) for i in range(self.sample_n)])
-        print(data.shape)
+        if translate:
+            if data.device != self.translation.device:
+                translation = self.translation.to(data.device)
+            else:
+                translation = self.translation
+
+            data += translation.view(1, out_dim)
+
+        data = data.view(*(original_shape[:-1]), out_dim)
+
         return data
 
-class NormalPerturb(nn.Module):
-    """
-    Perturb points by their normals, by random amount
-    """
-
-    def __init__(self, epsilon = 1., concat_original=True):
-        super().__init__()
-        self.epsilon = epsilon
-        self.concat_original = concat_original
-
-    def forward(self, dataset):
-
-        p = dataset['p']
-        n = dataset['n']
-
-        assert p.shape[0] == n.shape[0]
-        assert p.device == n.device
-
-        dataset_n = p.shape[0]
-        device = p.device
-
-        s = torch.rand((dataset_n, 1)).to(device)
-
-        if self.concat_original:
-            p = torch.cat([p, p + s * n * self.epsilon])
-            n = torch.cat([n, n])
-            s = torch.cat([torch.zeros(dataset_n, 1).to(device), s])
-        else:
-            p = p + s * n * self.epsilon
-
-        return {'p': p, 'n': n, 's': s}
-
+"""
+TODO: change to per-point implementation
+      OR perform matrix multiplication on the last dim only (like pytorch FC)
 
 class PointTransform(nn.Module):
     def __init__(self, rotation, translation = None):
@@ -377,7 +501,8 @@ class PointTransform(nn.Module):
             
             return p
         
-    
+
+
 class RandomAugment(nn.Module):
     def __init__(self, samples_n,  epsilon = 1., concat_original=True):
         super().__init__()
@@ -422,3 +547,5 @@ class RandomAugment(nn.Module):
                 
         else:
             return uniform_sample
+
+"""

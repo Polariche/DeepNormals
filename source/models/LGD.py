@@ -18,20 +18,6 @@ def knn_self(x, k=10, return_dist=False):
 
     return ind
 
-    """
-    with torch.no_grad():
-        xx = torch.sum(x**2, dim=1, keepdim=True)
-        d = xx.repeat(1, xx.shape[0]).add_(xx.T)
-        d = d.add_(torch.matmul(x, x.T).mul_(-2))
-
-    ind = torch.topk(-d, k=k, dim=1).indices
-
-    if return_dist:
-        return ind, d[ind]
-    else:
-        return ind
-    """
-
 def graph_features(x, k=10):
     n = x.shape[-2]
     c = x.shape[-1]
@@ -52,8 +38,6 @@ def graph_features(x, k=10):
 
 def lin(in_channels, out_channels):
     return nn.Sequential(nn.Linear(in_channels, out_channels, bias=False),
-                        #nn.BatchNorm1d(out_channels),
-                        #nn.LeakyReLU(negative_slope=0.2))
                         nn.PReLU())
     
     
@@ -69,22 +53,12 @@ class EdgeConv(nn.Module):
         k = self.k
         n = x.shape[-2]                                      # n x c
 
-        x = graph_features(x, k=k)                          # (n*k) x c
+        x = graph_features(x, k=k)                           # (n*k) x c
         x = self.layers(x)                                   # (n*k) x c'
-        x = x.view(*shp, n, k, -1)                                # n x k x c'
+        x = x.view(*shp, n, k, -1)                           # n x k x c'
         x = x.max(dim=-2, keepdim=False)[0].contiguous()     # n x c'
 
         return x
-
-class DGFC(nn.Module):
-    def __init__(self, in_features, out_features, mid_features, k=10):
-        super(DGFC, self).__init__()
-        self.layers = nn.Sequential(EdgeConv(lin(in_features*2, mid_features), k=k),
-                      *([EdgeConv(lin(mid_features*2, mid_features), k=k)]*5),
-                      EdgeConv(lin(mid_features*2, out_features), k=k))
-        
-    def forward(self, x, hidden):
-        return self.layers(x), hidden
 
 
 class DGCNN(nn.Module):

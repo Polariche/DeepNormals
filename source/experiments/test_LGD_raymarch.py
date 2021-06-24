@@ -84,10 +84,11 @@ def main():
     d = torch.zeros((width*height, 1), device=device, dtype=torch.float).requires_grad_(True)
     
 
-    sampler = nn.Sequential(UniformSample(width*height), 
-                            PointTransform(rot))
+    transform = PointTransform(rot)
 
-    p = sampler(p_distribution)
+    dataloader = DataLoader(p_distribution, batch_size=width*height, shuffle=False)
+
+    p #= sampler(p_distribution)
 
 
     ds = ObjDataset(args.data)
