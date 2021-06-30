@@ -141,6 +141,8 @@ class RayDataset(Dataset):
         self.focal_length = focal_length
         self.orthogonal = orthogonal
 
+        self.requires_grad = requires_grad
+
         self.depth = torch.zeros(width*height)
         self.depth.requires_grad_(requires_grad)
 
@@ -167,6 +169,10 @@ class RayDataset(Dataset):
         self.ortho_n = torch.zeros((3), dtype=torch.float)
         self.ortho_n[2] = 1
         self.ortho_n = self.pose(self.ortho_n, False)
+
+    def reset_depth(self):
+        self.depth = torch.zeros(self.width*self.height)
+        self.depth.requires_grad_(self.requires_grad)
 
     def __len__(self):
         return self.width * self.height

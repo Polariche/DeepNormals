@@ -27,6 +27,8 @@ def graph_features(x, k=10):
     feat = torch.zeros(x.shape[0], n, k, 2*c, device=x.device)
 
     for i, x_ in enumerate(x):
+        # for batched inputs (len(x.shape) > 2), knn should be applied inside a batch
+
         ind = knn_self(x_, k).long()
 
         x_rep = x_.unsqueeze(-2).repeat(1,k,1)
@@ -87,7 +89,7 @@ class DGCNN(nn.Module):
                                      self.linear3, self.dp3,
                                      self.linear4)
     
-    def forward(self, x, hidden):
+    def forward(self, x):
         n = x.shape[-2]              # n x ci
 
         x1 = self.conv1(x)          # n x 64
@@ -102,28 +104,30 @@ class DGCNN(nn.Module):
 
         x = self.linears(x)         # n x co
         
-        return x, hidden
+        return x
 
 class LGD(nn.Module):
-    def __init__(self, dim_targets, num_losses, k=10, concat_input=True):
+    def __init__(self, dim_targets, num_losses, hidden_features=0, additional_features=0, k=10, concat_input=True):
         super(LGD, self).__init__()
  
-        hidden_features = 0
+        self.dim_targets = dim_targets                  # D: total dimension of targets
+        self.num_losses = num_losses                    # L: number of losses
  
-        self.dim_targets = dim_targets              # D: total dimension of targets
-        self.num_losses = num_losses                # L: number of losses
- 
-        self.hidden_features = hidden_features      # H: hidden state
-        self.k = k                                  # K: k-nearest neighbors
+        self.hidden_features = hidden_features          # H: hidden state
+        self.additional_features = additional_features  # A : additional inputs
+        self.k = k                                      # K: k-nearest neighbors
         self.concat_input = concat_input
         
-        # layers : (D+1)*L + H -> L + H
+        # layers : (D) + A + H + D*L -> 2*L + H
  
-        inc = dim_targets * num_losses + hidden_features
+        inc = additional_features + hidden_features + dim_targets * num_losses 
         if concat_input:
             inc += dim_targets
 
         ouc = 2*num_losses + hidden_features
+
+        self.inc = inc
+        self.ouc = ouc
         
  
         self.layers = DGCNN(inc, ouc, k=k)
@@ -155,7 +159,7 @@ class LGD(nn.Module):
                 continue
  
  
-    def forward(self, targets, losses, hidden=None, batch_size=1):
+    def forward(self, targets, losses, hidden=None, additional=None):
         # targets : list of targets to optimize; flattened to (n, -1) later
         # losses : list of losses
  
@@ -163,9 +167,10 @@ class LGD(nn.Module):
             targets = [targets]
         if type(losses) is not list:
             losses = [losses]
+        
 
         h = self.hidden_features
-        n = np.prod(list(targets[0].shape[:-1])) # flatten the batch groups such that our input is in the shape (n, c)
+        n = np.prod(list(targets[0].shape[:-1]))
         shp = targets[0].shape[:-1]
         t = len(targets)
 
@@ -177,8 +182,23 @@ class LGD(nn.Module):
         targets_grad = torch.zeros((*shp, 0)).to(targets[0].device)
  
         if hidden is None:
-            hidden = torch.zeros((2, n, h)).to(targets[0].device)
- 
+            hidden = torch.zeros((*shp, h)).to(targets[0].device)
+        
+        additional_tensor = torch.zeros((*shp, 0)).to(targets[0].device)
+        if additional is not None:
+            if type(additional) is not list:
+                additional = [additional]
+            
+            for add in additional:
+                if type(add) is torch.Tensor:
+                    add = add.view(*shp, -1)
+                elif type(add) is type(lambda x:x):
+                    add = add(targets).view(*shp, -1)
+                
+                additional_tensor = torch.cat([additonal_tensor, add], dim=-1)
+            
+        assert additional_tensor.shape[-1] == self.additional_features
+
         # input : dL1/dx1, dL1/dx2, ..., dL2/dx1, dL2/dx2, ..., hidden
         # input size : L*D + H
         for loss_f in losses:
@@ -189,18 +209,21 @@ class LGD(nn.Module):
 
         if self.concat_input:
             targets = [target.view(*shp, -1) for target in targets]
-            x = torch.cat([*targets, targets_grad], dim=-1)
+            x = torch.cat([*targets, additional_tensor, hidden, targets_grad], dim=-1)
         
         else:
-            x = targets_grad
+            x = torch.cat([additional_tensor, hidden, targets_grad], dim=-1)
  
-        # output : new lr, new hidden
-        # output size : L + H
-        lr, hidden = self.layers(x, hidden)
+        # input dim : D + H + D*L
+        # output : new lr, lambdas
+        # output size : 2*L + H
+        y = self.layers(x)
+        lr = y[:self.num_losses*2]
+        hidden = y[self.num_losses*2:]
  
-        return lr, hidden, x
+        return lr, x, hidden
  
-    def step(self, targets, losses, hidden=None, batch_size=1, return_lr=False):
+    def step(self, targets, losses, hidden=None, return_lr=False):
         if type(targets) is not list:
             targets = [targets]
         if type(losses) is not list:
@@ -208,14 +231,17 @@ class LGD(nn.Module):
 
         shp = targets[0].shape[:-1]
 
-        lr, hidden, x = self(targets, losses, hidden, batch_size)
+        lr, x, hidden = self(targets, losses, hidden)
 
-        idx_start = self.dim_targets if self.concat_input else 0
+        if self.concat_input:
+            idx_start = self.dim_targets+self.hidden_features+self.additional_features
+        else:
+            idx_start = self.hidden_features+self.additional_features
 
         dx = x[...,idx_start:].view(*shp, self.num_losses, self.dim_targets)
 
         # lr[..., :self.num_losses] = learning rate (sigma)
-        # lr[..., self.num_losses:] = evaluation rate (lambda)
+        # lr[..., self.num_losses:self.num_losses*2] = evaluation rate (lambda)
 
         d_target = (lr[...,:self.num_losses].unsqueeze(-1) * dx).sum(dim=-2)
 
@@ -230,46 +256,12 @@ class LGD(nn.Module):
             k += d
         
         if return_lr:
-            return new_targets, hidden, lr
+            return new_targets, lr, hidden
         else:
             return new_targets, hidden
 
-    def gradient(self, targets, losses, hidden=None, batch_size=1, return_lr=False):
-        if type(targets) is not list:
-            targets = [targets]
-        if type(losses) is not list:
-            losses = [losses]
 
-        shp = targets[0].shape[:-1]
-
-        lr, hidden, dx = self(targets, losses, hidden, batch_size)
-
-        idx_start = self.dim_targets if self.concat_input else 0
-
-        dx = dx[...,idx_start:].view(*shp, self.num_losses, self.dim_targets)
-
-        # lr[..., :self.num_losses] = learning rate (sigma)
-        # lr[..., self.num_losses:] = evaluation rate (lambda)
-
-        d_target = (lr[...,:self.num_losses].unsqueeze(-1) * dx).sum(dim=-2)
-
-        new_targets = []
-        k = 0
- 
-        for target in targets:
-            d = target.shape[1]
- 
-            target.grad = d_target[...,k:k+d].view(target.shape)
- 
-            k += d
-        
-        if return_lr:
-            return new_targets, hidden, lr
-        else:
-            return new_targets, hidden
- 
-
-    def loss_trajectory_backward(self, targets, losses, hidden=None, constraints = None, batch_size=1, steps=10):
+    def loss_trajectory_backward(self, targets, losses, hidden=None, constraints = None, steps=10):
         # used for training LGD model itself
  
         # since x changes after each iteration, we need to evaluate the loss again
@@ -290,7 +282,7 @@ class LGD(nn.Module):
         sigma_sum = 0
 
         for step in range(steps):
-            targets, _, lr = self.step(targets, losses, hidden, batch_size, return_lr=True)
+            targets, lr, hidden = self.step(targets, losses, hidden, return_lr=True)
     
             # apply contraints on lambda
             lr.requires_grad_()
@@ -299,7 +291,7 @@ class LGD(nn.Module):
 
             for i, constraint in enumerate(constraints):
                 if type(constraint) is float or type(constraint) is int:
-                    # no constraint on loss  -> lambda = 1
+                    # fixed constraint
                     lr_filtered[:,self.num_losses+i] = constraint
                 elif constraint is "Zero":
                     # loss = 0  -> no constraint on lambda
@@ -311,6 +303,7 @@ class LGD(nn.Module):
                     # loss <= 0 -> lambda >= 0
                     lr_filtered[:,self.num_losses+i] = F.relu(lr_filtered[:,self.num_losses+i])
                 else:
+                    # no constraint on loss  -> lambda = 1
                     lr_filtered[:,self.num_losses+i] = 1
 
  
@@ -323,14 +316,11 @@ class LGD(nn.Module):
                 d_lr = torch.autograd.grad([loss], [lr], grad_outputs=[torch.ones_like(loss)], create_graph=False, retain_graph=True)[0]
 
                 lr[:,:self.num_losses].backward(d_lr[:,:self.num_losses], retain_graph=True)
-                lr[:,self.num_losses:].backward(-d_lr[:,self.num_losses:], retain_graph=True)
+                lr[:,self.num_losses:self.num_losses*2].backward(-d_lr[:,self.num_losses:self.num_losses*2], retain_graph=True)
 
                 loss_sum += loss.detach()
                 sigma_sum += lr[:,:self.num_losses].mean() / steps
-                lambda_sum += lr[:,self.num_losses:].mean() / steps
-        
-        #plt.scatter(targets[0][:,0].detach().cpu().numpy(), targets[0][:,1].detach().cpu().numpy())
-        #plt.show()
+                lambda_sum += lr[:,self.num_losses:self.num_losses*2].mean() / steps
 
         return loss_sum, sigma_sum, lambda_sum
  

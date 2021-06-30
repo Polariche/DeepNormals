@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import warnings
 
 from torch.utils.tensorboard import SummaryWriter
 
@@ -55,6 +56,12 @@ def main():
     parser.add_argument('--height', dest='height', type=int,metavar='HEIGHT', default=128, 
                             help='height for rendered image')
 
+    parser.add_argument('--hidden-feats', dest='hidden_features', type=int,metavar='HIDDEN_FEATURES', default=64, 
+                            help='hidden feature dimension')
+    parser.add_argument('--hidden-type', dest='hidden_type', type=int,metavar='HIDDEN_TYPE', default='autodecoder', 
+                            help='how hidden features will be handled; \'autodecoder\' or \'lstm\'')
+
+
     parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE', 
                             help='output file')
 
@@ -69,7 +76,7 @@ def main():
         with open(args.sdf_specs) as specs_file:
             specs = json.load(specs_file)
             model = DeepSDFDecoder(specs["CodeLength"], **specs["NetworkSpecs"])
-            
+
     elif args.sdf_model is "Siren":
         model = SingleBVPNet(type="sine", in_features=3)
 
@@ -79,14 +86,22 @@ def main():
         except:
             print("Couldn't load pretrained weight: " + args.sdf_weight)
 
-
+    # fix SDF model weight
     model.eval() 
     for param in model.parameters():
         param.requires_grad = False
 
 
     # Create LGD
-    lgd = LGD(1, 3, k=10).to(device)
+    hidden_features = args.hidden_features
+
+    if args.hidden_type is 'autodecoder':
+        lgd = LGD(1+hidden_features, 3, k=10, hidden_features=0, additional_features=3).to(device)
+    elif args.hidden_type is 'lstm':
+        lgd = LGD(1, 3, k=10, hidden_features=hidden_features, additional_features=3).to(device)
+    else:
+        raise NotImplementedError
+
     lgd_optimizer = optim.Adam(lgd.parameters(), lr= args.lr)
 
 
@@ -103,15 +118,33 @@ def main():
         d = sampled_rays['d'].cuda()
         p = sampled_rays['p'].cuda()
         n = sampled_rays['n'].cuda()
+        hidden = torch.zeros((*d.shape[:-1], hidden_features))
 
-        l1 = lambda x: 0
-        l2 = lambda x: 0
-        l3 = lambda x: 0
+        l1 = lambda targets: torch.pow(targets[0], 2).mean()
+        l2 = lambda targets: torch.pow(model(p + targets[0]*n), 2).mean()
+        l3 = lambda targets: (torch.tanh(targets[0]) - 1).mean()
+        ray_pt = lambda targets: p + targets[0]*n
+
 
         # update lgd parameters
         lgd_optimizer.zero_grad()
-        lgd.loss_trajectory_backward(d, [l1, l2, l3], None, 
-                                     constraints=["None", "Zero", "Positive"], batch_size=samples_n, steps=args.lgd_step_per_epoch)
+
+        if args.hidden_type is 'autodecoder':
+            lgd.loss_trajectory_backward([d, hidden], [l1, l2, l3], 
+                                     hidden=None, 
+                                     constraints=["None", "Zero", "Positive"],
+                                     additional=ray_pt,
+                                     steps=args.lgd_step_per_epoch)
+        elif args.hidden_type is 'lstm':
+            lgd.loss_trajectory_backward(d, [l1, l2, l3], 
+                                     hidden=hidden, 
+                                     constraints=["None", "Zero", "Positive"],
+                                     additional=ray_pt,
+                                     steps=args.lgd_step_per_epoch)
+        else:
+            raise NotImplementedError
+
+        
         lgd_optimizer.step()
 
         torch.save(lgd.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
