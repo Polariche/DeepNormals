@@ -128,7 +128,7 @@ class LGD(nn.Module):
 
         self.inc = inc
         self.ouc = ouc
-        
+
  
         self.layers = DGCNN(inc, ouc, k=k)
  
@@ -223,7 +223,7 @@ class LGD(nn.Module):
  
         return lr, x, hidden
  
-    def step(self, targets, losses, hidden=None, return_lr=False):
+    def step(self, targets, losses, hidden=None, additional=None, return_lr=False):
         if type(targets) is not list:
             targets = [targets]
         if type(losses) is not list:
@@ -231,7 +231,7 @@ class LGD(nn.Module):
 
         shp = targets[0].shape[:-1]
 
-        lr, x, hidden = self(targets, losses, hidden)
+        lr, x, hidden = self(targets, losses, hidden=hidden, additional=additional)
 
         if self.concat_input:
             idx_start = self.dim_targets+self.hidden_features+self.additional_features
@@ -261,7 +261,7 @@ class LGD(nn.Module):
             return new_targets, hidden
 
 
-    def loss_trajectory_backward(self, targets, losses, hidden=None, constraints = None, steps=10):
+    def loss_trajectory_backward(self, targets, losses, hidden=None, additional=None, constraints = None, steps=10):
         # used for training LGD model itself
  
         # since x changes after each iteration, we need to evaluate the loss again
@@ -282,7 +282,7 @@ class LGD(nn.Module):
         sigma_sum = 0
 
         for step in range(steps):
-            targets, lr, hidden = self.step(targets, losses, hidden, return_lr=True)
+            targets, lr, hidden = self.step(targets, losses, hidden=hidden, additional=additional, return_lr=True)
     
             # apply contraints on lambda
             lr.requires_grad_()
