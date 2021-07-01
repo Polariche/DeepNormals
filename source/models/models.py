@@ -7,6 +7,7 @@ from collections import OrderedDict
 import math
 import torch.nn.functional as F
 
+import sys
 sys.path.append( os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) ) )
 from torchmeta.modules import (MetaModule, MetaSequential)
 from torchmeta.modules.utils import get_subdict
