@@ -109,7 +109,7 @@ def main():
 
     lgd_optimizer = optim.Adam(lgd.parameters(), lr=args.lr, weight_decay=1e-3)
 
-    p = (2*torch.rand(args.batchsize, 3)-1).to(device).requires_grad_()
+    
 
     # train LGD
     lgd.train()
@@ -117,7 +117,8 @@ def main():
 
         for i in range(args.epoch):
             start_time = time.time()
-
+            
+            p = (2*torch.rand(args.batchsize, 3)-1).to(device).requires_grad_()
             hidden = torch.zeros((*p.shape[:-1], hidden_features), device=device).requires_grad_()
 
             l2 = lambda targets: torch.pow(model(targets[0]), 2).sum(dim=1).mean()
