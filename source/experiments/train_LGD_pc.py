@@ -12,7 +12,7 @@ import os
 
 sys.path.append( os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) ) )
 
-from models.models import SirenDecoder, DeepSDFDecoder, Siren
+from models.models import SingleBVPNet, DeepSDFDecoder, Siren
 from loaders import SceneClassDataset, RayDataset, dict_collate_fn, PointTransform
 from models.LGD import LGD, detach_var
 
@@ -79,7 +79,7 @@ def main():
             specs = json.load(specs_file)
             model = DeepSDFDecoder(specs["CodeLength"], **specs["NetworkSpecs"])
     elif args.sdf_model == "Siren":
-        model = SirenDecoder(mode='mlp')
+        model = SingleBVPNet(type="sine", in_features=3).to(device)
     elif args.sdf_model == "OldSiren":
         model = Siren(in_features=3, out_features=1, hidden_features=256, hidden_layers=5, outermost_linear=True)
     else:
@@ -96,7 +96,6 @@ def main():
     model.eval() 
     for param in model.parameters():
         param.requires_grad = False
-
 
     # Create LGD
     hidden_features = args.hidden_features

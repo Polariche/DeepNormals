@@ -222,20 +222,6 @@ class DeepSDFDecoder(nn.Module):
 
         return x
 
-class SirenDecoder(torch.nn.Module):
-    def __init__(self, mode):
-        super().__init__()
-        # Define the model.
-        if mode == 'mlp':
-            self.model = SingleBVPNet(type='sine', final_layer_factor=1, in_features=3)
-        elif mode == 'nerf':
-            self.model = SingleBVPNet(type='relu', mode='nerf', final_layer_factor=1, in_features=3)
-
-    def forward(self, coords):
-        model_in = {'coords': coords}
-        return self.model(model_in)['model_out']
-
-
 # from https://github.com/vsitzmann/siren/blob/master/modules.py
 
 class BatchLinear(nn.Linear, MetaModule):
@@ -375,7 +361,7 @@ class SingleBVPNet(MetaModule):
             params = OrderedDict(self.named_parameters())
 
         # Enables us to compute gradients w.r.t. coordinates
-        coords_org = model_input['coords'].clone().detach().requires_grad_(True)
+        coords_org = model_input.clone().detach().requires_grad_(True)
         coords = coords_org
 
         # various input processing methods for different applications
@@ -387,13 +373,13 @@ class SingleBVPNet(MetaModule):
             coords = self.positional_encoding(coords)
 
         output = self.net(coords, get_subdict(params, 'net'))
-        return {'model_in': coords_org, 'model_out': output}
+        return output
 
     def forward_with_activations(self, model_input):
         '''Returns not only model output, but also intermediate activations.'''
-        coords = model_input['coords'].clone().detach().requires_grad_(True)
+        coords = model_input.clone().detach().requires_grad_(True)
         activations = self.net.forward_with_activations(coords)
-        return {'model_in': coords, 'model_out': activations.popitem(), 'activations': activations}
+        return {'model_out': activations.popitem(), 'activations': activations}
 
 
 
