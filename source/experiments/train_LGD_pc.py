@@ -117,6 +117,8 @@ def main():
 
     rayloader = DataLoader(rays, collate_fn=dict_collate_fn, batch_size=args.batchsize, shuffle=True)
 
+    p = torch.rand(args.batchsize, 3).to(device).requires_grad_()
+    
     # train LGD
     lgd.train()
     with tqdm(total=args.epoch) as pbar:
@@ -130,7 +132,7 @@ def main():
             #d = sampled_rays['d'].to(device)
             #p = sampled_rays['p'].to(device).requires_grad_()
             #n = sampled_rays['n'].to(device)
-            p = torch.rand(args.batchsize, 3).to(device).requires_grad_()
+            
             hidden = torch.zeros((*p.shape[:-1], hidden_features), device=device).requires_grad_()
 
             #l1 = lambda targets: torch.pow(targets[0], 2).mean()

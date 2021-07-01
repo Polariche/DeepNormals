@@ -345,7 +345,7 @@ class LGD(nn.Module):
                 lr[...,:self.num_losses].backward(d_lr[...,:self.num_losses], retain_graph=True)
                 lr[...,self.num_losses:2*self.num_losses].backward(-d_lr[...,self.num_losses:2*self.num_losses], retain_graph=True)
 
-                loss_sum[i] += loss_f(targets).detach()
+                loss_sum[i] += (loss_f(targets) / steps).detach()
                 sigma_sum += lr[...,:self.num_losses].mean() / steps
                 lambda_sum += lr[...,self.num_losses:2*self.num_losses].mean() / steps
         
