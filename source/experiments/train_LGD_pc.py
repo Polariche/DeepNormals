@@ -12,7 +12,7 @@ import os
 
 sys.path.append( os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) ) )
 
-from models.models import SingleBVPNet, DeepSDFDecoder
+from models.models import SirenDecoder, DeepSDFDecoder, Siren
 from loaders import SceneClassDataset, RayDataset, dict_collate_fn, PointTransform
 from models.LGD import LGD, detach_var
 
@@ -77,10 +77,13 @@ def main():
     if args.sdf_model == "DeepSDF":
         with open(args.sdf_specs) as specs_file:
             specs = json.load(specs_file)
-            model = DeepSDFDecoder(specs["CodeLength"], **specs["NetworkSpecs"]).to(device)
-
+            model = DeepSDFDecoder(specs["CodeLength"], **specs["NetworkSpecs"])
     elif args.sdf_model == "Siren":
-        model = SingleBVPNet(type="sine", in_features=3).to(device)
+        model = SirenDecoder(mode='mlp')
+    elif args.sdf_model == "OldSiren":
+        model = Siren(in_features=3, out_features=1, hidden_features=256, hidden_layers=5, outermost_linear=True)
+    else:
+        raise NotImplementedError  
 
     if args.sdf_weight != None:
         try:
@@ -89,6 +92,7 @@ def main():
             print("Couldn't load pretrained weight: " + args.sdf_weight)
 
     # fix SDF model weight
+    model.to(device)
     model.eval() 
     for param in model.parameters():
         param.requires_grad = False
@@ -130,7 +134,7 @@ def main():
             hidden = torch.zeros((*p.shape[:-1], hidden_features), device=device).requires_grad_()
 
             #l1 = lambda targets: torch.pow(targets[0], 2).mean()
-            l2 = lambda targets: torch.pow(model({'coords': targets[0]})['model_out'], 2).mean()
+            l2 = lambda targets: torch.pow(model(targets[0]}), 2).mean()
             #l3 = lambda targets: (torch.tanh(targets[0]) - 1).mean()
             #ray_pt = lambda targets: p + targets[0]*n
 
