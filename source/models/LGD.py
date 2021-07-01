@@ -129,10 +129,8 @@ class DGCNN(nn.Module):
         return x, hidden
 
 class LGD(nn.Module):
-    def __init__(self, dim_targets, num_losses, k=10, concat_input=True):
+    def __init__(self, dim_targets, num_losses, k=10, hidden_features=0, concat_input=True):
         super(LGD, self).__init__()
- 
-        hidden_features = 0
  
         self.dim_targets = dim_targets              # D: total dimension of targets
         self.num_losses = num_losses                # L: number of losses
@@ -309,7 +307,7 @@ class LGD(nn.Module):
         if type(losses) is not list:
             losses = [losses]
 
-        loss_sum = 0
+        loss_sum = [0]*len(losses)
         lambda_sum = 0
         sigma_sum = 0
 
@@ -344,17 +342,17 @@ class LGD(nn.Module):
 
                 d_lr = torch.autograd.grad([loss], [lr], grad_outputs=[torch.ones_like(loss)], create_graph=False, retain_graph=True)[0]
 
-                lr[:,:self.num_losses].backward(d_lr[:,:self.num_losses], retain_graph=True)
-                lr[:,self.num_losses:].backward(-d_lr[:,self.num_losses:], retain_graph=True)
+                lr[...,:self.num_losses].backward(d_lr[...,:self.num_losses], retain_graph=True)
+                lr[...,self.num_losses:2*self.num_losses].backward(-d_lr[...,self.num_losses:2*self.num_losses], retain_graph=True)
 
-                loss_sum += loss.detach()
-                sigma_sum += lr[:,:self.num_losses].mean() / steps
-                lambda_sum += lr[:,self.num_losses:].mean() / steps
+                loss_sum[i] += (loss_f(targets) / steps).detach()
+                sigma_sum += lr[...,:self.num_losses].mean() / steps
+                lambda_sum += lr[...,self.num_losses:2*self.num_losses].mean() / steps
         
         #plt.scatter(targets[0][:,0].detach().cpu().numpy(), targets[0][:,1].detach().cpu().numpy())
         #plt.show()
 
-        return loss_sum, sigma_sum, lambda_sum
+        return loss_sum, sigma_sum, lambda_sum, [target.detach() for target in targets]
  
  
 def detach_var(v):
