@@ -119,7 +119,7 @@ def main():
         for i in range(args.epoch):
             start_time = time.time()
 
-            samples_n = n//32
+            samples_n = args.batchsize//32
             sample_inds = torch.randperm(n)[:samples_n]
             p_sampled = p[sample_inds]
 
