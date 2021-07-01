@@ -81,7 +81,7 @@ def main():
     dl = get_obj_dataloader(ds, num_samples=args.n, num_workers=0, batch_size=1)
 
 
-    p = (next(iter(dl))['p']).to(device)
+    p = (next(iter(dl))['p']).to(device).reshape(-1,3)
     
     # load 
     with torch.no_grad():
