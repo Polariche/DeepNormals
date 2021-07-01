@@ -93,7 +93,7 @@ def main():
     print("lgd")
     hidden = None
 
-    lgd = LGD(3, 2, k=10).to(device)
+    lgd = LGD(3, 1, k=10).to(device)
     lgd_optimizer = optim.Adam(lgd.parameters(), lr= lr)
 
     # train LGD
@@ -111,13 +111,13 @@ def main():
 
             # update lgd parameters
             lgd_optimizer.zero_grad()
-            train_loss, sigma_sum, lambda_sum, [x] = lgd.loss_trajectory_backward(x[sample_inds], [origin_eval_batch_list, sdf_eval_list], None, 
-                                        constraints=["None", "Zero"], batch_size=samples_n, steps=lgd_step_per_epoch)
+            train_loss, sigma_sum, lambda_sum, [x_converged] = lgd.loss_trajectory_backward(x[sample_inds], [sdf_eval_list], None, 
+                                        constraints=["None"], batch_size=samples_n, steps=lgd_step_per_epoch)
             lgd_optimizer.step()
             
             tqdm.write("Epoch %d, Total loss %0.6f, Sigma %0.6f, Lambda %0.6f, iteration time %0.6f" % (i, train_loss[0], sigma_sum, lambda_sum, time.time() - start_time))
 
-            writer.add_mesh("pointcloud_LGD_train", x.unsqueeze(0), global_step=i+1)
+            writer.add_mesh("pointcloud_LGD_train", x_converged.unsqueeze(0), global_step=i+1)
             writer.add_scalars("train_loss", {"raymarch_LGD_train": train_loss[0]}, global_step=i)
 
             torch.save(lgd.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
