@@ -78,7 +78,7 @@ def main():
 
     
     ds = ObjDataset(args.data)
-    dl = get_obj_dataloader(ds, num_samples=args.n, num_workers=0, batch_size=1)
+    dl = get_obj_dataloader(ds, num_samples=args.n, num_workers=0)
 
 
     p = (next(iter(dl))['p']).to(device).reshape(-1,3)
