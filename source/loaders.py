@@ -143,7 +143,7 @@ class RayDataset(Dataset):
 
         self.requires_grad = requires_grad
 
-        self.depth = torch.zeros(width*height)
+        self.depth = torch.zeros((width*height, 1))
         self.depth.requires_grad_(requires_grad)
 
         if pose is None:
