@@ -220,8 +220,8 @@ class LGD(nn.Module):
         # output : new lr, lambdas
         # output size : 2*L + H
         y = self.layers(x)
-        lr = y[:self.num_losses*2]
-        hidden = y[self.num_losses*2:]
+        lr = y[...,:self.num_losses*2]
+        hidden = y[...,self.num_losses*2:]
  
         return lr, x, hidden
  
