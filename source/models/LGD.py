@@ -310,7 +310,8 @@ class LGD(nn.Module):
 
  
             for i, loss_f in enumerate(losses):
-                loss = (lr_filtered[:,self.num_losses+i] * loss_f(targets)).mean() / steps
+                loss_true = loss_f(targets)
+                loss = (lr_filtered[:,self.num_losses+i] * loss_true).mean() / steps
 
                 # evaluate dL / d(sigma), dL / d(lambda)
                 # propagate with d(sigma) / d(theta) : descent, d(lambda) / d(theta) : ascent
@@ -320,7 +321,7 @@ class LGD(nn.Module):
                 lr[:,:self.num_losses].backward(d_lr[:,:self.num_losses], retain_graph=True)
                 lr[:,self.num_losses:self.num_losses*2].backward(-d_lr[:,self.num_losses:self.num_losses*2], retain_graph=True)
 
-                loss_sum[i] += loss.detach()
+                loss_sum[i] += loss_true.mean().detach() / steps
                 sigma_sum += lr[:,:self.num_losses].mean() / steps
                 lambda_sum += lr[:,self.num_losses:self.num_losses*2].mean() / steps
 
