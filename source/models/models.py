@@ -54,7 +54,7 @@ class SineLayer(nn.Module):
         intermediate = self.omega_0 * self.linear(input)
         return torch.sin(intermediate), intermediate
     
-# old siren model
+# old siren
 class Siren(nn.Module):
     def __init__(self, in_features, out_features, hidden_features=5, hidden_layers=256, outermost_linear=True, 
                  first_omega_0=30, hidden_omega_0=30., bias=True):
@@ -85,7 +85,7 @@ class Siren(nn.Module):
     def forward(self, coords):
         coords = coords.requires_grad_(True) # allows to take derivative w.r.t. input
         output = self.net(coords)
-        return output     
+        return output, coords        
 
     def forward_with_activations(self, coords, retain_grad=False):
         '''Returns not only model output, but also intermediate activations.
