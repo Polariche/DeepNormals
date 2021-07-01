@@ -120,25 +120,25 @@ def main():
             p = (2*torch.rand(args.batchsize, 3)-1).to(device).requires_grad_()
             hidden = torch.zeros((*p.shape[:-1], hidden_features), device=device).requires_grad_()
 
-            l2 = lambda targets: torch.pow(model(targets[0]), 2).mean()
+            l2 = lambda targets: torch.pow(model(targets[0]), 2).sum(dim=1).mean()
 
             # update lgd parameters
             lgd_optimizer.zero_grad()
 
-            if args.hidden_type == 'autodecoder':
-                train_loss, sigma_sum, lambda_sum, [p] = lgd.loss_trajectory_backward([p, hidden], [l2], 
-                                                                                        hidden=None, 
-                                                                                        constraints=["Zero"],
-                                                                                        #additional=ray_pt,
-                                                                                        steps=args.lgd_step_per_epoch)
-            elif args.hidden_type == 'lstm':
-                train_loss, sigma_sum, lambda_sum, [p] = lgd.loss_trajectory_backward(p, [l2], 
-                                                                                        hidden=hidden, 
-                                                                                        constraints=["Zero"],
-                                                                                        #additional=ray_pt,
-                                                                                        steps=args.lgd_step_per_epoch)
-            else:
-                raise NotImplementedError
+            #if args.hidden_type == 'autodecoder':
+            #    train_loss, sigma_sum, lambda_sum, [p] = lgd.loss_trajectory_backward([p, hidden], [l2], 
+            #                                                                            hidden=None, 
+            #                                                                            constraints=["Zero"],
+            #                                                                            #additional=ray_pt,
+            #                                                                            steps=args.lgd_step_per_epoch)
+            #elif args.hidden_type == 'lstm':
+            train_loss, sigma_sum, lambda_sum, [p] = lgd.loss_trajectory_backward(p, [l2], 
+                                                                                    hidden=hidden, 
+                                                                                    constraints=["Zero"],
+                                                                                    #additional=ray_pt,
+                                                                                    steps=args.lgd_step_per_epoch)
+            #else:
+            #    raise NotImplementedError
             
             lgd_optimizer.step()
 
