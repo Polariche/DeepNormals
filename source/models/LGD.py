@@ -325,7 +325,7 @@ class LGD(nn.Module):
                 sigma_sum += lr[:,:self.num_losses].mean() / steps
                 lambda_sum += lr[:,self.num_losses:self.num_losses*2].mean() / steps
 
-        return loss_sum, sigma_sum, lambda_sum
+        return loss_sum, sigma_sum, lambda_sum, [target.detach() for target in targets]
  
  
 def detach_var(v):

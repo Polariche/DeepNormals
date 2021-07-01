@@ -138,13 +138,13 @@ def main():
             lgd_optimizer.zero_grad()
 
             if args.hidden_type == 'autodecoder':
-                train_loss, _, _ = lgd.loss_trajectory_backward([d, hidden], [l1, l2, l3], 
+                train_loss, _, _, [d,hidden] = lgd.loss_trajectory_backward([d, hidden], [l1, l2, l3], 
                                         hidden=None, 
                                         constraints=["None", "Zero", "Positive"],
                                         additional=ray_pt,
                                         steps=args.lgd_step_per_epoch)
             elif args.hidden_type == 'lstm':
-                train_loss, _, _ = lgd.loss_trajectory_backward(d, [l1, l2, l3], 
+                train_loss, _, _, [d] = lgd.loss_trajectory_backward(d, [l1, l2, l3], 
                                         hidden=hidden, 
                                         constraints=["None", "Zero", "Positive"],
                                         additional=ray_pt,
@@ -155,6 +155,9 @@ def main():
             lgd_optimizer.step()
 
             tqdm.write("Epoch %d, Total loss %0.6f, iteration time %0.6f" % (i, train_loss[1], time.time() - start_time))
+
+            writer.add_mesh("raymarch_LGD_train", (p + d*n).unsqueeze(0), global_step=i+1)
+
             torch.save(lgd.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
             
             pbar.update(1)
