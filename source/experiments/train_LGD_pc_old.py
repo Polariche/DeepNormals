@@ -82,7 +82,7 @@ def main():
     dl = get_obj_dataloader(ds, num_samples=args.n, num_workers=0, batch_size=1)
 
 
-    p = (dl['p']).to(device)
+    p = (next(dl)['p']).to(device)
     
     # load 
     with torch.no_grad():
