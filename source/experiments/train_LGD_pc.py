@@ -48,7 +48,7 @@ def main():
                             help='batch size')
     parser.add_argument('--epoch', dest='epoch', type=int,metavar='EPOCH', default=500, 
                             help='epochs for adam and lgd')
-    parser.add_argument('--lr', dest='lr', type=float,metavar='LEARNING_RATE', default=5e-3, 
+    parser.add_argument('--lr', dest='lr', type=float,metavar='LEARNING_RATE', default=1e-3, 
                             help='learning rate')
     parser.add_argument('--lgd-step', dest='lgd_step_per_epoch', type=int,metavar='LGD_STEP_PER_EPOCH', default=5, 
                             help='number of simulation steps of LGD per epoch')
@@ -108,7 +108,7 @@ def main():
     else:
         raise NotImplementedError
 
-    lgd_optimizer = optim.Adam(lgd.parameters(), lr= args.lr)
+    lgd_optimizer = optim.Adam(lgd.parameters(), lr= args.lr, weight_decay=1e-3)
 
 
     # load a RayDataset
@@ -118,7 +118,7 @@ def main():
     rayloader = DataLoader(rays, collate_fn=dict_collate_fn, batch_size=args.batchsize, shuffle=True)
 
     p = torch.rand(args.batchsize, 3).to(device).requires_grad_()
-    
+
     # train LGD
     lgd.train()
     with tqdm(total=args.epoch) as pbar:
@@ -146,16 +146,16 @@ def main():
 
             if args.hidden_type == 'autodecoder':
                 train_loss, sigma_sum, lambda_sum, [p] = lgd.loss_trajectory_backward([p, hidden], [l2], 
-                                        hidden=None, 
-                                        constraints=["Zero"],
-                                        #additional=ray_pt,
-                                        steps=args.lgd_step_per_epoch)
+                                                                                        hidden=None, 
+                                                                                        constraints=["Zero"],
+                                                                                        #additional=ray_pt,
+                                                                                        steps=args.lgd_step_per_epoch)
             elif args.hidden_type == 'lstm':
                 train_loss, sigma_sum, lambda_sum, [p] = lgd.loss_trajectory_backward(p, [l2], 
-                                        hidden=hidden, 
-                                        constraints=["Zero"],
-                                        #additional=ray_pt,
-                                        steps=args.lgd_step_per_epoch)
+                                                                                        hidden=hidden, 
+                                                                                        constraints=["Zero"],
+                                                                                        #additional=ray_pt,
+                                                                                        steps=args.lgd_step_per_epoch)
             else:
                 raise NotImplementedError
             
