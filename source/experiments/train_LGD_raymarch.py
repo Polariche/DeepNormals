@@ -84,7 +84,7 @@ def main():
         model = Siren(in_features=3, out_features=1, hidden_features=256, hidden_layers=5, outermost_linear=True)
     else:
         raise NotImplementedError  
-        
+
 
     if args.sdf_weight != None:
         try:
@@ -133,7 +133,7 @@ def main():
             hidden = torch.zeros((*d.shape[:-1], hidden_features), device=device).requires_grad_()
 
             l1 = lambda targets: torch.pow(targets[0], 2).mean()
-            l2 = lambda targets: torch.pow(model({'coords': p + targets[0]*n})['model_out'], 2).mean()
+            l2 = lambda targets: torch.pow(model(p + targets[0]*n), 2).mean()
             l3 = lambda targets: (torch.tanh(targets[0]) - 1).mean()
             ray_pt = lambda targets: p + targets[0]*n
 
