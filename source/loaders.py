@@ -159,7 +159,7 @@ class RayDataset(Dataset):
     def apply_pose(self, pose):
         width = self.width
         height = self.height 
-        focal_length = selef.focal_length
+        focal_length = self.focal_length
 
         self.p = torch.from_numpy(np.mgrid[:width, :height]).permute(2,1,0).reshape(-1,2) + 0.5
         self.p = self.p / torch.tensor([width, height])
