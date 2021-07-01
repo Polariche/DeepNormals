@@ -13,13 +13,14 @@ import os
 sys.path.append( os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) ) )
 
 from models.models import SingleBVPNet, DeepSDFDecoder
-from loaders import SceneClassDataset, RayDataset, dict_collate_fn
+from loaders import SceneClassDataset, RayDataset, dict_collate_fn, PointTransform
 from models.LGD import LGD, detach_var
 
 from torch.utils.data import  DataLoader
 
 import argparse
 
+from tqdm.autonotebook import tqdm
 
 def main():
     parser = argparse.ArgumentParser(description='Test',
@@ -108,46 +109,53 @@ def main():
     # load a RayDataset
     rays = RayDataset(args.width, args.height)
     rayloader = DataLoader(rays, collate_fn=dict_collate_fn, batch_size=args.batchsize, shuffle=True)
+    rayloader.apply_pose(PointTransform(rotation=torch.eye(3) * 0.5, position=torch.tensor(0., 0., -0.5)))
 
     # train LGD
     lgd.train()
-    for i in range(args.epoch):
-        iter_ray = iter(rayloader)
-        sampled_rays = next(iter_ray)
+    with tqdm(total=args.epochs) as pbar:
 
-        d = sampled_rays['d'].cuda()
-        p = sampled_rays['p'].cuda()
-        n = sampled_rays['n'].cuda()
-        hidden = torch.zeros((*d.shape[:-1], hidden_features))
+        for i in range(args.epoch):
+            start_time = time.time()
 
-        l1 = lambda targets: torch.pow(targets[0], 2).mean()
-        l2 = lambda targets: torch.pow(model(p + targets[0]*n), 2).mean()
-        l3 = lambda targets: (torch.tanh(targets[0]) - 1).mean()
-        ray_pt = lambda targets: p + targets[0]*n
+            iter_ray = iter(rayloader)
+            sampled_rays = next(iter_ray)
+
+            d = sampled_rays['d'].cuda()
+            p = sampled_rays['p'].cuda()
+            n = sampled_rays['n'].cuda()
+            hidden = torch.zeros((*d.shape[:-1], hidden_features))
+
+            l1 = lambda targets: torch.pow(targets[0], 2).mean()
+            l2 = lambda targets: torch.pow(model(p + targets[0]*n), 2).mean()
+            l3 = lambda targets: (torch.tanh(targets[0]) - 1).mean()
+            ray_pt = lambda targets: p + targets[0]*n
 
 
-        # update lgd parameters
-        lgd_optimizer.zero_grad()
+            # update lgd parameters
+            lgd_optimizer.zero_grad()
 
-        if args.hidden_type is 'autodecoder':
-            lgd.loss_trajectory_backward([d, hidden], [l1, l2, l3], 
-                                     hidden=None, 
-                                     constraints=["None", "Zero", "Positive"],
-                                     additional=ray_pt,
-                                     steps=args.lgd_step_per_epoch)
-        elif args.hidden_type is 'lstm':
-            lgd.loss_trajectory_backward(d, [l1, l2, l3], 
-                                     hidden=hidden, 
-                                     constraints=["None", "Zero", "Positive"],
-                                     additional=ray_pt,
-                                     steps=args.lgd_step_per_epoch)
-        else:
-            raise NotImplementedError
+            if args.hidden_type is 'autodecoder':
+                train_loss, _, _ = lgd.loss_trajectory_backward([d, hidden], [l1, l2, l3], 
+                                        hidden=None, 
+                                        constraints=["None", "Zero", "Positive"],
+                                        additional=ray_pt,
+                                        steps=args.lgd_step_per_epoch)
+            elif args.hidden_type is 'lstm':
+                train_loss, _, _ = lgd.loss_trajectory_backward(d, [l1, l2, l3], 
+                                        hidden=hidden, 
+                                        constraints=["None", "Zero", "Positive"],
+                                        additional=ray_pt,
+                                        steps=args.lgd_step_per_epoch)
+            else:
+                raise NotImplementedError
+            
+            lgd_optimizer.step()
 
-        
-        lgd_optimizer.step()
-
-        torch.save(lgd.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
+            tqdm.write("Epoch %d, Total loss %0.6f, iteration time %0.6f" % (i, train_loss[1], time.time() - start_time))
+            torch.save(lgd.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
+            
+            pbar.update(1)
  
     writer.close()
 

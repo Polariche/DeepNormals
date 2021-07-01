@@ -183,6 +183,8 @@ class LGD(nn.Module):
  
         if hidden is None:
             hidden = torch.zeros((*shp, h)).to(targets[0].device)
+        else:
+            assert hidden.shape[-1] == self.hidden_features
         
         additional_tensor = torch.zeros((*shp, 0)).to(targets[0].device)
         if additional is not None:
@@ -197,7 +199,7 @@ class LGD(nn.Module):
                 
                 additional_tensor = torch.cat([additonal_tensor, add], dim=-1)
             
-        assert additional_tensor.shape[-1] == self.additional_features
+            assert additional_tensor.shape[-1] == self.additional_features
 
         # input : dL1/dx1, dL1/dx2, ..., dL2/dx1, dL2/dx2, ..., hidden
         # input size : L*D + H
@@ -277,7 +279,7 @@ class LGD(nn.Module):
         if type(losses) is not list:
             losses = [losses]
 
-        loss_sum = 0
+        loss_sum = [0] * len(losses)
         lambda_sum = 0
         sigma_sum = 0
 
@@ -318,7 +320,7 @@ class LGD(nn.Module):
                 lr[:,:self.num_losses].backward(d_lr[:,:self.num_losses], retain_graph=True)
                 lr[:,self.num_losses:self.num_losses*2].backward(-d_lr[:,self.num_losses:self.num_losses*2], retain_graph=True)
 
-                loss_sum += loss.detach()
+                loss_sum[i] += loss.detach()
                 sigma_sum += lr[:,:self.num_losses].mean() / steps
                 lambda_sum += lr[:,self.num_losses:self.num_losses*2].mean() / steps
 
