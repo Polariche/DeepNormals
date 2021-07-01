@@ -205,7 +205,7 @@ class LGD(nn.Module):
         # input size : L*D + H
         for loss_f in losses:
             loss = loss_f(targets)
-            targets_grad_l = torch.autograd.grad(loss, targets, grad_outputs=[torch.ones_like(loss) for _ in range(t)], create_graph=False)
+            targets_grad_l = torch.autograd.grad(loss, targets, grad_outputs=[torch.ones_like(loss) for _ in range(t)], create_graph=False, allow_unused=True)
             targets_grad_l = [grad.view(*shp, -1) for grad in targets_grad_l]
             targets_grad = torch.cat([targets_grad, *targets_grad_l], dim=-1)
 
