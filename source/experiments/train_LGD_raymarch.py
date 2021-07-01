@@ -59,7 +59,7 @@ def main():
 
     parser.add_argument('--hidden-feats', dest='hidden_features', type=int,metavar='HIDDEN_FEATURES', default=64, 
                             help='hidden feature dimension')
-    parser.add_argument('--hidden-type', dest='hidden_type', type=int,metavar='HIDDEN_TYPE', default='autodecoder', 
+    parser.add_argument('--hidden-type', dest='hidden_type', metavar='HIDDEN_TYPE', default='autodecoder', 
                             help='how hidden features will be handled; \'autodecoder\' or \'lstm\'')
 
 
