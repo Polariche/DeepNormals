@@ -71,14 +71,14 @@ def main():
     writer = SummaryWriter(args.tb_save_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-
+ 
     # Open a SDF model
-    if args.sdf_model is "DeepSDF":
+    if args.sdf_model == "DeepSDF":
         with open(args.sdf_specs) as specs_file:
             specs = json.load(specs_file)
             model = DeepSDFDecoder(specs["CodeLength"], **specs["NetworkSpecs"])
 
-    elif args.sdf_model is "Siren":
+    elif args.sdf_model == "Siren":
         model = SingleBVPNet(type="sine", in_features=3)
 
     if args.sdf_weight != None:
@@ -135,13 +135,13 @@ def main():
             # update lgd parameters
             lgd_optimizer.zero_grad()
 
-            if args.hidden_type is 'autodecoder':
+            if args.hidden_type == 'autodecoder':
                 train_loss, _, _ = lgd.loss_trajectory_backward([d, hidden], [l1, l2, l3], 
                                         hidden=None, 
                                         constraints=["None", "Zero", "Positive"],
                                         additional=ray_pt,
                                         steps=args.lgd_step_per_epoch)
-            elif args.hidden_type is 'lstm':
+            elif args.hidden_type == 'lstm':
                 train_loss, _, _ = lgd.loss_trajectory_backward(d, [l1, l2, l3], 
                                         hidden=hidden, 
                                         constraints=["None", "Zero", "Positive"],
