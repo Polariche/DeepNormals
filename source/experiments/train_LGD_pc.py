@@ -120,7 +120,7 @@ def main():
             start_time = time.time()
 
             samples_n = args.batchsize//32
-            sample_inds = torch.randperm(n)[:samples_n]
+            sample_inds = torch.randperm(args.batchsize)[:samples_n]
             p_sampled = p[sample_inds]
 
             hidden = torch.zeros((*p_sampled.shape[:-1], hidden_features), device=device).requires_grad_()
