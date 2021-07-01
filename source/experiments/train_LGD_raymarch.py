@@ -126,7 +126,7 @@ def main():
             d = sampled_rays['d'].to(device)
             p = sampled_rays['p'].to(device)
             n = sampled_rays['n'].to(device)
-            hidden = torch.zeros((*d.shape[:-1], hidden_features)).requires_grad_()
+            hidden = torch.zeros((*d.shape[:-1], hidden_features), device=device).requires_grad_()
 
             l1 = lambda targets: torch.pow(targets[0], 2).mean()
             l2 = lambda targets: torch.pow(model({'coords': p + targets[0]*n})['model_out'], 2).mean()
