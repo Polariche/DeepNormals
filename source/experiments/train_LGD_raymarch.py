@@ -114,7 +114,7 @@ def main():
 
     # train LGD
     lgd.train()
-    with tqdm(total=args.epochs) as pbar:
+    with tqdm(total=args.epoch) as pbar:
 
         for i in range(args.epoch):
             start_time = time.time()
