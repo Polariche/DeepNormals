@@ -1,13 +1,15 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from torchmeta.modules import (MetaModule, MetaSequential)
-from torchmeta.modules.utils import get_subdict
+
 import numpy as np
 from collections import OrderedDict
 import math
 import torch.nn.functional as F
 
+sys.path.append( os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) ) )
+from torchmeta.modules import (MetaModule, MetaSequential)
+from torchmeta.modules.utils import get_subdict
 
 # DeepSDF decoder model
 # from https://github.com/facebookresearch/DeepSDF/blob/master/networks/deep_sdf_decoder.py
