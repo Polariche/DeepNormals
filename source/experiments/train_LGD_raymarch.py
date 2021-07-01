@@ -123,9 +123,9 @@ def main():
             iter_ray = iter(rayloader)
             sampled_rays = next(iter_ray)
 
-            d = sampled_rays['d'].cuda()
-            p = sampled_rays['p'].cuda()
-            n = sampled_rays['n'].cuda()
+            d = sampled_rays['d'].to(device)
+            p = sampled_rays['p'].to(device)
+            n = sampled_rays['n'].to(device)
             hidden = torch.zeros((*d.shape[:-1], hidden_features))
 
             l1 = lambda targets: torch.pow(targets[0], 2).mean()
