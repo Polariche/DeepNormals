@@ -110,6 +110,8 @@ def main():
 
     lgd_optimizer = optim.Adam(lgd.parameters(), lr=args.lr, weight_decay=1e-3)
 
+    p = (2*torch.rand(args.batchsize, 3)-1).to(device).requires_grad_()
+
     # train LGD
     lgd.train()
     with tqdm(total=args.epoch) as pbar:
@@ -117,8 +119,11 @@ def main():
         for i in range(args.epoch):
             start_time = time.time()
 
-            p = (2*torch.rand(args.batchsize, 3)-1).to(device).requires_grad_()
-            hidden = torch.zeros((*p.shape[:-1], hidden_features), device=device).requires_grad_()
+            samples_n = n//32
+            sample_inds = torch.randperm(n)[:samples_n]
+            p_sampled = p[sample_inds]
+
+            hidden = torch.zeros((*p_sampled.shape[:-1], hidden_features), device=device).requires_grad_()
 
             l2 = lambda targets: torch.pow(model(targets[0]), 2).sum(dim=1).mean()
 
@@ -132,7 +137,7 @@ def main():
             #                                                                            #additional=ray_pt,
             #                                                                            steps=args.lgd_step_per_epoch)
             #elif args.hidden_type == 'lstm':
-            train_loss, sigma_sum, lambda_sum, [p_converged] = lgd.loss_trajectory_backward(p, [l2], 
+            train_loss, sigma_sum, lambda_sum, [p_converged] = lgd.loss_trajectory_backward(p_sampled, [l2], 
                                                                                     hidden=hidden, 
                                                                                     constraints=["Zero"],
                                                                                     #additional=ray_pt,
