@@ -117,7 +117,7 @@ def main():
 
     rayloader = DataLoader(rays, collate_fn=dict_collate_fn, batch_size=args.batchsize, shuffle=True)
 
-    p = torch.rand(args.batchsize, 3).to(device).requires_grad_()
+    p = (2*torch.rand(args.batchsize, 3)-1).to(device).requires_grad_()
 
     # train LGD
     lgd.train()
