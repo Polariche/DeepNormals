@@ -20,8 +20,9 @@ from torch.utils.data import  DataLoader, WeightedRandomSampler
 import argparse
 
 from sklearn.neighbors import KDTree
-import time
 
+import time
+from tqdm.autonotebook import tqdm
 
 def main():
     parser = argparse.ArgumentParser(description='Test',
@@ -78,7 +79,7 @@ def main():
 
     # load 
     with torch.no_grad():
-        x = torch.rand(n,3).to(device)
+        x = (2*torch.rand(n,3)-1).to(device)
         x.requires_grad_(True)
 
         x_original = x.clone().detach()
@@ -97,29 +98,30 @@ def main():
 
     # train LGD
     lgd.train()
-    for i in range(epoch):
-        start_time = time.time()
+    with tqdm(total=args.epoch) as pbar:
+        for i in range(epoch):
+            start_time = time.time()
 
-        # evaluate losses
-        samples_n = n//32
-        sample_inds = torch.randperm(n)[:samples_n]
+            # evaluate losses
+            samples_n = n//32
+            sample_inds = torch.randperm(n)[:samples_n]
 
-        origin_eval_batch = lambda x: torch.pow(x_original[sample_inds] - x, 2).sum(dim=1).mean()
-        origin_eval_batch_list = lambda x: origin_eval_batch(x[0])
+            origin_eval_batch = lambda x: torch.pow(x_original[sample_inds] - x, 2).sum(dim=1).mean()
+            origin_eval_batch_list = lambda x: origin_eval_batch(x[0])
 
-        # update lgd parameters
-        lgd_optimizer.zero_grad()
-        train_loss, sigma_sum, lambda_sum, [x] = lgd.loss_trajectory_backward(x[sample_inds], [origin_eval_batch_list, sdf_eval_list], None, 
-                                     constraints=["None", "Zero"], batch_size=samples_n, steps=lgd_step_per_epoch)
-        lgd_optimizer.step()
-        
-        print("Epoch %d, Total loss %0.6f, Sigma %0.6f, Lambda %0.6f, iteration time %0.6f" % (i, train_loss[0], sigma_sum, lambda_sum, time.time() - start_time))
+            # update lgd parameters
+            lgd_optimizer.zero_grad()
+            train_loss, sigma_sum, lambda_sum, [x] = lgd.loss_trajectory_backward(x[sample_inds], [origin_eval_batch_list, sdf_eval_list], None, 
+                                        constraints=["None", "Zero"], batch_size=samples_n, steps=lgd_step_per_epoch)
+            lgd_optimizer.step()
             
-        writer.add_mesh("pointcloud_LGD_train", x.unsqueeze(0), global_step=i+1)
-        writer.add_scalars("train_loss", {"raymarch_LGD_train": train_loss[0]}, global_step=i)
+            tqdm.write("Epoch %d, Total loss %0.6f, Sigma %0.6f, Lambda %0.6f, iteration time %0.6f" % (i, train_loss[0], sigma_sum, lambda_sum, time.time() - start_time))
 
-        torch.save(lgd.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
-        
+            writer.add_mesh("pointcloud_LGD_train", x.unsqueeze(0), global_step=i+1)
+            writer.add_scalars("train_loss", {"raymarch_LGD_train": train_loss[0]}, global_step=i)
+
+            torch.save(lgd.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
+            pbar.update(1)
     writer.close()
 
 if __name__ == "__main__":
