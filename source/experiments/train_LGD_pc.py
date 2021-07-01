@@ -130,20 +130,20 @@ def main():
             # update lgd parameters
             lgd_optimizer.zero_grad()
 
-            #if args.hidden_type == 'autodecoder':
-            #    train_loss, sigma_sum, lambda_sum, [p] = lgd.loss_trajectory_backward([p, hidden], [l2], 
-            #                                                                            hidden=None, 
-            #                                                                            constraints=["Zero"],
-            #                                                                            #additional=ray_pt,
-            #                                                                            steps=args.lgd_step_per_epoch)
-            #elif args.hidden_type == 'lstm':
-            train_loss, sigma_sum, lambda_sum, [p_converged] = lgd.loss_trajectory_backward(p_sampled, [l2], 
+            if args.hidden_type == 'autodecoder':
+                train_loss, sigma_sum, lambda_sum, [p] = lgd.loss_trajectory_backward([p, hidden], [l2], 
+                                                                                        hidden=None, 
+                                                                                        constraints=["Zero"],
+                                                                                        #additional=ray_pt,
+                                                                                        steps=args.lgd_step_per_epoch)
+            elif args.hidden_type == 'lstm':
+                train_loss, sigma_sum, lambda_sum, [p_converged] = lgd.loss_trajectory_backward(p_sampled, [l2], 
                                                                                     hidden=hidden, 
                                                                                     constraints=["Zero"],
                                                                                     #additional=ray_pt,
                                                                                     steps=args.lgd_step_per_epoch)
-            #else:
-            #    raise NotImplementedError
+            else:
+                raise NotImplementedError
             
             lgd_optimizer.step()
 
