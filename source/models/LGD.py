@@ -199,7 +199,7 @@ class LGD(nn.Module):
         targets_grad = torch.zeros((*shp, 0)).to(targets[0].device)
  
         if hidden is None:
-            hidden = torch.zeros((2, n, h)).to(targets[0].device)
+            hidden = torch.zeros((*shp, h)).to(targets[0].device)
  
         # input : dL1/dx1, dL1/dx2, ..., dL2/dx1, dL2/dx2, ..., hidden
         # input size : L*D + H

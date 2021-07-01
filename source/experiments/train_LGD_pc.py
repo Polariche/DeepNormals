@@ -108,16 +108,7 @@ def main():
     else:
         raise NotImplementedError
 
-    lgd_optimizer = optim.Adam(lgd.parameters(), lr= args.lr, weight_decay=1e-3)
-
-
-    # load a RayDataset
-    rays = RayDataset(args.width, args.height)
-    rays.apply_pose(PointTransform(rotation=torch.eye(3) * 0.5, translation=torch.tensor([0., 0., -0.5])))
-
-    rayloader = DataLoader(rays, collate_fn=dict_collate_fn, batch_size=args.batchsize, shuffle=True)
-
-    p = (2*torch.rand(args.batchsize, 3)-1).to(device).requires_grad_()
+    lgd_optimizer = optim.Adam(lgd.parameters(), lr=args.lr, weight_decay=1e-3)
 
     # train LGD
     lgd.train()
@@ -126,20 +117,10 @@ def main():
         for i in range(args.epoch):
             start_time = time.time()
 
-            iter_ray = iter(rayloader)
-            sampled_rays = next(iter_ray)
-
-            #d = sampled_rays['d'].to(device)
-            #p = sampled_rays['p'].to(device).requires_grad_()
-            #n = sampled_rays['n'].to(device)
-            
+            p = (2*torch.rand(args.batchsize, 3)-1).to(device).requires_grad_()
             hidden = torch.zeros((*p.shape[:-1], hidden_features), device=device).requires_grad_()
 
-            #l1 = lambda targets: torch.pow(targets[0], 2).mean()
             l2 = lambda targets: torch.pow(model(targets[0]), 2).mean()
-            #l3 = lambda targets: (torch.tanh(targets[0]) - 1).mean()
-            #ray_pt = lambda targets: p + targets[0]*n
-
 
             # update lgd parameters
             lgd_optimizer.zero_grad()
