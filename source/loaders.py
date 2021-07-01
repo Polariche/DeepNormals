@@ -384,7 +384,7 @@ def dict_collate_fn(batch):
 
 def get_obj_dataloader(dataset, num_samples, num_workers=0, batch_size=1):
     fnn = torch.abs(dataset.fnn)
-    sampler = WeightedRandomSampler(fnn.view(-1) / torch.sum(fnn), self.sample_n, replacement=True)
+    sampler = WeightedRandomSampler(fnn.view(-1) / torch.sum(fnn), num_samples, replacement=True)
 
     return DataLoader(dataset, 
                       batch_size=batch_size, 
