@@ -197,7 +197,7 @@ class LGD(nn.Module):
                 elif type(add) is type(lambda x:x):
                     add = add(targets).view(*shp, -1)
                 
-                additional_tensor = torch.cat([additonal_tensor, add], dim=-1)
+                additional_tensor = torch.cat([additional_tensor, add], dim=-1)
             
             assert additional_tensor.shape[-1] == self.additional_features
 
