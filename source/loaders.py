@@ -157,7 +157,10 @@ class RayDataset(Dataset):
         self.t = (self.mx - self.mm) / self.shape
 
     def apply_pose(self, pose):
-        self.p = torch.from_numpy(np.mgrid[:self.width, :self.height]).permute(2,1,0).reshape(-1,2) + 0.5
+        width = self.width
+        height = self.height 
+
+        self.p = torch.from_numpy(np.mgrid[:width, :height]).permute(2,1,0).reshape(-1,2) + 0.5
         self.p = self.p / torch.tensor([width, height])
         self.p = torch.cat([self.p, torch.ones((self.p.shape[0], 1)) * focal_length], dim=1)
         self.n = self.p / focal_length
