@@ -77,10 +77,10 @@ def main():
     if args.sdf_model == "DeepSDF":
         with open(args.sdf_specs) as specs_file:
             specs = json.load(specs_file)
-            model = DeepSDFDecoder(specs["CodeLength"], **specs["NetworkSpecs"])
+            model = DeepSDFDecoder(specs["CodeLength"], **specs["NetworkSpecs"]).to(device)
 
     elif args.sdf_model == "Siren":
-        model = SingleBVPNet(type="sine", in_features=3)
+        model = SingleBVPNet(type="sine", in_features=3).to(device)
 
     if args.sdf_weight != None:
         try:
