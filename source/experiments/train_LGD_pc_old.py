@@ -20,6 +20,7 @@ from torch.utils.data import  DataLoader, WeightedRandomSampler
 import argparse
 
 from sklearn.neighbors import KDTree
+import time
 
 
 def main():
@@ -106,7 +107,8 @@ def main():
     # train LGD
     lgd.train()
     for i in range(epoch):
-        print(i)
+        start_time = time.time()
+
         # evaluate losses
         samples_n = n//32
         sample_inds = torch.randperm(n)[:samples_n]
@@ -120,6 +122,8 @@ def main():
                                      constraints=["None", "Zero"], batch_size=samples_n, steps=lgd_step_per_epoch)
         lgd_optimizer.step()
         
+        print("Epoch %d, Total loss %0.6f, Sigma %0.6f, Lambda %0.6f, iteration time %0.6f" % (i, train_loss[0], sigma_sum, lambda_sum, time.time() - start_time))
+            
         writer.add_mesh("pointcloud_LGD_train", x.unsqueeze(0), global_step=i+1)
         writer.add_scalars("train_loss", {"raymarch_LGD_train": train_loss[0]}, global_step=i)
 
