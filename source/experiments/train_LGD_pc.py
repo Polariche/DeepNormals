@@ -79,7 +79,7 @@ def main():
             specs = json.load(specs_file)
             model = DeepSDFDecoder(specs["CodeLength"], **specs["NetworkSpecs"])
     elif args.sdf_model == "Siren":
-        model = SingleBVPNet(type="sine", in_features=3).to(device)
+        model = SingleBVPNet(type="sine", in_features=3)
     elif args.sdf_model == "OldSiren":
         model = Siren(in_features=3, out_features=1, hidden_features=256, hidden_layers=5, outermost_linear=True)
     else:
