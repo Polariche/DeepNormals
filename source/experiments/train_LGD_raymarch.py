@@ -97,9 +97,9 @@ def main():
     # Create LGD
     hidden_features = args.hidden_features
 
-    if args.hidden_type is 'autodecoder':
+    if args.hidden_type == 'autodecoder':
         lgd = LGD(1+hidden_features, 3, k=10, hidden_features=0, additional_features=3).to(device)
-    elif args.hidden_type is 'lstm':
+    elif args.hidden_type == 'lstm':
         lgd = LGD(1, 3, k=10, hidden_features=hidden_features, additional_features=3).to(device)
     else:
         raise NotImplementedError
