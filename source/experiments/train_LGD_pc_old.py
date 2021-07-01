@@ -11,7 +11,7 @@ import os
 sys.path.append( os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) ) )
 
 from models.models import Siren
-from loaders import ObjDataset, ObjUniformSample, Dataset, UniformSample, GridDataset, PointTransform
+from loaders import ObjDataset, ObjUniformSample, Dataset, UniformSample, GridDataset, PointTransform, get_obj_dataloader
 from models.LGD import LGD, detach_var
 from evaluate_functions import chamfer_distance, nearest_from_to, dist_from_to
 
@@ -78,9 +78,11 @@ def main():
 
     
     ds = ObjDataset(args.data)
-    sampler = ObjUniformSample(n)
-    
-    p = (sampler(ds)['p']).to(device)
+    #sampler = ObjUniformSample(n)
+    dl = get_obj_dataloader(ds, num_samples=args.n, num_workers=0, batch_size=1)
+
+
+    p = (dl['p']).to(device)
     
     # load 
     with torch.no_grad():
