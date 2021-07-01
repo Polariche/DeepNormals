@@ -206,7 +206,7 @@ class LGD(nn.Module):
         for loss_f in losses:
             loss = loss_f(targets)
             targets_grad_l = torch.autograd.grad(loss, targets, grad_outputs=[torch.ones_like(loss) for _ in range(t)], create_graph=False, allow_unused=True)
-            targets_grad_l = [grad.view(*shp, -1) for grad in targets_grad_l]
+            targets_grad_l = [grad.view(*shp, -1) if grad is not None else torch.zeros_like(targets[i]) for i, grad in enumerate(targets_grad_l)]
             targets_grad = torch.cat([targets_grad, *targets_grad_l], dim=-1)
 
         if self.concat_input:
