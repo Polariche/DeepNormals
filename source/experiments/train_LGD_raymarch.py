@@ -108,7 +108,7 @@ def main():
 
     # load a RayDataset
     rays = RayDataset(args.width, args.height)
-    rays.apply_pose(PointTransform(rotation=torch.eye(3) * 0.5, position=torch.tensor([0., 0., -0.5])))
+    rays.apply_pose(PointTransform(rotation=torch.eye(3) * 0.5, translation=torch.tensor([0., 0., -0.5])))
 
     rayloader = DataLoader(rays, collate_fn=dict_collate_fn, batch_size=args.batchsize, shuffle=True)
 
