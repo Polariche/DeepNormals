@@ -309,7 +309,7 @@ class LGD(nn.Module):
         if type(losses) is not list:
             losses = [losses]
 
-        loss_sum = 0
+        loss_sum = [0]*len(losses)
         lambda_sum = 0
         sigma_sum = 0
 
@@ -347,14 +347,14 @@ class LGD(nn.Module):
                 lr[:,:self.num_losses].backward(d_lr[:,:self.num_losses], retain_graph=True)
                 lr[:,self.num_losses:].backward(-d_lr[:,self.num_losses:], retain_graph=True)
 
-                loss_sum += loss.detach()
+                loss_sum[i] += loss_f(targets).detach()
                 sigma_sum += lr[:,:self.num_losses].mean() / steps
                 lambda_sum += lr[:,self.num_losses:].mean() / steps
         
         #plt.scatter(targets[0][:,0].detach().cpu().numpy(), targets[0][:,1].detach().cpu().numpy())
         #plt.show()
 
-        return loss_sum, sigma_sum, lambda_sum
+        return loss_sum, sigma_sum, lambda_sum, [target.detach() for target in targets]
  
  
 def detach_var(v):
