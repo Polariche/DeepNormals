@@ -112,7 +112,7 @@ def main():
             # update lgd parameters
             lgd_optimizer.zero_grad()
             train_loss, sigma_sum, lambda_sum, [x_converged] = lgd.loss_trajectory_backward(x[sample_inds], [sdf_eval_list], None, 
-                                        constraints=["None"], batch_size=samples_n, steps=lgd_step_per_epoch)
+                                        constraints=["None"], steps=lgd_step_per_epoch)
             lgd_optimizer.step()
             
             tqdm.write("Epoch %d, Total loss %0.6f, Sigma %0.6f, Lambda %0.6f, iteration time %0.6f" % (i, train_loss[0], sigma_sum, lambda_sum, time.time() - start_time))
