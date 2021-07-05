@@ -93,6 +93,7 @@ def main():
             print("Couldn't load pretrained weight: " + args.sdf_weight)
 
     # fix SDF model weight
+    model.to(device)
     model.eval() 
     for param in model.parameters():
         param.requires_grad = False

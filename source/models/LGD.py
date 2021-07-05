@@ -308,22 +308,22 @@ class LGD(nn.Module):
                     # no constraint on loss  -> lambda = 1
                     lr_filtered[:,self.num_losses+i] = 1
 
- 
-            for i, loss_f in enumerate(losses):
-                loss_true = loss_f(targets)
-                loss = (lr_filtered[:,self.num_losses+i] * loss_true).mean() / steps
+            if step == steps-1:
+                for i, loss_f in enumerate(losses):
+                    loss_true = loss_f(targets)
+                    loss = (lr_filtered[:,self.num_losses+i] * loss_true).mean() / steps
 
-                # evaluate dL / d(sigma), dL / d(lambda)
-                # propagate with d(sigma) / d(theta) : descent, d(lambda) / d(theta) : ascent
+                    # evaluate dL / d(sigma), dL / d(lambda)
+                    # propagate with d(sigma) / d(theta) : descent, d(lambda) / d(theta) : ascent
 
-                d_lr = torch.autograd.grad([loss], [lr], grad_outputs=[torch.ones_like(loss)], create_graph=False, retain_graph=True)[0]
+                    d_lr = torch.autograd.grad([loss], [lr], grad_outputs=[torch.ones_like(loss)], create_graph=False, retain_graph=True)[0]
 
-                lr[:,:self.num_losses].backward(d_lr[:,:self.num_losses], retain_graph=True)
-                lr[:,self.num_losses:self.num_losses*2].backward(-d_lr[:,self.num_losses:self.num_losses*2], retain_graph=True)
+                    lr[:,:self.num_losses].backward(d_lr[:,:self.num_losses], retain_graph=True)
+                    lr[:,self.num_losses:self.num_losses*2].backward(-d_lr[:,self.num_losses:self.num_losses*2], retain_graph=True)
 
-                loss_sum[i] += loss_true.mean().detach() / steps
-                sigma_sum += lr[:,:self.num_losses].mean() / steps
-                lambda_sum += lr[:,self.num_losses:self.num_losses*2].mean() / steps
+                    loss_sum[i] += loss_true.mean().detach() / steps
+                    sigma_sum += lr[:,:self.num_losses].mean() / steps
+                    lambda_sum += lr[:,self.num_losses:self.num_losses*2].mean() / steps
 
         return loss_sum, sigma_sum, lambda_sum, [target.detach() for target in targets]
  
