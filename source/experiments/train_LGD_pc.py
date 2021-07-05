@@ -10,7 +10,7 @@ import sys
 import os
 sys.path.append( os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) ) )
 
-from models.models import Siren
+from models.models import SingleBVPNet, DeepSDFDecoder, Siren
 from loaders import ObjDataset, Dataset, PointTransform, get_obj_dataloader
 from models.LGD import LGD, detach_var
 from evaluate_functions import chamfer_distance, nearest_from_to, dist_from_to
@@ -102,13 +102,9 @@ def main():
         for i in range(args.epoch):
             start_time = time.time()
 
-            # evaluate losses
-            samples_n = args.batchsize//32
-            sample_inds = torch.randperm(args.batchsize)[:samples_n]
-
             # update lgd parameters
             lgd_optimizer.zero_grad()
-            train_loss, sigma_sum, lambda_sum, [x_converged] = lgd.loss_trajectory_backward(x[sample_inds], [sdf_eval], 
+            train_loss, sigma_sum, lambda_sum, [x_converged] = lgd.loss_trajectory_backward(x, [sdf_eval], 
                                                                                             None, 
                                                                                             constraints=["None"], 
                                                                                             steps=args.lgd_step_per_epoch)
