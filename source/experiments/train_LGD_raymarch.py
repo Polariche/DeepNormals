@@ -107,7 +107,7 @@ def main():
     
     print("lgd")
 
-    lgd = LGD(1, 3, k=10).to(device)
+    lgd = LGD(1, 3, k=10, additional_features=3).to(device)
     lgd_optimizer = optim.Adam(lgd.parameters(), lr=args.lr)
 
     # train LGD
@@ -133,6 +133,7 @@ def main():
             train_loss, sigma_sum, lambda_sum, [d_converged] = lgd.loss_trajectory_backward(d, [l1, l2, l3], 
                                                                                             None, 
                                                                                             constraints=["None", "Zero", "Positive"], 
+                                                                                            additional=[ray_pt],
                                                                                             steps=args.lgd_step_per_epoch)
             lgd_optimizer.step()
             
