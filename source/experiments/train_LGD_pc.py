@@ -104,7 +104,7 @@ def main():
 
             # evaluate losses
             samples_n = args.batchsize//32
-            sample_inds = torch.randperm(n)[:samples_n]
+            sample_inds = torch.randperm(args.batchsize)[:samples_n]
 
             # update lgd parameters
             lgd_optimizer.zero_grad()
