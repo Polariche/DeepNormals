@@ -122,7 +122,6 @@ def main():
             d = sampled_rays['d'].to(device)
             p = sampled_rays['p'].to(device)
             n = sampled_rays['n'].to(device)
-            hidden = torch.zeros((*d.shape[:-1], hidden_features), device=device).requires_grad_()
 
             l1 = lambda targets: torch.pow(targets[0], 2).sum(dim=1).mean()
             l2 = lambda targets: torch.pow(model(p + targets[0]*n), 2).sum(dim=1).mean()
@@ -139,7 +138,7 @@ def main():
             
             tqdm.write("Epoch %d, Total loss %0.6f, Sigma %0.6f, Lambda %0.6f, iteration time %0.6f" % (i, train_loss[0], sigma_sum, lambda_sum, time.time() - start_time))
 
-            writer.add_mesh("pointcloud_LGD_train", d_converged.unsqueeze(0), global_step=i+1)
+            writer.add_mesh("pointcloud_LGD_train", (p+d_converged*n).unsqueeze(0), global_step=i+1)
             writer.add_scalars("train_loss", {"raymarch_LGD_train": train_loss[0]}, global_step=i)
 
             torch.save(lgd.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
