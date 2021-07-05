@@ -84,7 +84,7 @@ def main():
 
     # load 
     with torch.no_grad():
-        x = (2*torch.rand(n,3)-1).to(device)
+        x = (2*torch.rand(args.batchsize,3)-1).to(device)
         x.requires_grad_(True)
 
         x_original = x.clone().detach()
