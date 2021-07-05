@@ -127,7 +127,7 @@ def main():
             lgd_optimizer.zero_grad()
 
             if args.hidden_type == 'autodecoder':
-                train_loss, sigma_sum, lambda_sum, [p] = lgd.loss_trajectory_backward([p, hidden], [l2], 
+                train_loss, sigma_sum, lambda_sum, [p_converged] = lgd.loss_trajectory_backward([p, hidden], [l2], 
                                                                                         hidden=None, 
                                                                                         constraints=["Zero"],
                                                                                         #additional=ray_pt,
