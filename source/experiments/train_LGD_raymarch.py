@@ -3,22 +3,23 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-import warnings
 
 from torch.utils.tensorboard import SummaryWriter
 
 import sys
 import os
-
 sys.path.append( os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) ) )
 
 from models.models import SingleBVPNet, DeepSDFDecoder, Siren
 from loaders import SceneClassDataset, RayDataset, dict_collate_fn, PointTransform
 from models.LGD import LGD, detach_var
+from evaluate_functions import chamfer_distance, nearest_from_to, dist_from_to
 
-from torch.utils.data import  DataLoader
+from torch.utils.data import  DataLoader, WeightedRandomSampler
 
 import argparse
+
+from sklearn.neighbors import KDTree
 
 import time
 from tqdm.autonotebook import tqdm
@@ -69,10 +70,10 @@ def main():
 
     args = parser.parse_args()
 
+
     writer = SummaryWriter(args.tb_save_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
- 
     # Open a SDF model
     if args.sdf_model == "DeepSDF":
         with open(args.sdf_specs) as specs_file:
@@ -84,43 +85,34 @@ def main():
         model = Siren(in_features=3, out_features=1, hidden_features=256, hidden_layers=5, outermost_linear=True)
     else:
         raise NotImplementedError  
-
-
+    model.to(device)
+        
     if args.sdf_weight != None:
         try:
             model.load_state_dict(torch.load(args.sdf_weight))
         except:
             print("Couldn't load pretrained weight: " + args.sdf_weight)
 
-    # fix SDF model weight
-    model.to(device)
     model.eval() 
     for param in model.parameters():
         param.requires_grad = False
 
-    # Create LGD
-    hidden_features = args.hidden_features
+    # load 
+    with torch.no_grad():
+        # load a RayDataset
+        rays = RayDataset(args.width, args.height)
+        rays.apply_pose(PointTransform(rotation=torch.eye(3) * 0.5, translation=torch.tensor([0., 0., -0.5])))
 
-    if args.hidden_type == 'autodecoder':
-        lgd = LGD(1+hidden_features, 3, k=10, hidden_features=0, additional_features=3).to(device)
-    elif args.hidden_type == 'lstm':
-        lgd = LGD(1, 3, k=10, hidden_features=hidden_features, additional_features=3).to(device)
-    else:
-        raise NotImplementedError
+        rayloader = DataLoader(rays, collate_fn=dict_collate_fn, batch_size=args.batchsize, shuffle=True)
+    
+    print("lgd")
 
-    lgd_optimizer = optim.Adam(lgd.parameters(), lr= args.lr, weight_decay=1e-3)
-
-
-    # load a RayDataset
-    rays = RayDataset(args.width, args.height)
-    rays.apply_pose(PointTransform(rotation=torch.eye(3) * 0.5, translation=torch.tensor([0., 0., -0.5])))
-
-    rayloader = DataLoader(rays, collate_fn=dict_collate_fn, batch_size=args.batchsize, shuffle=True)
+    lgd = LGD(1, 3, k=10).to(device)
+    lgd_optimizer = optim.Adam(lgd.parameters(), lr=args.lr)
 
     # train LGD
     lgd.train()
     with tqdm(total=args.epoch) as pbar:
-
         for i in range(args.epoch):
             start_time = time.time()
 
@@ -137,36 +129,22 @@ def main():
             l3 = lambda targets: (torch.tanh(targets[0]) - 1).sum(dim=1).mean()
             ray_pt = lambda targets: p + targets[0]*n
 
-
             # update lgd parameters
             lgd_optimizer.zero_grad()
-
-            if args.hidden_type == 'autodecoder':
-                train_loss, sigma_sum, lambda_sum, [d_converged,hidden] = lgd.loss_trajectory_backward([d, hidden], [l1, l2, l3], 
-                                        hidden=None, 
-                                        constraints=["None", "Zero", "Positive"],
-                                        additional=ray_pt,
-                                        steps=args.lgd_step_per_epoch)
-            elif args.hidden_type == 'lstm':
-                train_loss, sigma_sum, lambda_sum, [d_converged] = lgd.loss_trajectory_backward(d, [l1, l2, l3], 
-                                        hidden=hidden, 
-                                        constraints=["None", "Zero", "Positive"],
-                                        additional=ray_pt,
-                                        steps=args.lgd_step_per_epoch)
-            else:
-                raise NotImplementedError
-            
+            train_loss, sigma_sum, lambda_sum, [d_converged] = lgd.loss_trajectory_backward(d, [l1, l2, l3], 
+                                                                                            None, 
+                                                                                            constraints=["None", "Zero", "Positive"], 
+                                                                                            steps=args.lgd_step_per_epoch)
             lgd_optimizer.step()
+            
+            tqdm.write("Epoch %d, Total loss %0.6f, Sigma %0.6f, Lambda %0.6f, iteration time %0.6f" % (i, train_loss[0], sigma_sum, lambda_sum, time.time() - start_time))
 
-            tqdm.write("Epoch %d, Total loss %0.6f, Sigma %0.6f, Lambda %0.6f, iteration time %0.6f" % (i, train_loss[1], sigma_sum, lambda_sum, time.time() - start_time))
-
-            writer.add_mesh("raymarch_LGD_train", (p + d_converged*n).unsqueeze(0), global_step=i+1)
-            writer.add_scalars("train_loss", {"raymarch_LGD_train": train_loss[1]}, global_step=i)
+            writer.add_mesh("pointcloud_LGD_train", d_converged.unsqueeze(0), global_step=i+1)
+            writer.add_scalars("train_loss", {"raymarch_LGD_train": train_loss[0]}, global_step=i)
 
             torch.save(lgd.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
-            
             pbar.update(1)
- 
+
     writer.close()
 
 if __name__ == "__main__":
