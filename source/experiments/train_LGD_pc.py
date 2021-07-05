@@ -70,7 +70,7 @@ def main():
         model = Siren(in_features=3, out_features=1, hidden_features=256, hidden_layers=5, outermost_linear=True)
     else:
         raise NotImplementedError  
-
+    model.to(device)
         
     if args.sdf_weight != None:
         try:
