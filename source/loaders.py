@@ -161,12 +161,16 @@ class RayDataset(Dataset):
         height = self.height 
         focal_length = self.focal_length
 
+        self.x0 = torch.zeros((3), dtype=torch.float)
+
         self.p = torch.from_numpy(np.mgrid[:width, :height]).permute(2,1,0).reshape(-1,2) + 0.5
         self.p = self.p / torch.tensor([width, height])
+
+        self.n = torch.cat([self.p / focal_length, torch.ones((self.p.shape[0], 1)) * focal_length], dim=1)
         self.p = torch.cat([self.p, torch.ones((self.p.shape[0], 1)) * focal_length], dim=1)
-        self.n = self.p / focal_length
 
         self.pose = pose
+        self.x0 = self.pose(self.x0)
         self.p = self.pose(self.p)
         self.n = self.pose(self.n, False)
 
@@ -182,12 +186,14 @@ class RayDataset(Dataset):
         return self.width * self.height
     
     def __getitem__(self, idx):
-        p = self.p[idx]
+        
         d = self.depth[idx]
         
         if self.orthogonal:
+            p = self.p[idx]
             n = self.ortho_n
         else:
+            p = self.p[idx]
             n = self.n[idx]
 
         return {'p': p, 'd': d, 'n': n}
@@ -217,7 +223,7 @@ class SceneInstanceDataset():
             return
 
         self.has_params = os.path.isdir(param_dir)
-        self.color_paths = sorted(util.glob_imgs(color_dir))
+        self.color_paths = sorted(utils.glob_imgs(color_dir))
         self.pose_paths = sorted(glob(os.path.join(pose_dir, "*.txt")))
 
         if self.has_params:
@@ -243,31 +249,37 @@ class SceneInstanceDataset():
         return len(self.pose_paths)
 
     def __getitem__(self, idx):
-        intrinsics, _, _, _ = util.parse_intrinsics(os.path.join(self.instance_dir, "intrinsics.txt"),
+        intrinsics, _, _, _ = utils.parse_intrinsics(os.path.join(self.instance_dir, "intrinsics.txt"),
                                                                   trgt_sidelength=self.img_sidelength)
         intrinsics = torch.Tensor(intrinsics).float()
 
-        rgb = util.load_rgb(self.color_paths[idx], sidelength=self.img_sidelength)
+        rgb = utils.load_rgb(self.color_paths[idx], sidelength=self.img_sidelength)
         rgb = rgb.reshape(3, -1).transpose(1, 0)
 
-        pose = util.load_pose(self.pose_paths[idx])
+        pose = utils.load_pose(self.pose_paths[idx])
 
         if self.has_params:
-            params = util.load_params(self.param_paths[idx])
+            params = utils.load_params(self.param_paths[idx])
         else:
             params = np.array([0])
 
-        uv = np.mgrid[0:self.img_sidelength, 0:self.img_sidelength].astype(np.int32)
-        uv = torch.from_numpy(np.flip(uv, axis=0).copy()).long()
-        uv = uv.reshape(2, -1).transpose(1, 0)
+        #uv = np.mgrid[0:self.img_sidelength, 0:self.img_sidelength].astype(np.int32)
+        #uv = torch.from_numpy(np.flip(uv, axis=0).copy()).long()
+        #uv = uv.reshape(2, -1).transpose(1, 0)
+
+        pose = torch.from_numpy(pose).float()
+
+        final_pose = torch.mm(intrinsics, pose)
 
         sample = {
             "instance_idx": torch.Tensor([self.instance_idx]).squeeze(),
             "rgb": torch.from_numpy(rgb).float(),
-            "pose": torch.from_numpy(pose).float(),
-            "uv": uv,
+            "pose": pose,
+            #"uv": uv,
             "param": torch.from_numpy(params).float(),
-            "intrinsics": intrinsics
+            "intrinsics": intrinsics,
+            "rays": RayDataset(self.img_sidelength, self.img_sidelength, 
+                                pose=PointTransform(rotation=final_pose[:3, :3], translation=final_pose[:3, 3].T))
         }
         return sample
 
