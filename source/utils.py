@@ -114,7 +114,7 @@ def parse_intrinsics(filepath, trgt_sidelength=None, invert_y=False):
                                [0, 0, 0, 1]])
 
     return full_intrinsic, grid_barycenter, scale, world2cam_poses
-    
+
 def model_train(model):
     model.train()
     for param in model.parameters():
@@ -175,3 +175,9 @@ def load_params(filename):
 
     params = np.array([float(x) for x in lines[0].split()]).astype(np.float32).squeeze()
     return params
+
+def glob_imgs(path):
+    imgs = []
+    for ext in ['*.png', '*.jpg', '*.JPEG', '*.JPG']:
+        imgs.extend(glob(os.path.join(path, ext)))
+    return imgs
