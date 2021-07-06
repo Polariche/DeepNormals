@@ -106,6 +106,138 @@ class DGCNN(nn.Module):
         
         return x
 
+
+class Renderer(nn.Module):
+    def __init__(self, input_dim, sdf=None, pc=None, include_loss=True, include_grad=True):
+        super(Renderer, self).__init__()
+        self.input_dim = input_dim
+
+        self.sdt_sdf(sdf)
+        self.set_pc(pc)
+
+        self.init_params()
+
+        self.inc = 2*self.input_dim
+        if include_loss:
+            # include sdf loss
+            self.inc += 1
+        if include_grad:
+            self.inc += self.input_dim
+
+        self.include_loss = include_loss
+        self.include_grad = include_grad
+
+        self.layers = DGCNN(self.inc, 3)
+    
+    def init_params(self):
+        for m in self.modules():
+            try:
+                weight = getattr(m, 'weight')
+                if len(weight.shape) > 1:
+                    with torch.no_grad():
+                        k = weight.shape[1]
+                        a = np.sqrt(0.75 / k)
+                        weight.data.uniform_(-a, a)
+            except AttributeError:
+                continue
+            try:
+                bias = getattr(m, 'bias')
+                if bias is not None:
+                    with torch.no_grad():
+                        bias.data = torch.zeros_like(bias.data)
+            except AttributeError:
+                continue
+
+    def set_sdf(self, sdf):
+        self.sdf = sdf
+    
+    def set_pc(self, pc):
+        self.pc = pc
+
+    def sdf_loss(self, x, mean=True, keepdim=False):
+        assert self.sdf is not None 
+
+        if mean:
+            return self.sdf(x).mean(keepdim=keepdim)
+        else:
+            return self.sdf(x)
+
+    def forward(self, d, x0, r):
+        # d shape : (..., n, 3)
+        # x0 shape : (..., 1, 3) or (..., n, 3)
+        # r shape : (..., n, 3)
+
+        assert x0.shape[-2] == 1 or x0.shape[-2] == d.shape[-2]
+        assert d.shape[-1] == self.input_dim and x0.shape[-1] == self.input_dim
+
+        assert d.shape[:-2] == x0.shape[:-2]
+        assert d.shape[:-2] == r.shape[:-2]
+        assert d.requires_grad == True
+
+        x = x0 + d*r
+
+        sdf_loss = self.sdf_loss(x, mean=False)
+        sdf_grad = torch.autograd.grad(sdf_loss, 
+                                        [x], 
+                                        grad_outputs=torch.ones_like(sdf_loss), 
+                                        create_graph=False)[0].view(x.shape)
+        
+        layer_input = torch.cat([x, r], dim=-1)
+
+        if self.include_loss:
+            layer_input = torch.cat([layer_input, sdf_loss], dim=-1)
+        if self.include_grad:
+            layer_input = torch.cat([layer_input, sdf_grad], dim=-1)
+
+        return self.layers(layer_input)
+
+
+    def step(self, d, x0, r):
+        layer_output = self(d, x0, r)
+
+        lr1, lr2, lag = lrs[..., 0:1], lrs[..., 1:2], layer_output[..., 2:3]
+
+        sdf_loss = self.sdf_loss(x0+d*r, mean=False)
+        sdf_grad = torch.autograd.grad(sdf_loss, 
+                                        [d], 
+                                        grad_outputs=torch.ones_like(sdf_loss), 
+                                        create_graph=False)[0].view(d.shape)
+
+        dd = lr1 * (2*d) + lr2 * sdf_grad 
+        dd = F.relu(dd)
+
+        new_d = d + dd
+
+        return new_d, [lr1, lr2, lag]
+
+
+    def loss_trajectory_backward(self, d, x0, r, steps=10):
+        
+        for step in range(steps):
+            d, layer_output = self.step(d, x0, r)
+            [lr1, lr2, lag] = grad_targets
+
+            d2_loss = torch.pow(d, 2).mean()
+            sdf_loss = self.sdf_loss(d, mean=True)
+
+            final_loss = d2_loss + lag * sdf_loss
+
+
+            grads = torch.autograd.grad(final_loss, 
+                                        grad_targets, 
+                                        grad_outputs=[torch.ones_like(final_loss)],
+                                        create_graph=False,
+                                        retain_graph=True)
+
+            for i, (target, grad) in enumerate(zip(grad_targets, grads)):
+                if i == 2: # lagrangian
+                    target.backward(- grad, retain_graph=True)
+                else:
+                    target.backward(grad, retain_graph=True)
+
+
+        
+
 class LGD(nn.Module):
     def __init__(self, dim_targets, num_losses, hidden_features=0, additional_features=0, k=10, concat_input=True):
         super(LGD, self).__init__()
