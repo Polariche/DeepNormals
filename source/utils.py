@@ -78,7 +78,43 @@ def writePLY(filename, X):
 
 
 # implementation from SRN
+def parse_intrinsics(filepath, trgt_sidelength=None, invert_y=False):
+    # Get camera intrinsics
+    with open(filepath, 'r') as file:
+        f, cx, cy, _ = map(float, file.readline().split())
+        grid_barycenter = torch.Tensor(list(map(float, file.readline().split())))
+        scale = float(file.readline())
+        height, width = map(float, file.readline().split())
 
+        try:
+            world2cam_poses = int(file.readline())
+        except ValueError:
+            world2cam_poses = None
+
+    if world2cam_poses is None:
+        world2cam_poses = False
+
+    world2cam_poses = bool(world2cam_poses)
+
+    if trgt_sidelength is not None:
+        cx = cx/width * trgt_sidelength
+        cy = cy/height * trgt_sidelength
+        f = trgt_sidelength / height * f
+
+    fx = f
+    if invert_y:
+        fy = -f
+    else:
+        fy = f
+
+    # Build the intrinsic matrices
+    full_intrinsic = np.array([[fx, 0., cx, 0.],
+                               [0., fy, cy, 0],
+                               [0., 0, 1, 0],
+                               [0, 0, 0, 1]])
+
+    return full_intrinsic, grid_barycenter, scale, world2cam_poses
+    
 def model_train(model):
     model.train()
     for param in model.parameters():
