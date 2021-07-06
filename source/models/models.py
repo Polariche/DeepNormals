@@ -45,14 +45,23 @@ class SineLayer(nn.Module):
             else:
                 self.linear.weight.uniform_(-np.sqrt(6 / self.in_features) / self.omega_0, 
                                              np.sqrt(6 / self.in_features) / self.omega_0)
+    
+    def sinc(self, x):
+        y = x.clone().detach()
+        pix = (np.pi*x)[x!=0]
+
+        y[x==0] = 1
+        y[x!=0] = torch.sin(pix) / (pix)
         
+        return y
+
     def forward(self, input):
-        return torch.sin(self.omega_0 * self.linear(input))
+        return self.sinc(self.omega_0 * self.linear(input))
     
     def forward_with_intermediate(self, input): 
         # For visualization of activation distributions
         intermediate = self.omega_0 * self.linear(input)
-        return torch.sin(intermediate), intermediate
+        return self.sinc(intermediate), intermediate
     
 # old siren model
 class Siren(nn.Module):
