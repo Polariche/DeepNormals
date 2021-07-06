@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable, grad
 from glob import glob
+import os
 
 def writePLY_mesh(filename, X, normal, color, eps=0.1):
 
