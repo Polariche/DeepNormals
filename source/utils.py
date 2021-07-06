@@ -6,6 +6,8 @@ import torch.optim as optim
 from torch.autograd import Variable, grad
 from glob import glob
 import os
+import imageio
+import skimage
 
 def writePLY_mesh(filename, X, normal, color, eps=0.1):
 
@@ -182,3 +184,38 @@ def glob_imgs(path):
     for ext in ['*.png', '*.jpg', '*.JPEG', '*.JPG']:
         imgs.extend(glob(os.path.join(path, ext)))
     return imgs
+
+
+
+def square_crop_img(img):
+    min_dim = np.amin(img.shape[:2])
+    center_coord = np.array(img.shape[:2]) // 2
+    img = img[center_coord[0] - min_dim // 2:center_coord[0] + min_dim // 2,
+          center_coord[1] - min_dim // 2:center_coord[1] + min_dim // 2]
+    return img
+
+
+def train_val_split(object_dir, train_dir, val_dir):
+    dirs = [os.path.join(object_dir, x) for x in ['pose', 'rgb', 'depth']]
+    data_lists = [sorted(glob(os.path.join(dir, x)))
+                  for dir, x in zip(dirs, ['*.txt', "*.png", "*.png"])]
+
+    cond_mkdir(train_dir)
+    cond_mkdir(val_dir)
+
+    [cond_mkdir(os.path.join(train_dir, x)) for x in ['pose', 'rgb', 'depth']]
+    [cond_mkdir(os.path.join(val_dir, x)) for x in ['pose', 'rgb', 'depth']]
+
+    shutil.copy(os.path.join(object_dir, 'intrinsics.txt'), os.path.join(val_dir, 'intrinsics.txt'))
+    shutil.copy(os.path.join(object_dir, 'intrinsics.txt'), os.path.join(train_dir, 'intrinsics.txt'))
+
+    for data_name, data_ending, data_list in zip(['pose', 'rgb', 'depth'], ['.txt', '.png', '.png'], data_lists):
+        val_counter = 0
+        train_counter = 0
+        for i, item in enumerate(data_list):
+            if not i % 3:
+                shutil.copy(item, os.path.join(train_dir, data_name, "%06d" % train_counter + data_ending))
+                train_counter += 1
+            else:
+                shutil.copy(item, os.path.join(val_dir, data_name, "%06d" % val_counter + data_ending))
+                val_counter += 1
