@@ -2,7 +2,7 @@ import numpy as np
 import torch 
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import  Dataset, DataLoader, WeightedRandomSampler
+from torch.utils.data import  Sampler, Dataset, DataLoader, WeightedRandomSampler
 import re
 import warnings
 
@@ -240,6 +240,17 @@ class SceneRayDataset(RayDataset):
         
         return ret
 
+class FixedSampler(Sampler):
+    def __init__(self, ind):
+        self.ind = ind
+        self.i = 0
+    def __iter__(self):
+        ret = self.ind[self.i]
+        self.i += 1
+        return ret
+    def __len__(self):
+        return len(self.ind)
+
 class SceneDataset(Dataset):
     def __init__(self, instance_dir, img_sidelength, ray_batch_size):
         self.instance_dir = instance_dir
@@ -271,7 +282,7 @@ class SceneDataset(Dataset):
 
             dl = DataLoader(ds, 
                             batch_size=self.ray_batch_size,
-                            sampler=iter(indices),
+                            sampler=FixedSampler(indices),
                             shuffle=False,
                             batch_sampler=None)
             
