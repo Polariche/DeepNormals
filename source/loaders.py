@@ -263,8 +263,8 @@ class SceneDataset(Dataset):
             visible_idx = ranges[ds.visible.view(-1).numpy()]
             invisible_idx = ranges[~ds.visible.view(-1).numpy()]
 
-            perm1 = permutation(len(visible_idx))[self.ray_batch_size - self.ray_batch_size//2]
-            perm2 = permutation(len(invisible_idx))[self.ray_batch_size//2]
+            perm1 = permutation(len(visible_idx))[:self.ray_batch_size - self.ray_batch_size//2]
+            perm2 = permutation(len(invisible_idx))[:self.ray_batch_size//2]
 
             print(perm1.size, perm2.size)
             indices = np.concatenate([visible_idx[perm1], invisible_idx[perm2]])
