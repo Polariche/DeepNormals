@@ -101,7 +101,10 @@ def main():
             
             #tqdm.write("Epoch %d, Total loss %0.6f, Sigma %0.6f, Lambda %0.6f, iteration time %0.6f" % (i, train_loss[1], sigma_sum, lambda_sum, time.time() - start_time))
 
-            writer.add_mesh("pointcloud_LGD_train", (ins['p']+ins['n']), global_step=i+1, colors=ins['rgb'])
+            writer.add_mesh("pointcloud_LGD_train", 
+                            (ins['p']+ins['n']).reshape(-1,3).unsqueeze(0), 
+                            global_step=i+1, 
+                            colors=ins['rgb'].reshape(-1,3).unsqueeze(0))
             #writer.add_scalars("train_loss", {"raymarch_LGD_train": train_loss[1]}, global_step=i)
 
             #torch.save(lgd.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
