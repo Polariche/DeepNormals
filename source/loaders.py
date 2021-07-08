@@ -230,7 +230,7 @@ class SceneRayDataset(RayDataset):
     
 
     def __getitem__(self, idx):
-        print("SceneRayDataset %d : " % idx, time.time())
+        print("SceneRayDataset : ", time.time())
 
         ret = super(SceneRayDataset, self).__getitem__(idx)
         ret['rgb'] = self.rgb[idx]
@@ -253,7 +253,7 @@ class SceneDataset(Dataset):
         elif type(idx) is slice:
             return dict_collate_fn([self.__getitem__(i) for i in range(idx.start, idx.stop, 1 if idx.step is None else idx.step)])
         else:  
-            print("SceneDataset %d : " % idx, time.time())
+            print("SceneDataset : ", time.time())
 
             ds = SceneRayDataset(self.instance_dir, img_sidelength=self.img_sidelength, idx=idx)
             
@@ -266,18 +266,13 @@ class SceneDataset(Dataset):
             sampler = WeightedRandomSampler(probs, self.ray_batch_size, replacement=False)
             index = list(sampler)
 
-            ret = ds[index]
-
-            for k,v in ret.items():
-                ret[k] = v.unsqueeze(0)
-
-            #dl = DataLoader(ds, 
-            #                batch_size=self.ray_batch_size,
-            #                sampler=sampler,
-            #                shuffle=False,
-            #                batch_sampler=None)
+            dl = DataLoader(ds, 
+                            batch_size=self.ray_batch_size,
+                            sampler=sampler,
+                            shuffle=False,
+                            batch_sampler=None)
             
-            return ret #next(iter(dl))
+            return next(iter(dl))
 
 class InstanceDataset(Dataset):
     def __init__(self, dataset_dir, img_sidelength, batch_size, ray_batch_size):
