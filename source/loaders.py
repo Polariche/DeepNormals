@@ -263,7 +263,7 @@ class SceneDataset(Dataset):
 
             ret = ds[index]
 
-            for k,v in ret.values():
+            for k,v in ret.items():
                 ret[k] = v.unsqueeze(0)
 
             #dl = DataLoader(ds, 
