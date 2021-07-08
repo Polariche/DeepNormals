@@ -262,9 +262,7 @@ class SceneDataset(Dataset):
             return dict_collate_fn([self.__getitem__(i) for i in idx])
         elif type(idx) is slice:
             return dict_collate_fn([self.__getitem__(i) for i in range(idx.start, idx.stop, 1 if idx.step is None else idx.step)])
-        else:  
-            print("SceneDataset : ", time.time())
-
+        else:
             ds = SceneRayDataset(self.instance_dir, img_sidelength=self.img_sidelength, idx=idx)
             
             ranges = np.array(list(range(len(ds.visible))))
