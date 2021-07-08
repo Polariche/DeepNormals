@@ -215,6 +215,7 @@ class SceneRayDataset(RayDataset):
 
         pose = utils.load_pose(pose_paths[idx])
         pose = torch.from_numpy(pose).float()
+        print(torch.inverse(intrinsics / intrinsics[0, -1] * 0.5))
         pose = torch.mm(torch.inverse(intrinsics / intrinsics[0, -1] * 0.5), pose)
 
         posetrans = PointTransform(rotation=pose[:3, :3], translation=pose[:3, 3].T)
