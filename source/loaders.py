@@ -207,17 +207,18 @@ class SceneRayDataset(RayDataset):
         # get pose from instance
         intrinsics, _, _, _ = utils.parse_intrinsics(os.path.join(instance_dir, "intrinsics.txt"),
                                                                   trgt_sidelength=img_sidelength)
-        focal_length = img_sidelength / intrinsics[0,0]
+        #focal_length = img_sidelength / intrinsics[0,0]
 
         pose_dir = os.path.join(instance_dir, "pose")
         pose_paths = sorted(glob(os.path.join(pose_dir, "*.txt")))
 
         pose = utils.load_pose(pose_paths[idx])
         pose = torch.from_numpy(pose).float()
+        pose = torch.mm(torch.inverse(intrinsics / intrinsics[0, -1] * 0.5), pose)
 
         posetrans = PointTransform(rotation=pose[:3, :3], translation=pose[:3, 3].T)
 
-        super(SceneRayDataset,self).__init__(img_sidelength, img_sidelength, focal_length=focal_length, pose=posetrans)
+        super(SceneRayDataset,self).__init__(img_sidelength, img_sidelength, focal_length=1, pose=posetrans)
 
         param_dir = os.path.join(instance_dir, "params")
 
