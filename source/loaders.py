@@ -170,6 +170,7 @@ class RayDataset(Dataset):
         self.p = self.p / torch.tensor([width, height])
 
         self.n = torch.cat([self.p, torch.ones((self.p.shape[0], 1)) * focal_length], dim=1)
+        self.n = F.normalize(n, dim=1)
         self.p = torch.cat([self.p, torch.zeros((self.p.shape[0], 1))], dim=1)
 
         self.pose = pose
