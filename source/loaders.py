@@ -2,7 +2,7 @@ import numpy as np
 import torch 
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import  Sampler, Dataset, DataLoader, WeightedRandomSampler
+from torch.utils.data import  Sampler, SequentialSampler, Dataset, DataLoader, WeightedRandomSampler
 import re
 import warnings
 
