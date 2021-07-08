@@ -261,7 +261,7 @@ class SceneDataset(Dataset):
             
             ranges = np.array(list(range(len(ds.visible))))
             visible_idx = ranges[ds.visible.view(-1).numpy()]
-            invisible_idx = ranges(range(len(ds.visible)))[~ds.visible.view(-1).numpy()]
+            invisible_idx = ranges[~ds.visible.view(-1).numpy()]
 
             perm1 = permutation(len(visible_idx))[self.ray_batch_size - self.ray_batch_size//2]
             perm2 = permutation(len(invisible_idx))[self.ray_batch_size//2]
