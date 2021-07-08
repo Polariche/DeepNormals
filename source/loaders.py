@@ -207,6 +207,7 @@ class SceneRayDataset(RayDataset):
         # get pose from instance
         intrinsics, _, _, _ = utils.parse_intrinsics(os.path.join(instance_dir, "intrinsics.txt"),
                                                                   trgt_sidelength=img_sidelength)
+        intrinsics = torch.from_numpy(intrinsics).float()
         #focal_length = img_sidelength / intrinsics[0,0]
 
         pose_dir = os.path.join(instance_dir, "pose")
