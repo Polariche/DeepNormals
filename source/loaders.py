@@ -243,11 +243,8 @@ class SceneRayDataset(RayDataset):
 class FixedSampler(Sampler):
     def __init__(self, ind):
         self.ind = ind
-        self.i = 0
-    def __iter__(self):
-        ret = self.ind[self.i]
-        self.i += 1
-        yield ret
+    def __iter__(self) -> Iterator[int]:
+        return iter(self.ind)
     def __len__(self):
         return len(self.ind)
 
