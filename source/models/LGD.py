@@ -112,7 +112,7 @@ class Renderer(nn.Module):
         super(Renderer, self).__init__()
         self.input_dim = input_dim
 
-        self.sdt_sdf(sdf)
+        self.set_sdf(sdf)
         self.set_pc(pc)
 
         self.init_params()
