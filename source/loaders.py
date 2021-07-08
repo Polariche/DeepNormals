@@ -247,7 +247,7 @@ class FixedSampler(Sampler):
     def __iter__(self):
         ret = self.ind[self.i]
         self.i += 1
-        return ret
+        yield ret
     def __len__(self):
         return len(self.ind)
 
