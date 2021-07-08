@@ -20,7 +20,7 @@ from numpy.random import permutation
 
 import utils
 import time
-
+from typing import Iterator
 class ObjDataset(Dataset):
     # reads an obj file, and outputs a single point sampled at i-th face
 
