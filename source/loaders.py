@@ -282,7 +282,7 @@ class SceneDataset(Dataset):
 
             dl = DataLoader(ds, 
                             batch_size=self.ray_batch_size,
-                            sampler=FixedSampler(indices),
+                            sampler=SequentialSampler,
                             shuffle=False,
                             batch_sampler=None)
             
