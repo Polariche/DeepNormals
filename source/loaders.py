@@ -259,14 +259,20 @@ class SceneDataset(Dataset):
             probs = probs.view(-1) / probs.sum()
             
             sampler = WeightedRandomSampler(probs, self.ray_batch_size, replacement=False)
+            index = list(sampler)
+
+            ret = ds[index]
+
+            for k,v in ret.values():
+                ret[k] = v.unsqueeze(0)
+
+            #dl = DataLoader(ds, 
+            #                batch_size=self.ray_batch_size,
+            #                sampler=sampler,
+            #                shuffle=False,
+            #                batch_sampler=None)
             
-            dl = DataLoader(ds, 
-                            batch_size=self.ray_batch_size,
-                            sampler=sampler,
-                            shuffle=False,
-                            batch_sampler=None)
-            
-            return next(iter(dl))
+            return ret #next(iter(dl))
 
 class InstanceDataset(Dataset):
     def __init__(self, dataset_dir, img_sidelength, batch_size, ray_batch_size):
