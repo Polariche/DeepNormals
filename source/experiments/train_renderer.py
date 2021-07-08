@@ -11,7 +11,7 @@ import os
 sys.path.append( os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) ) )
 
 from models.models import SingleBVPNet, DeepSDFDecoder, Siren
-from loaders import SceneClassDataset, RayDataset, dict_collate_fn, PointTransform
+from loaders import RayDataset, SceneDataset, dict_collate_fn, PointTransform
 from models.LGD import Renderer
 
 from torch.utils.data import  DataLoader, WeightedRandomSampler
@@ -52,16 +52,6 @@ def main():
                             help='learning rate')
     parser.add_argument('--lgd-step', dest='lgd_step_per_epoch', type=int,metavar='LGD_STEP_PER_EPOCH', default=5, 
                             help='number of simulation steps of LGD per epoch')
-
-    parser.add_argument('--width', dest='width', type=int,metavar='WIDTH', default=128, 
-                            help='width for rendered image')
-    parser.add_argument('--height', dest='height', type=int,metavar='HEIGHT', default=128, 
-                            help='height for rendered image')
-
-    parser.add_argument('--hidden-feats', dest='hidden_features', type=int,metavar='HIDDEN_FEATURES', default=64, 
-                            help='hidden feature dimension')
-    parser.add_argument('--hidden-type', dest='hidden_type', metavar='HIDDEN_TYPE', default='autodecoder', 
-                            help='how hidden features will be handled; \'autodecoder\' or \'lstm\'')
 
 
     parser.add_argument('--outfile', dest='outfile', metavar='OUTFILE', 
