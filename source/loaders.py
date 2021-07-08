@@ -15,6 +15,7 @@ import os
 from glob import glob
 
 from collections import defaultdict
+from np.random import permutation
 
 import utils
 import time
@@ -257,20 +258,19 @@ class SceneDataset(Dataset):
 
             ds = SceneRayDataset(self.instance_dir, img_sidelength=self.img_sidelength, idx=idx)
             
-            visibles = ds.visible.sum()
-            invisibles = len(ds.visible) - visibles
-            
-            probs = len(ds.visible) / (invisibles + (visibles - invisibles) * ds.visible.int()).float()
-            probs = probs.view(-1) / probs.sum()
-            
-            print("Finished computing probs : ", time.time())
+            ranges = np.array(list(range(len(ds.visible))))
+            visible_idx = ranges[ds.visible.view(-1).numpy()]
+            invisible_idx = ranges(range(len(ds.visible)))[~ds.visible.view(-1).numpy()]
 
-            #sampler = WeightedRandomSampler(probs, self.ray_batch_size, replacement=False)
+            perm1 = permutation(len(visible_idx))[self.ray_batch_size - self.ray_batch_size//2]
+            perm2 = permutation(len(invisible_idx))[self.ray_batch_size//2]
 
+            indices = np.concatenate([visible_idx[perm1], invisible_idx[perm2]])
+            
             dl = DataLoader(ds, 
                             batch_size=self.ray_batch_size,
-                            #sampler=sampler,
-                            shuffle=True,
+                            sampler=indices,
+                            shuffle=False,
                             batch_sampler=None)
             
             return next(iter(dl))
