@@ -230,7 +230,7 @@ class SceneRayDataset(RayDataset):
     
 
     def __getitem__(self, idx):
-        print("SceneRayDataset : ", time.time())
+        #print("SceneRayDataset : ", time.time())
 
         ret = super(SceneRayDataset, self).__getitem__(idx)
         ret['rgb'] = self.rgb[idx]
