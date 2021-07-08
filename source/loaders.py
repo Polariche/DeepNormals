@@ -265,12 +265,12 @@ class SceneDataset(Dataset):
             
             print("Finished computing probs : ", time.time())
 
-            sampler = WeightedRandomSampler(probs, self.ray_batch_size, replacement=False)
+            #sampler = WeightedRandomSampler(probs, self.ray_batch_size, replacement=False)
 
             dl = DataLoader(ds, 
                             batch_size=self.ray_batch_size,
-                            sampler=sampler,
-                            shuffle=False,
+                            #sampler=sampler,
+                            shuffle=True,
                             batch_sampler=None)
             
             return next(iter(dl))
