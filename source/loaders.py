@@ -271,7 +271,7 @@ class SceneDataset(Dataset):
 
             dl = DataLoader(ds, 
                             batch_size=self.ray_batch_size,
-                            sampler=indices,
+                            sampler=iter(indices),
                             shuffle=False,
                             batch_sampler=None)
             
