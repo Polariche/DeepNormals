@@ -8,6 +8,7 @@ from glob import glob
 import os
 import imageio
 import skimage
+import cv2
 
 def writePLY_mesh(filename, X, normal, color, eps=0.1):
 

@@ -222,12 +222,13 @@ class SceneRayDataset(RayDataset):
         color_paths = sorted(utils.glob_imgs(color_dir))
 
         self.rgb = utils.load_rgb(color_paths[idx], sidelength=img_sidelength)
-        self.rgb = rgb.reshape(3, -1).transpose(1, 0)
+        self.rgb = self.rgb.reshape(3, -1).transpose(1, 0)
     
 
     def __getitem__(self, idx):
-        ret = super(SceneRayDataset, self)[idx]
+        ret = super(SceneRayDataset, self).__getitem__(idx)
         ret['rgb'] = self.rgb[idx]
+        ret['visible'] = self.rgb[idx].sum() == 3
         
         return ret
 
