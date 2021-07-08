@@ -101,9 +101,7 @@ def main():
             
             #tqdm.write("Epoch %d, Total loss %0.6f, Sigma %0.6f, Lambda %0.6f, iteration time %0.6f" % (i, train_loss[1], sigma_sum, lambda_sum, time.time() - start_time))
 
-            color = ins['rgb']
-            color[...,0] = ins['rgb'][...,1]
-            color[...,1] = ins['rgb'][...,0]
+            color = (ins['rgb'] * 256).int()
 
             writer.add_mesh("pointcloud_LGD_train", 
                             (ins['p']+ins['n']).reshape(-1,3).unsqueeze(0), 
