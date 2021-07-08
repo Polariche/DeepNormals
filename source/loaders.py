@@ -17,6 +17,7 @@ from glob import glob
 from collections import defaultdict
 
 import utils
+import time
 
 class ObjDataset(Dataset):
     # reads an obj file, and outputs a single point sampled at i-th face
@@ -229,6 +230,8 @@ class SceneRayDataset(RayDataset):
     
 
     def __getitem__(self, idx):
+        print("SceneRayDataset %d : " % idx, time.time())
+
         ret = super(SceneRayDataset, self).__getitem__(idx)
         ret['rgb'] = self.rgb[idx]
         ret['visible'] = self.visible[idx]
@@ -250,6 +253,8 @@ class SceneDataset(Dataset):
         elif type(idx) is slice:
             return dict_collate_fn([self.__getitem__(i) for i in range(idx.start, idx.stop, 1 if idx.step is None else idx.step)])
         else:  
+            print("SceneDataset %d : " % idx, time.time())
+
             ds = SceneRayDataset(self.instance_dir, img_sidelength=self.img_sidelength, idx=idx)
             
             visibles = ds.visible.sum()
