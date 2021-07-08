@@ -166,8 +166,8 @@ class RayDataset(Dataset):
         self.p = torch.from_numpy(np.mgrid[:width, :height]).permute(2,1,0).reshape(-1,2) + 0.5
         self.p = self.p / torch.tensor([width, height])
 
-        self.n = torch.cat([self.p / focal_length, torch.ones((self.p.shape[0], 1)) * focal_length], dim=1)
-        self.p = torch.cat([self.p, torch.ones((self.p.shape[0], 1)) * focal_length], dim=1)
+        self.n = torch.cat([self.p, torch.ones((self.p.shape[0], 1)) * focal_length], dim=1)
+        self.p = torch.cat([self.p, torch.zeros((self.p.shape[0], 1))], dim=1)
 
         self.pose = pose
         self.x0 = self.pose(self.x0)
@@ -193,10 +193,44 @@ class RayDataset(Dataset):
             p = self.p[idx]
             n = self.ortho_n
         else:
-            p = self.p[idx]
+            p = self.x0
             n = self.n[idx]
 
         return {'p': p, 'd': d, 'n': n}
+
+
+class SceneRayDataset(RayDataset):
+    def __init__(self, instance_dir, img_sidelength, idx):
+        # get pose from instance
+        intrinsics, _, _, _ = utils.parse_intrinsics(os.path.join(instance_dir, "intrinsics.txt"),
+                                                                  trgt_sidelength=img_sidelength)
+        focal_length = img_sidelength / intrinsics[0,0]
+
+        pose_dir = os.path.join(instance_dir, "pose")
+        pose_paths = sorted(glob(os.path.join(pose_dir, "*.txt")))
+
+        pose = utils.load_pose(pose_paths[idx])
+        pose = torch.from_numpy(pose).float()
+
+        posetrans = PointTransform(rotation=pose[:3, :3], translation=pose[:3, 3].T)
+
+        super(SceneRayDataset,self).__init__(img_sidelength, img_sidelength, focal_length=focal_length, pose=posetrans)
+
+        param_dir = os.path.join(instance_dir, "params")
+
+        color_dir = os.path.join(instance_dir, "rgb")
+        color_paths = sorted(utils.glob_imgs(color_dir))
+
+        self.rgb = utils.load_rgb(color_paths[idx], sidelength=img_sidelength)
+        self.rgb = rgb.reshape(3, -1).transpose(1, 0)
+    
+
+    def __getitem__(self, idx):
+        ret = super(SceneRayDataset, self)[idx]
+        ret['rgb'] = self.rgb[idx]
+        
+        return ret
+
 
 
 # refer to SRN/dataio.py for original implementation
@@ -269,7 +303,7 @@ class SceneInstanceDataset():
 
         pose = torch.from_numpy(pose).float()
 
-        final_pose = torch.mm(intrinsics, pose)
+        #final_pose = torch.mm(intrinsics, pose)
 
         sample = {
             "instance_idx": torch.Tensor([self.instance_idx]).squeeze(),
@@ -279,7 +313,7 @@ class SceneInstanceDataset():
             "param": torch.from_numpy(params).float(),
             "intrinsics": intrinsics,
             "rays": RayDataset(self.img_sidelength, self.img_sidelength, 
-                                pose=PointTransform(rotation=final_pose[:3, :3], translation=final_pose[:3, 3].T))
+                                pose=PointTransform(rotation=pose[:3, :3], translation=pose[:3, 3].T))
         }
         return sample
 
