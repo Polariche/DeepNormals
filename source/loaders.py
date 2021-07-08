@@ -15,7 +15,8 @@ import os
 from glob import glob
 
 from collections import defaultdict
-from np.random import permutation
+import numpy as np
+from numpy.random import permutation
 
 import utils
 import time
