@@ -217,7 +217,7 @@ class SceneRayDataset(RayDataset):
         pose = torch.from_numpy(pose).float()
 
         intrinsics_ = torch.eye(4)
-        intrinsics_[:2, :2] = torch.inverse(intrinsics / intrinsics[0, -1] * 0.5)[:2, :2]
+        intrinsics_[:2, :2] = torch.inverse(intrinsics / intrinsics[0, 2] * 0.5)[:2, :2]
 
         pose = torch.mm(intrinsics_, pose)
 
