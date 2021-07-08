@@ -228,7 +228,7 @@ class SceneRayDataset(RayDataset):
     def __getitem__(self, idx):
         ret = super(SceneRayDataset, self).__getitem__(idx)
         ret['rgb'] = self.rgb[idx]
-        ret['visible'] = self.rgb[idx].sum() == 3
+        ret['visible'] = torch.tensor([self.rgb[idx].sum() == 3])
         
         return ret
 
