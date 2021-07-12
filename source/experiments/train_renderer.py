@@ -127,6 +127,11 @@ def main():
                             global_step=i+1, 
                             colors=color.reshape(-1,3).unsqueeze(0))
 
+            writer.add_mesh("color_only_view", 
+                            (ins['p']+ins['n']).reshape(-1,3).unsqueeze(0), 
+                            global_step=i+1, 
+                            colors=color.reshape(-1,3).unsqueeze(0))
+
             #writer.add_scalars("train_loss", {"raymarch_LGD_train": train_loss[1]}, global_step=i)
 
             #torch.save(lgd.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
