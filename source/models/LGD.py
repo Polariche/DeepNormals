@@ -127,7 +127,7 @@ class Renderer(nn.Module):
         self.include_loss = include_loss
         self.include_grad = include_grad
 
-        self.layers = DGCNN(self.inc, 3)
+        self.layers = DGCNN(self.inc, 4)
     
     def init_params(self):
         for m in self.modules():
