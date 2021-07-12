@@ -279,7 +279,7 @@ class Renderer(nn.Module):
                 if grad is not None:
                     target.backward(grad, retain_graph=True)
 
-        rays['rgb'] = self.color(x,r,dx)
+        rays['rgb'] = self.color(torch.cat([x,r,dx], dim=-1))
 
         return final_loss.detach().item(), lr1.detach().mean().item(), lr2.detach().mean().item(), lag1.detach().mean().item(), lag2.detach().mean().item()
 
