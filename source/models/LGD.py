@@ -165,10 +165,10 @@ class Renderer(nn.Module):
         else:
             return torch.pow(self.sdf(x),2)
 
-    def color_loss(self, x, r, dx, gt_color, mean=True, keepdim=False):
+    def color_loss(self, x, r, gt_color, mean=True, keepdim=False):
         assert self.color is not None 
 
-        inp = torch.cat([x,r,dx], dim=-1)
+        inp = torch.cat([x,r], dim=-1)
 
         if mean:
             dims = tuple(range(x.dim()))
@@ -223,14 +223,17 @@ class Renderer(nn.Module):
                                         create_graph=False,
                                         retain_graph=True)[0].view(d.shape)
 
+        """
         color_loss = self.color_loss(x, r, dx, rays['rgb'], mean=True)
         color_grad_d = torch.autograd.grad(color_loss, 
                                         [d], 
                                         grad_outputs=torch.ones_like(color_loss), 
                                         create_graph=False,
                                         retain_graph=True)[0].view(d.shape)
+        """
+        d2_grad_d = 2*d
 
-        dd = lr1 * sdf_grad_d + lr2 * color_grad_d
+        dd = lr1 * sdf_grad_d + lr2 * d2_grad_d
         dd = F.relu(dd)
 
         new_d = d + dd
@@ -250,19 +253,18 @@ class Renderer(nn.Module):
 
         x = x0+d*r
 
-        d2_loss = torch.pow(d, 2).mean()
         sdf_res = self.sdf(x)
-
         dx = torch.autograd.grad(sdf_res, 
                                 [x], 
                                 grad_outputs=torch.ones_like(sdf_res), 
                                 create_graph=False,
                                 retain_graph=True)[0].view(x.shape)
 
+        # backpropagation for renderer (=self.layers)
         sdf_loss = torch.pow(sdf_res, 2)
-        color_loss = self.color_loss(x, r, dx, rays['rgb'], mean=False)
+        color_loss = self.color_loss(x, r, rays['rgb'], mean=False)
 
-        final_loss = (lag1 * sdf_loss).mean() + (lag2 * color_loss).mean()
+        final_loss = torch.pow(d, 2).mean() + (lag1 * sdf_loss).mean() + (lag2 * color_loss).mean()
 
         grads = torch.autograd.grad(final_loss, 
                                 grad_targets, 
@@ -271,15 +273,23 @@ class Renderer(nn.Module):
                                 retain_graph=True,
                                 allow_unused=True)
 
+        layers_params = self.layers.parameters()
         for i, (target, grad) in enumerate(zip(grad_targets, grads)):
             if i >= 2: # lagrangian
                 if grad is not None:
-                    target.backward(- grad, retain_graph=True)
+                    target.backward(- grad, retain_graph=True, inputs=layers_params)
             else:
                 if grad is not None:
-                    target.backward(grad, retain_graph=True)
+                    target.backward(grad, retain_graph=True, inputs=layers_params)
 
-        rays['rgb'] = self.color(torch.cat([x,r,dx], dim=-1))
+        # backpropagation for sdf (=self.sdf)
+        sdf_gt = (~rays['visible']).int()
+        sdf_gt_loss = torch.pow((sdf_res - sdf_gt), 2).mean()
+        sdf_gt_loss.backward(retain_graph=True, inputs=self.sdf.parameters())
+
+
+
+        rays['rgb'] = self.color(torch.cat([x,r], dim=-1))
 
         return final_loss.detach().item(), lr1.detach().mean().item(), lr2.detach().mean().item(), lag1.detach().mean().item(), lag2.detach().mean().item()
 

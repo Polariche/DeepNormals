@@ -71,11 +71,11 @@ def main():
 
     elif args.sdf_model == "Siren":
         sdf = SingleBVPNet(type="sine", in_features=3)
-        color = nn.Sequential(SingleBVPNet(type="sine", in_features=9, out_features=3), nn.Tanh())
+        color = nn.Sequential(SingleBVPNet(type="sine", in_features=6, out_features=3), nn.Tanh())
 
     elif args.sdf_model == "OldSiren":
         sdf = Siren(in_features=3, out_features=1, hidden_features=256, hidden_layers=5, outermost_linear=True)
-        color = nn.Sequential(Siren(in_features=9, out_features=3, hidden_features=256, hidden_layers=5, outermost_linear=True), nn.Tanh())
+        color = nn.Sequential(Siren(in_features=6, out_features=3, hidden_features=256, hidden_layers=5, outermost_linear=True), nn.Tanh())
 
     else:
         raise NotImplementedError
