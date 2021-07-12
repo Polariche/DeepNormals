@@ -67,15 +67,15 @@ def main():
         with open(args.sdf_specs) as specs_file:
             specs = json.load(specs_file)
             sdf = DeepSDFDecoder(specs["CodeLength"], **specs["NetworkSpecs"])
-            color = DeepSDFDecoder(specs["CodeLength"], **specs["NetworkSpecs"])
+            color = nn.Sequential(DeepSDFDecoder(specs["CodeLength"], **specs["NetworkSpecs"]), nn.Tanh())
 
     elif args.sdf_model == "Siren":
         sdf = SingleBVPNet(type="sine", in_features=3)
-        color = SingleBVPNet(type="sine", in_features=9, out_features=3)
+        color = nn.Sequential(SingleBVPNet(type="sine", in_features=9, out_features=3), nn.Tanh())
 
     elif args.sdf_model == "OldSiren":
         sdf = Siren(in_features=3, out_features=1, hidden_features=256, hidden_layers=5, outermost_linear=True)
-        color = Siren(in_features=9, out_features=3, hidden_features=256, hidden_layers=5, outermost_linear=True)
+        color = nn.Sequential(Siren(in_features=9, out_features=3, hidden_features=256, hidden_layers=5, outermost_linear=True), nn.Tanh())
 
     else:
         raise NotImplementedError

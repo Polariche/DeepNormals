@@ -232,7 +232,7 @@ class SceneRayDataset(RayDataset):
         color_paths = sorted(utils.glob_imgs(color_dir))
 
         self.rgb = utils.load_rgb(color_paths[idx], sidelength=img_sidelength)
-        self.rgb = self.rgb.reshape(3, -1).transpose(1, 0)
+        self.rgb = self.rgb.reshape(3, -1).transpose(1, 0) * 2 - 1
         self.rgb = torch.from_numpy(self.rgb)
         
         self.visible = self.rgb.sum(dim=-1,keepdim=True) != 3
