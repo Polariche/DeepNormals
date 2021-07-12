@@ -120,7 +120,7 @@ class Renderer(nn.Module):
             # include sdf loss
             self.inc += 1
         if include_grad:
-            self.inc += 3
+            self.inc += self.input_dim
 
         self.include_loss = include_loss
         self.include_grad = include_grad
@@ -160,7 +160,8 @@ class Renderer(nn.Module):
         assert self.sdf is not None 
 
         if mean:
-            return torch.pow(self.sdf(x),2).mean(dim=-1, keepdim=keepdim)
+            dims = tuple(range(x.dim()))
+            return torch.pow(self.sdf(x),2).mean(dim=dims, keepdim=keepdim)
         else:
             return torch.pow(self.sdf(x),2)
 
@@ -170,7 +171,8 @@ class Renderer(nn.Module):
         inp = torch.cat([x,r,dx], dim=-1)
 
         if mean:
-            return torch.pow(self.color(inp) - gt_color, 2).sum(dim=-1, keepdim=keepdim).mean(keepdim=keepdim)
+            dims = tuple(range(x.dim()))
+            return torch.pow(self.color(inp) - gt_color, 2).sum(dim=-1, keepdim=keepdim).mean(dim=dims, keepdim=keepdim)
         else:
             return torch.pow(self.color(inp) - gt_color, 2).sum(dim=-1, keepdim=True)
 
@@ -211,7 +213,7 @@ class Renderer(nn.Module):
 
     def step(self, rays):
         d, x0, r = rays['d'], rays['p'], rays['n']
-        lr1, lr2, lag1, lag2 = self(rays)
+        lr1, lr2, _, _ = self(rays)
 
         sdf_loss = self.sdf_loss(x0+d*r, mean=True)
         sdf_grad = torch.autograd.grad(sdf_loss, 
@@ -220,7 +222,7 @@ class Renderer(nn.Module):
                                         create_graph=False,
                                         retain_graph=True)[0].view(d.shape)
 
-        dd = lr1 * (2*d) + lr2 * sdf_grad 
+        dd = lr2 * sdf_grad 
         dd = F.relu(dd)
 
         new_d = d + dd
