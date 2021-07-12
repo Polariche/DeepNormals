@@ -11,7 +11,7 @@ import os
 sys.path.append( os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) ) )
 
 from models.models import SingleBVPNet, DeepSDFDecoder, Siren
-from loaders import RayDataset, SceneDataset, dict_collate_fn, PointTransform
+from loaders import RayDataset, SceneDataset, dict_collate_fn, PointTransform, dict_to_device
 from models.LGD import Renderer
 
 from torch.utils.data import  DataLoader, WeightedRandomSampler
@@ -106,6 +106,8 @@ def main():
             start_time = time.time()
 
             ins = next(iter(instance_loader))
+            ins = dict_to_device(ins, device)
+            
             color = (ins['rgb'] * 256).int()
 
             writer.add_mesh("input_view", 

@@ -495,3 +495,8 @@ def detach_var(v):
     var = Variable(v.data, requires_grad=True)
     var.retain_grad()
     return var
+
+def dict_to_device(d, device):
+    for key, value in d.items():
+        d[key] = value.to(device)
+    return d
