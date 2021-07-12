@@ -252,7 +252,7 @@ class Renderer(nn.Module):
         sdf_loss = torch.pow(sdf_res, 2)
         #color_loss = self.color_loss(x, r, dx, rays['rgb'], mean=False)
 
-        final_loss = d2_loss + (lag1 * sdf_loss).mean()# + (lag2 * color_loss).mean()
+        final_loss = sdf_loss.mean()# + (lag2 * color_loss).mean()
 
         grads = torch.autograd.grad(final_loss, 
                                 grad_targets, 
