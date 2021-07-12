@@ -97,7 +97,7 @@ def main():
     
 
     renderer = Renderer(3, sdf=sdf, color=color).to(device)
-    renderer_optimizer = optim.Adam(renderer.parameters(), lr=args.lr)
+    renderer_optimizer = optim.Adam(renderer.layers.parameters(), lr=args.lr)
 
     # train LGD
     renderer.train()

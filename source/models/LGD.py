@@ -204,14 +204,14 @@ class Renderer(nn.Module):
         if self.include_grad:
             layer_input = torch.cat([layer_input, sdf_grad], dim=-1)
 
-        return self.layers(layer_input)
+        layer_output = self.layers(layer_input)
+        lr1, lr2, lag1, lag2 = layer_output[..., 0:1], layer_output[..., 1:2], layer_output[..., 2:3], layer_output[..., 3:4]
+        return lr1, lr2, lag1, lag2
 
 
     def step(self, rays):
-        layer_output = self(rays)
         d, x0, r = rays['d'], rays['p'], rays['n']
-
-        lr1, lr2, lag1, lag2 = layer_output[..., 0:1], layer_output[..., 1:2], layer_output[..., 2:3], layer_output[..., 3:4]
+        lr1, lr2, lag1, lag2 = self(rays)
 
         sdf_loss = self.sdf_loss(x0+d*r, mean=True)
         sdf_grad = torch.autograd.grad(sdf_loss, 
