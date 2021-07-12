@@ -62,19 +62,27 @@ def main():
     writer = SummaryWriter(args.tb_save_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    # Open a SDF model
+    # Open a SDF model & coloring model
     if args.sdf_model == "DeepSDF":
         with open(args.sdf_specs) as specs_file:
             specs = json.load(specs_file)
             sdf = DeepSDFDecoder(specs["CodeLength"], **specs["NetworkSpecs"])
+            color = DeepSDFDecoder(specs["CodeLength"], **specs["NetworkSpecs"])
+
     elif args.sdf_model == "Siren":
         sdf = SingleBVPNet(type="sine", in_features=3)
+        color = SingleBVPNet(type="sine", in_features=9, out_features=3)
+
     elif args.sdf_model == "OldSiren":
         sdf = Siren(in_features=3, out_features=1, hidden_features=256, hidden_layers=5, outermost_linear=True)
+        color = Siren(in_features=9, out_features=3, hidden_features=256, hidden_layers=5, outermost_linear=True)
+
     else:
-        raise NotImplementedError  
+        raise NotImplementedError
+
     sdf.to(device)
-        
+    color.to(device)    
+
     if args.sdf_weight != None:
         try:
             sdf.load_state_dict(torch.load(args.sdf_weight))
@@ -83,12 +91,12 @@ def main():
 
     # load 
     with torch.no_grad():
-        # load a RayDataset
+        # load a SceneDataset
         instance = SceneDataset("/data/SRN/cars_train/88c884dd867d221984ae8a5736280c", img_sidelength=512, ray_batch_size=args.batchsize)
         instance_loader = DataLoader(instance, batch_size=2, shuffle=True)
     
 
-    renderer = Renderer(3, sdf=sdf).to(device)
+    renderer = Renderer(3, sdf=sdf, color=color).to(device)
     renderer_optimizer = optim.Adam(renderer.parameters(), lr=args.lr)
 
     # train LGD
@@ -98,15 +106,24 @@ def main():
             start_time = time.time()
 
             ins = next(iter(instance_loader))
-            
-            #tqdm.write("Epoch %d, Total loss %0.6f, Sigma %0.6f, Lambda %0.6f, iteration time %0.6f" % (i, train_loss[1], sigma_sum, lambda_sum, time.time() - start_time))
-
             color = (ins['rgb'] * 256).int()
 
-            writer.add_mesh("pointcloud_LGD_train", 
+            writer.add_mesh("input_view", 
                             (ins['p']+ins['n']).reshape(-1,3).unsqueeze(0), 
                             global_step=i+1, 
                             colors=color.reshape(-1,3).unsqueeze(0))
+
+            renderer_optimizer.zero_grad()
+            renderer.loss_trajectory_backward(ins)
+            renderer_optimizer.step()
+
+            #tqdm.write("Epoch %d, Total loss %0.6f, Sigma %0.6f, Lambda %0.6f, iteration time %0.6f" % (i, train_loss[1], sigma_sum, lambda_sum, time.time() - start_time))
+
+            writer.add_mesh("output_view", 
+                            (ins['p']+ins['n'] * ins['d']).reshape(-1,3).unsqueeze(0), 
+                            global_step=i+1, 
+                            colors=color.reshape(-1,3).unsqueeze(0))
+
             #writer.add_scalars("train_loss", {"raymarch_LGD_train": train_loss[1]}, global_step=i)
 
             #torch.save(lgd.state_dict(), args.weight_save_path+'model_%03d.pth' % i)

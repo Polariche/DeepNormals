@@ -108,12 +108,12 @@ class DGCNN(nn.Module):
 
 
 class Renderer(nn.Module):
-    def __init__(self, input_dim, sdf=None, pc=None, include_loss=True, include_grad=True):
+    def __init__(self, input_dim, sdf=None, color=None, include_loss=True, include_grad=True):
         super(Renderer, self).__init__()
         self.input_dim = input_dim
 
         self.set_sdf(sdf)
-        self.set_pc(pc)
+        self.set_color(color)
 
         self.init_params()
 
@@ -149,10 +149,12 @@ class Renderer(nn.Module):
                 continue
 
     def set_sdf(self, sdf):
+        # sdf network
         self.sdf = sdf
     
-    def set_pc(self, pc):
-        self.pc = pc
+    def set_color(self, color):
+        # color network
+        self.color = color
 
     def sdf_loss(self, x, mean=True, keepdim=False):
         assert self.sdf is not None 
@@ -162,10 +164,23 @@ class Renderer(nn.Module):
         else:
             return self.sdf(x)
 
-    def forward(self, d, x0, r):
+    def color_loss(self, x, r, dx, gt_color, mean=True, keepdim=False):
+        assert self.color is not None 
+
+        inp = torch.cat([x,r,dx], dim=-1)
+
+        if mean:
+            return torch.pow(self.color(inp) - gt_color, 2).sum(dim=-1, keepdim=keepdim).mean(keepdim=keepdim)
+        else:
+            return torch.pow(self.color(inp) - gt_color, 2).sum(dim=-1, keepdim=keepdim)
+
+
+    def forward(self, rays):
         # d shape : (..., n, 3)
         # x0 shape : (..., 1, 3) or (..., n, 3)
         # r shape : (..., n, 3)
+
+        d, x0, r = rays['d'], rays['p'], rays['n']
 
         assert x0.shape[-2] == 1 or x0.shape[-2] == d.shape[-2]
         assert d.shape[-1] == self.input_dim and x0.shape[-1] == self.input_dim
@@ -192,10 +207,11 @@ class Renderer(nn.Module):
         return self.layers(layer_input)
 
 
-    def step(self, d, x0, r):
-        layer_output = self(d, x0, r)
+    def step(self, rays):
+        layer_output = self(rays)
+        d, x0, r = rays['d'], rays['p'], rays['n']
 
-        lr1, lr2, lag = lrs[..., 0:1], lrs[..., 1:2], layer_output[..., 2:3]
+        lr1, lr2, lag1, lag2 = layer_output[..., 0:1], layer_output[..., 1:2], layer_output[..., 2:3], layer_output[..., 3:4]
 
         sdf_loss = self.sdf_loss(x0+d*r, mean=False)
         sdf_grad = torch.autograd.grad(sdf_loss, 
@@ -210,30 +226,43 @@ class Renderer(nn.Module):
 
         return new_d, [lr1, lr2, lag]
 
+    
 
-    def loss_trajectory_backward(self, d, x0, r, steps=10):
+    def loss_trajectory_backward(self, rays, steps=10):
+        d, x0, r = rays['d'], rays['p'], rays['n']
         
         for step in range(steps):
-            d, layer_output = self.step(d, x0, r)
-            [lr1, lr2, lag] = grad_targets
+            d, layer_output = self.step(rays)
+            rays['d'] = d
 
-            d2_loss = torch.pow(d, 2).mean()
-            sdf_loss = self.sdf_loss(d, mean=True)
+        lr1, lr2, lag1, lag2 = layer_output[..., 0:1], layer_output[..., 1:2], layer_output[..., 2:3], layer_output[..., 3:4]
+        [lr1, lr2, lag1, lag2] = grad_targets
 
-            final_loss = d2_loss + lag * sdf_loss
+        x = x0+d*r
 
+        d2_loss = torch.pow(d, 2).mean()
+        sdf_loss = self.sdf_loss(x, mean=False)
 
-            grads = torch.autograd.grad(final_loss, 
-                                        grad_targets, 
-                                        grad_outputs=[torch.ones_like(final_loss)],
-                                        create_graph=False,
-                                        retain_graph=True)
+        dx = torch.autograd.grad(sdf_loss, 
+                                [x], 
+                                grad_outputs=torch.ones_like(sdf_loss), 
+                                create_graph=False)[0].view(x.shape)
 
-            for i, (target, grad) in enumerate(zip(grad_targets, grads)):
-                if i == 2: # lagrangian
-                    target.backward(- grad, retain_graph=True)
-                else:
-                    target.backward(grad, retain_graph=True)
+        color_loss = self.color_loss(x, r, dx, rays['rgb'], mean=False)
+
+        final_loss = d2_loss + (lag1 * sdf_loss).mean() + (lag2 * color_loss).mean()
+
+        grads = torch.autograd.grad(final_loss, 
+                                grad_targets, 
+                                grad_outputs=[torch.ones_like(final_loss)],
+                                create_graph=False,
+                                retain_graph=True)
+
+        for i, (target, grad) in enumerate(zip(grad_targets, grads)):
+            if i >= 2: # lagrangian
+                target.backward(- grad, retain_graph=True)
+            else:
+                target.backward(grad, retain_graph=True)
 
 
         
