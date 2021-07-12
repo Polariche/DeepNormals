@@ -284,9 +284,9 @@ class Renderer(nn.Module):
 
         # backpropagation for sdf (=self.sdf)
         sdf_gt = rays['visible'].view(-1)
-        sdf_gt_loss = -torch.log(sdf_gt.view(-1,1)[sdf_gt]).sum()
-        sdf_gt_loss += -torch.log(1 - sdf_gt.view(-1,1)[~sdf_gt]).sum()
-        sdf_gt_loss /= sdf_gt.view(-1,1).shape[0] #torch.pow((sdf_res - sdf_gt), 2).mean()
+        sdf_gt_loss = -torch.log(sdf_res.view(-1,1)[sdf_gt]).sum()
+        sdf_gt_loss += -torch.log(1 - sdf_res.view(-1,1)[~sdf_gt]).sum()
+        sdf_gt_loss /= sdf_gt.shape[0] #torch.pow((sdf_res - sdf_gt), 2).mean()
         sdf_gt_loss.backward(retain_graph=True)#, inputs=self.sdf.parameters())
 
 
