@@ -213,7 +213,7 @@ class Renderer(nn.Module):
 
     def step(self, rays):
         d, x0, r = rays['d'], rays['p'], rays['n']
-        lr1, lr2, _, _ = self(rays)
+        lr1, lr2, lag1, lag2 = self(rays)
 
         sdf_loss = self.sdf_loss(x0+d*r, mean=True)
         sdf_grad = torch.autograd.grad(sdf_loss, 
