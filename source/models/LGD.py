@@ -266,7 +266,7 @@ class Renderer(nn.Module):
             else:
                 target.backward(grad, retain_graph=True)
 
-        return final_loss.detach(), lr1.detach(), lr2.detach(), lag1.detach(), lag2.detach()
+        return final_loss.detach().item(), lr1.detach().mean().item(), lr2.detach().mean().item(), lag1.detach().mean().item(), lag2.detach().mean().item()
 
 
         
