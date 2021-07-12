@@ -116,10 +116,10 @@ def main():
                             colors=color.reshape(-1,3).unsqueeze(0))
 
             renderer_optimizer.zero_grad()
-            renderer.loss_trajectory_backward(ins)
+            total_loss, lr1, lr2, lag1, lag2 = renderer.loss_trajectory_backward(ins)
             renderer_optimizer.step()
 
-            #tqdm.write("Epoch %d, Total loss %0.6f, Sigma %0.6f, Lambda %0.6f, iteration time %0.6f" % (i, train_loss[1], sigma_sum, lambda_sum, time.time() - start_time))
+            tqdm.write("Epoch %d, Total loss %0.6f, Sigma1 %0.6f, Sigma2 %0.6f, Lambda1 %0.6f, Lambda2 %0.6f, iteration time %0.6f" % (i, total_loss, lr1, lr2, lag1, lag2, time.time() - start_time))
 
             writer.add_mesh("output_view", 
                             (ins['p']+ins['n'] * ins['d']).reshape(-1,3).unsqueeze(0), 
