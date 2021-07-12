@@ -115,8 +115,6 @@ class Renderer(nn.Module):
         self.set_sdf(sdf)
         self.set_color(color)
 
-        self.init_params()
-
         self.inc = 2*self.input_dim
         if include_loss:
             # include sdf loss
@@ -128,6 +126,8 @@ class Renderer(nn.Module):
         self.include_grad = include_grad
 
         self.layers = DGCNN(self.inc, 4)
+
+        self.init_params()
     
     def init_params(self):
         for m in self.modules():
