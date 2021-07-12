@@ -122,7 +122,7 @@ class Renderer(nn.Module):
             # include sdf loss
             self.inc += 1
         if include_grad:
-            self.inc += self.input_dim
+            self.inc += 3
 
         self.include_loss = include_loss
         self.include_grad = include_grad

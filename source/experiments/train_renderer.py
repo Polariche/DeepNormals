@@ -96,7 +96,7 @@ def main():
         instance_loader = DataLoader(instance, batch_size=2, shuffle=True)
     
 
-    renderer = Renderer(3, sdf=sdf, color=color).to(device)
+    renderer = Renderer(1, sdf=sdf, color=color).to(device)
     renderer_optimizer = optim.Adam(renderer.parameters(), lr=args.lr)
 
     # train LGD
