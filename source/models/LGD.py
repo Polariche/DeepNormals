@@ -231,11 +231,10 @@ class Renderer(nn.Module):
         d, x0, r = rays['d'], rays['p'], rays['n']
         
         for step in range(steps):
-            d, layer_output = self.step(rays)
+            d, grad_targets = self.step(rays)
             rays['d'] = d
 
-        lr1, lr2, lag1, lag2 = layer_output[..., 0:1], layer_output[..., 1:2], layer_output[..., 2:3], layer_output[..., 3:4]
-        [lr1, lr2, lag1, lag2] = grad_targets
+        lr1, lr2, lag1, lag2 = grad_targets
 
         x = x0+d*r
 
