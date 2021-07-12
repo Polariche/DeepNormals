@@ -258,13 +258,16 @@ class Renderer(nn.Module):
                                 grad_targets, 
                                 grad_outputs=[torch.ones_like(final_loss)],
                                 create_graph=False,
-                                retain_graph=True)
+                                retain_graph=True,
+                                allow_unused=True)
 
         for i, (target, grad) in enumerate(zip(grad_targets, grads)):
             if i >= 2: # lagrangian
-                target.backward(- grad, retain_graph=True)
+                if grad is not None:
+                    target.backward(- grad, retain_graph=True)
             else:
-                target.backward(grad, retain_graph=True)
+                if grad is not None:
+                    target.backward(grad, retain_graph=True)
 
         return final_loss.detach().item(), lr1.detach().mean().item(), lr2.detach().mean().item(), lag1.detach().mean().item(), lag2.detach().mean().item()
 
