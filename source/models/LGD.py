@@ -244,7 +244,8 @@ class Renderer(nn.Module):
         dx = torch.autograd.grad(sdf_res, 
                                 [x], 
                                 grad_outputs=torch.ones_like(sdf_res), 
-                                create_graph=False)[0].view(x.shape)
+                                create_graph=False,
+                                retain_graph=True)[0].view(x.shape)
 
         sdf_loss = torch.pow(sdf_res, 2)
         color_loss = self.color_loss(x, r, dx, rays['rgb'], mean=False)
