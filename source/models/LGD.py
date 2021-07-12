@@ -172,7 +172,7 @@ class Renderer(nn.Module):
         if mean:
             return torch.pow(self.color(inp) - gt_color, 2).sum(dim=-1, keepdim=keepdim).mean(keepdim=keepdim)
         else:
-            return torch.pow(self.color(inp) - gt_color, 2).sum(dim=-1, keepdim=keepdim)
+            return torch.pow(self.color(inp) - gt_color, 2).sum(dim=-1, keepdim=True)
 
 
     def forward(self, rays):
@@ -190,16 +190,16 @@ class Renderer(nn.Module):
 
         x = x0 + d*r
 
-        sdf_loss = self.sdf_loss(x, mean=False)
-        sdf_grad = torch.autograd.grad(sdf_loss, 
+        sdf_res = self.sdf(x)
+        sdf_grad = torch.autograd.grad(sdf_res, 
                                         [x], 
-                                        grad_outputs=torch.ones_like(sdf_loss), 
+                                        grad_outputs=torch.ones_like(sdf_res), 
                                         create_graph=False)[0].view(x.shape)
         
         layer_input = torch.cat([x, r], dim=-1)
 
         if self.include_loss:
-            layer_input = torch.cat([layer_input, sdf_loss], dim=-1)
+            layer_input = torch.cat([layer_input, sdf_res], dim=-1)
         if self.include_grad:
             layer_input = torch.cat([layer_input, sdf_grad], dim=-1)
 
@@ -212,7 +212,7 @@ class Renderer(nn.Module):
 
         lr1, lr2, lag1, lag2 = layer_output[..., 0:1], layer_output[..., 1:2], layer_output[..., 2:3], layer_output[..., 3:4]
 
-        sdf_loss = self.sdf_loss(x0+d*r, mean=False)
+        sdf_loss = self.sdf_loss(x0+d*r, mean=True)
         sdf_grad = torch.autograd.grad(sdf_loss, 
                                         [d], 
                                         grad_outputs=torch.ones_like(sdf_loss), 
@@ -239,13 +239,14 @@ class Renderer(nn.Module):
         x = x0+d*r
 
         d2_loss = torch.pow(d, 2).mean()
-        sdf_loss = self.sdf_loss(x, mean=False)
+        sdf_res = self.sdf(x)
 
-        dx = torch.autograd.grad(sdf_loss, 
+        dx = torch.autograd.grad(sdf_res, 
                                 [x], 
-                                grad_outputs=torch.ones_like(sdf_loss), 
+                                grad_outputs=torch.ones_like(sdf_res), 
                                 create_graph=False)[0].view(x.shape)
 
+        sdf_loss = torch.pow(sdf_res, 2)
         color_loss = self.color_loss(x, r, dx, rays['rgb'], mean=False)
 
         final_loss = d2_loss + (lag1 * sdf_loss).mean() + (lag2 * color_loss).mean()
