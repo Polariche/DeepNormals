@@ -194,7 +194,8 @@ class Renderer(nn.Module):
         sdf_grad = torch.autograd.grad(sdf_res, 
                                         [x], 
                                         grad_outputs=torch.ones_like(sdf_res), 
-                                        create_graph=False)[0].view(x.shape)
+                                        create_graph=False,
+                                        retain_graph=True)[0].view(x.shape)
         
         layer_input = torch.cat([x, r], dim=-1)
 
@@ -216,7 +217,8 @@ class Renderer(nn.Module):
         sdf_grad = torch.autograd.grad(sdf_loss, 
                                         [d], 
                                         grad_outputs=torch.ones_like(sdf_loss), 
-                                        create_graph=False)[0].view(d.shape)
+                                        create_graph=False,
+                                        retain_graph=True)[0].view(d.shape)
 
         dd = lr1 * (2*d) + lr2 * sdf_grad 
         dd = F.relu(dd)
