@@ -108,7 +108,7 @@ def main():
             ins = next(iter(instance_loader))
             ins = dict_to_device(ins, device)
             
-            color = (ins['rgb'] * 256).int()
+            color = (ins['rgb'] * 128 + 128).int()
 
             writer.add_mesh("input_view", 
                             (ins['p']+ins['n']).reshape(-1,3).unsqueeze(0), 
@@ -121,6 +121,7 @@ def main():
 
             tqdm.write("Epoch %d, Total loss %0.6f, Sigma1 %0.6f, Sigma2 %0.6f, Lambda1 %0.6f, Lambda2 %0.6f, iteration time %0.6f" % (i, total_loss, lr1, lr2, lag1, lag2, time.time() - start_time))
 
+            color = (ins['rgb'] * 128 + 128).int()
             writer.add_mesh("output_view", 
                             (ins['p']+ins['n'] * ins['d']).reshape(-1,3).unsqueeze(0), 
                             global_step=i+1, 
