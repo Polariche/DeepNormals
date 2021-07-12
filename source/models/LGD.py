@@ -223,7 +223,7 @@ class Renderer(nn.Module):
 
         new_d = d + dd
 
-        return new_d, [lr1, lr2, lag]
+        return new_d, [lr1, lr2, lag1, lag2]
 
     
 
