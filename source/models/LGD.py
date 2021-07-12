@@ -172,7 +172,7 @@ class Renderer(nn.Module):
 
         if mean:
             dims = tuple(range(x.dim()))
-            return torch.pow(self.color(inp) - gt_color, 2).sum(dim=-1, keepdim=keepdim).mean(dim=dims, keepdim=keepdim)
+            return torch.pow(self.color(inp) - gt_color, 2).sum(dim=-1, keepdim=True).mean(dim=dims, keepdim=keepdim)
         else:
             return torch.pow(self.color(inp) - gt_color, 2).sum(dim=-1, keepdim=True)
 
@@ -209,14 +209,12 @@ class Renderer(nn.Module):
         layer_output = self.layers(layer_input)
         lr1, lr2, lag1, lag2 = layer_output[..., 0:1], layer_output[..., 1:2], layer_output[..., 2:3], layer_output[..., 3:4]
 
-        return lr1, lr2, lag1, lag2, sdf_res, sdf_grad
+        return lr1, lr2, lag1, lag2, x, sdf_res, sdf_grad
 
 
     def step(self, rays):
         d, x0, r = rays['d'], rays['p'], rays['n']
-        lr1, lr2, lag1, lag2, sdf_res, dx = self(rays)
-
-        x = x0+d*r
+        lr1, lr2, lag1, lag2, x, sdf_res, dx = self(rays)
         
         sdf_loss = sdf_res.mean()
         sdf_grad_d = torch.autograd.grad(sdf_loss, 
