@@ -387,3 +387,9 @@ class PointTransform(nn.Module):
         data = data.view(*(original_shape[:-1]), out_dim)
 
         return data
+
+
+def dict_to_device(d, device):
+    for key, value in d.items():
+        d[key] = value.to(device)
+    return d
