@@ -160,9 +160,9 @@ class Renderer(nn.Module):
         assert self.sdf is not None 
 
         if mean:
-            return self.sdf(x).mean(keepdim=keepdim)
+            return torch.pow(self.sdf(x),2).mean(dim=-1, keepdim=keepdim)
         else:
-            return self.sdf(x)
+            return torch.pow(self.sdf(x),2)
 
     def color_loss(self, x, r, dx, gt_color, mean=True, keepdim=False):
         assert self.color is not None 
