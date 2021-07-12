@@ -11,7 +11,7 @@ import os
 sys.path.append( os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) ) )
 
 from models.models import SingleBVPNet, DeepSDFDecoder, Siren
-from loaders import RayDataset, SceneDataset, dict_collate_fn, PointTransform, dict_to_device
+from loaders import RayDataset, InstanceDataset, dict_collate_fn, PointTransform, dict_to_device
 from models.LGD import Renderer
 
 from torch.utils.data import  DataLoader, WeightedRandomSampler
@@ -91,8 +91,8 @@ def main():
 
     # load 
     with torch.no_grad():
-        # load a SceneDataset
-        instance = SceneDataset("/data/SRN/cars_train/88c884dd867d221984ae8a5736280c", img_sidelength=512, ray_batch_size=args.batchsize)
+        # load an InstanceDataset
+        instance = InstanceDataset("/data/SRN/cars_train/88c884dd867d221984ae8a5736280c", img_sidelength=512, ray_batch_size=args.batchsize)
         instance_loader = DataLoader(instance, batch_size=2, shuffle=True)
     
 

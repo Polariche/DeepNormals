@@ -97,6 +97,7 @@ class ObjDataset(Dataset):
     def __len__(self):
         return len(self.f)
     
+    @torch.no_grad()
     def __getitem__(self, idx):
         f = self.f[idx]
         v = self.v[f]
@@ -137,186 +138,96 @@ class PlyDataset(Dataset):
         raise NotImplementedError
 
 
-class RayDataset(Dataset):
-    def __init__(self, width, height, focal_length=1, requires_grad=True, orthogonal=False, pose=None):
-        self.width = width
-        self.height = height
-        self.focal_length = focal_length
-        self.orthogonal = orthogonal
-
-        self.requires_grad = requires_grad
-
-        self.depth = torch.zeros((width*height, 1))
-        self.depth.requires_grad_(requires_grad)
-
-        if pose is None:
-            pose = PointTransform()
-        self.apply_pose(pose)
-
-    def set_focal_length(focal_length):
-        self.focal_length = focal_length
-        self.mm[2] = focal_length
-        self.mx[2] = focal_length
-        self.t = (self.mx - self.mm) / self.shape
-
-    def apply_pose(self, pose):
-        width = self.width
-        height = self.height 
-        focal_length = self.focal_length
-
-        self.x0 = torch.zeros((3), dtype=torch.float)
-
-        self.p = torch.from_numpy(np.mgrid[:width, :height]).permute(2,1,0).reshape(-1,2) + 0.5
-        self.p = self.p / torch.tensor([width, height])
-
-        self.n = torch.cat([self.p, torch.ones((self.p.shape[0], 1)) * focal_length], dim=1)
-        self.n = F.normalize(self.n, dim=1)
-        self.p = torch.cat([self.p, torch.zeros((self.p.shape[0], 1))], dim=1)
-
-        self.pose = pose
-        self.x0 = self.pose(self.x0)
-        self.p = self.pose(self.p)
-        self.n = self.pose(self.n, False)
-
-        self.ortho_n = torch.zeros((3), dtype=torch.float)
-        self.ortho_n[2] = 1
-        self.ortho_n = self.pose(self.ortho_n, False)
-
-    def reset_depth(self):
-        self.depth = torch.zeros(self.width*self.height)
-        self.depth.requires_grad_(self.requires_grad)
-
-    def __len__(self):
-        return self.width * self.height
-    
-    def __getitem__(self, idx):
-        
-        d = self.depth[idx]
-        
-        if self.orthogonal:
-            p = self.p[idx]
-            n = self.ortho_n
-        else:
-            p = self.x0
-            n = self.n[idx]
-
-        return {'p': p, 'd': d, 'n': n}
-
-
-class SceneRayDataset(RayDataset):
-    def __init__(self, instance_dir, img_sidelength, idx):
-        # get pose from instance
-        intrinsics, _, _, _ = utils.parse_intrinsics(os.path.join(instance_dir, "intrinsics.txt"),
-                                                                  trgt_sidelength=img_sidelength)
-        intrinsics = torch.from_numpy(intrinsics).float()
-        #focal_length = img_sidelength / intrinsics[0,0]
-
-        pose_dir = os.path.join(instance_dir, "pose")
-        pose_paths = sorted(glob(os.path.join(pose_dir, "*.txt")))
-
-        pose = utils.load_pose(pose_paths[idx])
-        pose = torch.from_numpy(pose).float()
-
-        intrinsics_ = torch.eye(4)
-        intrinsics_[:2, :2] = torch.inverse(intrinsics / intrinsics[0, 2] * 0.5)[:2, :2]
-
-        pose = torch.mm(intrinsics_, pose)
-
-        posetrans = PointTransform(rotation=pose[:3, :3], translation=pose[:3, 3].T)
-
-        super(SceneRayDataset,self).__init__(img_sidelength, img_sidelength, focal_length=1, pose=posetrans)
-
-        param_dir = os.path.join(instance_dir, "params")
-
-        color_dir = os.path.join(instance_dir, "rgb")
-        color_paths = sorted(utils.glob_imgs(color_dir))
-
-        self.rgb = utils.load_rgb(color_paths[idx], sidelength=img_sidelength)
-        self.rgb = self.rgb.reshape(3, -1).transpose(1, 0) * 2 - 1
-        self.rgb = torch.from_numpy(self.rgb)
-        
-        self.visible = self.rgb.sum(dim=-1,keepdim=True) != 3
-    
-
-    def __getitem__(self, idx):
-        #print("SceneRayDataset : ", time.time())
-
-        ret = super(SceneRayDataset, self).__getitem__(idx)
-        ret['rgb'] = self.rgb[idx]
-        ret['visible'] = self.visible[idx]
-        
-        return ret
-
-class FixedSampler(Sampler):
-    def __init__(self, ind):
-        self.ind = ind
-    def __iter__(self) -> Iterator[int]:
-        return iter(self.ind)
-    def __len__(self):
-        return len(self.ind)
-
-class SceneDataset(Dataset):
-    def __init__(self, instance_dir, img_sidelength, ray_batch_size):
+class InstanceDataset(Dataset):
+    def __init__(self, instance_dir, img_sidelength):
         self.instance_dir = instance_dir
         self.img_sidelength = img_sidelength
-        self.ray_batch_size = ray_batch_size
     
     def __len__(self):
         return len(glob(os.path.join(self.instance_dir, os.path.join("rgb/", "*"))))
     
+    @torch.no_grad()
     def __getitem__(self, idx):
         if type(idx) is list:
             return dict_collate_fn([self.__getitem__(i) for i in idx])
         elif type(idx) is slice:
             return dict_collate_fn([self.__getitem__(i) for i in range(idx.start, idx.stop, 1 if idx.step is None else idx.step)])
         else:
-            ds = SceneRayDataset(self.instance_dir, img_sidelength=self.img_sidelength, idx=idx)
-            
-            ranges = np.array(list(range(len(ds.visible))))
-            visible_idx = ranges[ds.visible.view(-1).numpy()]
-            invisible_idx = ranges[~ds.visible.view(-1).numpy()]
+            intrinsics, _, _, _ = utils.parse_intrinsics(os.path.join(self.instance_dir, "intrinsics.txt"),
+                                                                  trgt_sidelength=self.img_sidelength)
+            intrinsics = torch.from_numpy(intrinsics).float()
 
-            perm1 = permutation(len(visible_idx))[:self.ray_batch_size - self.ray_batch_size//2]
-            perm2 = permutation(len(invisible_idx))[:self.ray_batch_size//2]
+            pose_dir = os.path.join(self.instance_dir, "pose")
+            pose_paths = sorted(glob(os.path.join(pose_dir, "*.txt")))
 
-            indices = np.concatenate([visible_idx[perm1], invisible_idx[perm2]])
-            indices = indices.tolist()
+            pose = utils.load_pose(pose_paths[idx])
+            pose = torch.from_numpy(pose).float()
 
-            dl = DataLoader(ds, 
-                            batch_size=self.ray_batch_size,
-                            sampler=FixedSampler(indices),
-                            shuffle=False,
-                            batch_sampler=None)
-            
-            return next(iter(dl))
+            # TODO fuse intrinsics & pose to create 3D -> pixel transform. shape: (12)
+            pose = torch.mm(intrinsics, torch.inverse(pose))[:3].T.view(-1)
 
-class InstanceDataset(Dataset):
-    def __init__(self, dataset_dir, img_sidelength, batch_size, ray_batch_size):
-        self.dataset_dir = dataset_dir
+            color_dir = os.path.join(instance_dir, "rgb")
+            color_paths = sorted(utils.glob_imgs(color_dir))
+
+            rgb = utils.load_rgb(color_paths[idx], sidelength=img_sidelength)
+            rgb = rgb.reshape(3, -1).transpose(1, 0) * 2 - 1
+            rgb = torch.from_numpy(rgb)
+
+            return {'pose': pose, 'rgb': rgb}
+
+class CategoryDataset(Dataset):
+    def __init__(self, srn_dir, shapenet_dir, img_sidelength, batch_size, ray_batch_size):
+        self.srn_dir = srn_dir
+        self.shapenet_dir = shapenet_dir
+
         self.img_sidelength = img_sidelength
         self.batch_size = batch_size
         self.ray_batch_size = ray_batch_size
     
     def __len__(self):
-        return len(glob(os.path.join(self.dataset_dir, "*")))
+        return len(glob(os.path.join(self.srn_dir, "*")))
     
+    @torch.no_grad()
     def __getitem__(self, idx):
-        instance_dir = sorted(glob(os.path.join(self.dataset_dir, "*")))[idx]
-        ds = loaders.SceneDataset(instance_dir, 
-                          img_sidelength=self.img_sidelength, 
-                          ray_batch_size=self.ray_batch_size)
+        instance_dir = sorted(glob(os.path.join(self.srn_dir, "*")))[idx]
+        instance_id = os.path.relpath(instance_dir, start=self.srn_dir)
+
+        scenes_ds = InstanceDataset(instance_dir, 
+                          img_sidelength=self.img_sidelength)
         
-        dl = DataLoader(ds, 
+        scenes_dl = DataLoader(ds, 
                         batch_size=self.batch_size,
                         shuffle=True)
         
-        return next(iter(dl))
+        scenes_dict = next(iter(scenes_dl))
+
+        # TODO implement a script to find category num
+        category_num = 0
+        obj_dir = os.path.join(self.shapenet_dir, os.path.join(category_num, instance_id))
+        obj_dir = os.path.join(obj_dir, os.path.join("models", "model_normalized.obj"))
+
+        mesh_ds = ObjDataset(obj_dir)
+        mesh_dl = get_obj_dataloader(mesh_ds, self.ray_batch_size, num_workers=0)
+        mesh_dict = next(iter(mesh_dl))
+
+        # projection
+        X = mesh_dict['p']
+        P = scenes_dict['pose']
+
+        P = P.view(*P.shape[:-1], 4, 3)                             # (m, 4, 3)
+        X = X.unsqueeze(-3)                                         # (1, n, 3)
+        X = torch.cat([X, torch.ones_like(X)[..., :1]], dim=-1)     # (1, n, 4)
+        X = torch.matmul(X, P)                                      # (m, n, 3)
+        x_hat = X[..., :-1] / X[..., -1]                            # (m, n, 2)
+
+
+        return dict_collate_fn([scenes_dict, mesh_dict, {'uv': x_hat}])
 
 
 ### Data Augmentation Modules ###
 
 def dict_collate_fn(batch):
-    # concat a list of dicts into a single dict with lists as values
+    # concat a list of dicts into a single dict with concated lists
     # [{'a': x}, {'a': y}] -> {'a': [x, y]}
 
     d = defaultdict(list)
@@ -351,43 +262,6 @@ def get_obj_dataloader(dataset, num_samples, num_workers=0):
                       batch_sampler=None, 
                       num_workers=num_workers,
                       collate_fn=dict_collate_fn)
-
-class PointTransform(nn.Module):
-    def __init__(self, rotation = None, translation = None):
-        super().__init__()
-
-        if rotation is None:
-            rotation = torch.eye(3)
-        if translation is None:
-            translation = torch.zeros((1,3))
-
-        self.rotation = rotation
-        self.translation = translation
-
-    def forward(self, data, translate = True):
-        in_dim = self.rotation.shape[1]
-        out_dim = self.rotation.shape[0]
-        original_shape = data.shape
-
-        if data.device != self.rotation.device:
-            rotation = self.rotation.to(data.device)
-        else:
-            rotation = self.rotation
-
-        data = torch.matmul(data.view(-1, in_dim), rotation.T)
-
-        if translate:
-            if data.device != self.translation.device:
-                translation = self.translation.to(data.device)
-            else:
-                translation = self.translation
-
-            data += translation.view(1, out_dim)
-
-        data = data.view(*(original_shape[:-1]), out_dim)
-
-        return data
-
 
 def dict_to_device(d, device):
     for key, value in d.items():

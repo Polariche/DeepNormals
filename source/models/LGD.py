@@ -106,6 +106,134 @@ class DGCNN(nn.Module):
         
         return x
 
+class Projector(nn.Module):
+    def __init__(self, input_dim, include_loss=True, include_grad=True):
+        super(Renderer, self).__init__()
+        self.input_dim = input_dim
+
+        self.inc = self.input_dim
+        if include_loss:
+            # include reprojection loss
+            self.inc += 1
+        if include_grad:
+            self.inc += self.input_dim
+
+        self.include_loss = include_loss
+        self.include_grad = include_grad
+
+        self.layers = DGCNN(self.inc, 4)
+
+        self.init_params()
+    
+    def init_params(self):
+        for m in self.modules():
+            try:
+                weight = getattr(m, 'weight')
+                if len(weight.shape) > 1:
+                    with torch.no_grad():
+                        k = weight.shape[1]
+                        a = np.sqrt(0.75 / k)
+                        weight.data.uniform_(-a, a)
+            except AttributeError:
+                continue
+            try:
+                bias = getattr(m, 'bias')
+                if bias is not None:
+                    with torch.no_grad():
+                        bias.data = torch.zeros_like(bias.data)
+            except AttributeError:
+                continue
+
+    def reprojection_loss(self, X, x, P):
+        # X shape : (..., m, n, 3)
+        # x shape : (..., m, n, 2)
+        # P shape : (..., m, 12)
+        
+        # output shape : (..., m, n, 1)
+
+        x_hat = self.project(X, P)
+        
+        return torch.pow(x_hat - x, 2).sum(dim=-1, keepdim=True)
+    
+    def project(self, X, P):
+        # X shape : (..., m, n, 3)       ->  (..., m, n, 2)
+        # P shape : (..., m, 12)         ->  (..., m, 4, 3)
+
+        P = P.view(*P.shape[:-1], 4, 3)
+        X = torch.cat([X, torch.ones_like(X)[..., :1]], dim=-1)
+        X = torch.matmul(X, P)
+        x_hat = X[..., :-1] / X[..., -1]
+
+        return x_hat
+
+    def expand_X_shape(self, X, m):
+        return X.unsqueeze(-3).expand(*([-1]*(len(X.shape)-2)), m, -1, -1)
+
+    def forward(self, X, x, P):
+        # X shape : (..., n, 3)         ->  (..., m, n, 3); broadcasted by m on dim -3
+        # x shape : (..., n, m, 2)      ->  (..., m, n, 2)
+        # P shape : (..., m, 12)        ->  (..., m, 4, 3)
+
+        assert X.shape[-2] == x.shape[-2]
+        assert P.shape[-2] == x.shape[-3]
+        assert X.shape[-1] == x.shape[-1] + 1
+        assert X.shape[-1] == self.input_dim
+        
+        X = self.expand_X_shape(X, P.shape[-2])
+        rep_res = self.reprojection_loss(X, x, P)
+        rep_grad = torch.autograd.grad(rep_res, 
+                                        [X], 
+                                        grad_outputs=torch.ones_like(rep_res), 
+                                        create_graph=False,
+                                        retain_graph=True)[0].view(X.shape)
+        
+        layer_input = X
+
+        if self.include_loss:
+            layer_input = torch.cat([layer_input, rep_res], dim=-1)
+        if self.include_grad:
+            layer_input = torch.cat([layer_input, rep_grad], dim=-1)
+
+        layer_output = self.layers(layer_input)
+        lr, lag = layer_output[..., 0:1], layer_output[..., 1:2]
+
+        # (..., m, n, 1) for lr, lag, and rep_res
+        # (..., m, n, 3) for rep_grad
+        return [lr, lag], rep_res, rep_grad
+
+    def step(self, X, x, P):
+        [lr, lag], rep_res, rep_grad = self(X,x,P)
+        
+        dX = torch.sum(lr * rep_grad, dim=-3)
+        new_X = X + dX
+
+        return new_X, [lr, lag]
+
+    def loss_trajectory_backward(self, X, x, P, steps=10):
+        
+        for step in range(steps):
+            X, grad_targets = self.step(X, x, P)
+
+        X = self.expand_X_shape(X, P.shape[-2])
+        rep_res = self.reprojection_loss(X, x, P)
+
+        final_loss = torch.sum(lag * rep_res).mean()
+
+        grads = torch.autograd.grad(final_loss, 
+                                        grad_targets, 
+                                        grad_outputs=torch.ones_like(final_loss), 
+                                        create_graph=False,
+                                        retain_graph=True)
+
+        for i, (target, grad) in enumerate(zip(grad_targets, grads)):
+            if i >= 1: # lagrangian
+                if grad is not None:
+                    target.backward(- grad, retain_graph=True)
+            else:
+                if grad is not None:
+                    target.backward(grad, retain_graph=True)
+
+
 
 class Renderer(nn.Module):
     def __init__(self, input_dim, sdf=None, color=None, include_loss=True, include_grad=True):
