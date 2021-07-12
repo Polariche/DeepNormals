@@ -183,7 +183,6 @@ class Renderer(nn.Module):
         d, x0, r = rays['d'], rays['p'], rays['n']
 
         assert x0.shape[-2] == 1 or x0.shape[-2] == d.shape[-2]
-        assert d.shape[-1] == self.input_dim and x0.shape[-1] == self.input_dim
 
         assert d.shape[:-2] == x0.shape[:-2]
         assert d.shape[:-2] == r.shape[:-2]
