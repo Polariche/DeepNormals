@@ -208,21 +208,31 @@ class Renderer(nn.Module):
 
         layer_output = self.layers(layer_input)
         lr1, lr2, lag1, lag2 = layer_output[..., 0:1], layer_output[..., 1:2], layer_output[..., 2:3], layer_output[..., 3:4]
-        return lr1, lr2, lag1, lag2
+
+        return lr1, lr2, lag1, lag2, sdf_res, sdf_grad
 
 
     def step(self, rays):
         d, x0, r = rays['d'], rays['p'], rays['n']
-        lr1, lr2, lag1, lag2 = self(rays)
+        lr1, lr2, lag1, lag2, sdf_res, dx = self(rays)
 
-        sdf_loss = self.sdf_loss(x0+d*r, mean=True)
-        sdf_grad = torch.autograd.grad(sdf_loss, 
+        x = x0+d*r
+        
+        sdf_loss = sdf_res.mean()
+        sdf_grad_d = torch.autograd.grad(sdf_loss, 
                                         [d], 
                                         grad_outputs=torch.ones_like(sdf_loss), 
                                         create_graph=False,
                                         retain_graph=True)[0].view(d.shape)
 
-        dd = lr2 * sdf_grad 
+        color_loss = self.color_loss(x, r, dx, rays['rgb'], mean=True)
+        color_grad_d = torch.autograd.grad(color_loss, 
+                                        [d], 
+                                        grad_outputs=torch.ones_like(color_loss), 
+                                        create_graph=False,
+                                        retain_graph=True)[0].view(d.shape)
+
+        dd = lr1 * sdf_grad_d + lr2 * color_grad_d
         dd = F.relu(dd)
 
         new_d = d + dd
