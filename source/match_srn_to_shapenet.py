@@ -1,5 +1,6 @@
 import os
 from glob import glob
+import argparse
 
 def main():
     parser = argparse.ArgumentParser(description='Test',
@@ -32,6 +33,9 @@ def main():
 
 
     print(mapping)
+
+if __name__ == "__main__":
+    main()
 
 
 
