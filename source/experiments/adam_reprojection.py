@@ -39,7 +39,7 @@ def find_nearest_correspondences_dist(x_hat, x, k=1):
 
         knn_f = knn.apply
         dist_ = knn_f(x_hat_,x_,k)
-        dists.append(dist_.mean(dim=2).unsqueeze(0) / shp[-3])
+        dists.append(dist_.mean(dim=1).unsqueeze(0) / shp[-3])
 
     dist = torch.cat(dists).sum()
         
@@ -80,7 +80,7 @@ def main():
                                 img_sidelength=512, 
                                 batch_size=args.batchsize, 
                                 ray_batch_size=5)
-                                
+
     category_loader = DataLoader(category, batch_size=1, shuffle=True)
 
 
