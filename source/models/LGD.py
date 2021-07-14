@@ -160,9 +160,13 @@ class Projector(nn.Module):
         # P shape : (..., m, 12)         ->  (..., m, 4, 3)
 
         P = P.view(*P.shape[:-1], 4, 3)
+
+        if len(P.shape) > len(X.shape):
+            X = expand_X_shape(X, P.shape[-3])
+            
         X = torch.cat([X, torch.ones_like(X)[..., :1]], dim=-1)
         X = torch.matmul(X, P)
-        x_hat = X[..., :-1] / X[..., -1]
+        x_hat = X[..., :-1] / X[..., -2:-1]
 
         return x_hat
 
@@ -232,6 +236,8 @@ class Projector(nn.Module):
             else:
                 if grad is not None:
                     target.backward(grad, retain_graph=True)
+
+        return rep_res.mean().detach(), X[..., 0, :, :]
 
 
 

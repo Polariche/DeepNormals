@@ -119,8 +119,6 @@ class ObjDataset(Dataset):
         return {'p': p,
                 'n': n}
 
-        #return {'p': self.v[idx], 'n': self.fn[idx]}
-
     def to_obj(self):
         obj_file = open("test.obj", 'w')
 
@@ -181,8 +179,27 @@ class CategoryDataset(Dataset):
         self.shapenet_dir = shapenet_dir
 
         self.img_sidelength = img_sidelength
-        self.batch_size = batch_size
-        self.ray_batch_size = ray_batch_size
+        self.batch_size = batch_size                # num of points to sample
+        self.ray_batch_size = ray_batch_size        # num of cams
+
+        self.mapping={}
+
+        category_dirs = glob(os.path.join(shapenet_dir, "*/"))
+        instance_dirs = glob(os.path.join(srn_dir, "*/"))
+        instance_ids = set([os.path.relpath(x, start=srn_dir) for x in instance_dirs])
+
+        for category_dir in category_dirs:
+            category = os.path.relpath(category_dir, start=shapenet_dir)
+
+            ids_in_category = glob(os.path.join(category_dir, "*/"))
+            ids_in_category = set([os.path.relpath(x, start=category_dir) for x in ids_in_category])
+
+            intersection = instance_ids & ids_in_category
+
+            for i in intersection:
+                self.mapping[i] = os.path.join(category_dir, i)
+            
+            instance_ids = instance_ids - intersection
     
     def __len__(self):
         return len(glob(os.path.join(self.srn_dir, "*")))
@@ -196,18 +213,16 @@ class CategoryDataset(Dataset):
                           img_sidelength=self.img_sidelength)
         
         scenes_dl = DataLoader(ds, 
-                        batch_size=self.batch_size,
+                        batch_size=self.ray_batch_size,
                         shuffle=True)
         
         scenes_dict = next(iter(scenes_dl))
 
-        # TODO implement a script to find category num
-        category_num = 0
-        obj_dir = os.path.join(self.shapenet_dir, os.path.join(category_num, instance_id))
+        obj_dir = self.mapping[instance_id]
         obj_dir = os.path.join(obj_dir, os.path.join("models", "model_normalized.obj"))
 
         mesh_ds = ObjDataset(obj_dir)
-        mesh_dl = get_obj_dataloader(mesh_ds, self.ray_batch_size, num_workers=0)
+        mesh_dl = get_obj_dataloader(mesh_ds, self.batch_size, num_workers=0)
         mesh_dict = next(iter(mesh_dl))
 
         # projection
@@ -218,7 +233,7 @@ class CategoryDataset(Dataset):
         X = X.unsqueeze(-3)                                         # (1, n, 3)
         X = torch.cat([X, torch.ones_like(X)[..., :1]], dim=-1)     # (1, n, 4)
         X = torch.matmul(X, P)                                      # (m, n, 3)
-        x_hat = X[..., :-1] / X[..., -1]                            # (m, n, 2)
+        x_hat = X[..., :-1] / X[..., -2:-1]                         # (m, n, 2)
 
 
         return dict_collate_fn([scenes_dict, mesh_dict, {'uv': x_hat}])

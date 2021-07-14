@@ -27,7 +27,7 @@ def main():
         intersection = instance_ids & ids_in_category
 
         for i in intersection:
-            mapping[i] = category
+            mapping[i] = os.path.join(category_dir, i)
         
         instance_ids = instance_ids - intersection
 

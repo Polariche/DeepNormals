@@ -27,8 +27,6 @@ def main():
     parser = argparse.ArgumentParser(description='Test',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('data', metavar='DATA', help='path to file')
-
     parser.add_argument('--tb-save-path', dest='tb_save_path', type=str, metavar='PATH', default='../checkpoints/', 
                             help='tensorboard checkpoints path')
 
@@ -54,19 +52,43 @@ def main():
     writer = SummaryWriter(args.tb_save_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+    
+    category = CategoryDataset("/data/SRN/cars_train/", img_sidelength=512, batch_size=args.batchsize, ray_batch_size=2)
+    category_loader = DataLoader(category, batch_size=1, shuffle=True)
 
-    renderer = Renderer(3, sdf=sdf, color=color).to(device)
-    renderer_optimizer = optim.Adam(renderer.parameters(), lr=args.lr)
+
+    projector = Projector(3).to(device)
+    projector_optimizer = optim.Adam(projector.parameters(), lr=args.lr)
+
+    
 
     # train LGD
-    renderer.train()
+    projector.train()
     with tqdm(total=args.epoch) as pbar:
         for i in range(args.epoch):
             start_time = time.time()
 
-            renderer_optimizer.zero_grad()
-            total_loss, lr1, lr2, lag1, lag2 = renderer.loss_trajectory_backward(ins)
-            renderer_optimizer.step()
+            samples = next(iter(category_loader))
+
+            X = samples['p'] #samples['p']
+            x = samples['uv']
+            P = samples['pose']
+            
+
+            projector_optimizer.zero_grad()
+            total_loss, X_new = projector.loss_trajectory_backward(X, x, P)
+            projector_optimizer.step()
+
+
+            writer.add_mesh("input_view", 
+                            (samples['p']).reshape(-1,3).unsqueeze(0), 
+                            global_step=i+1)
+
+            writer.add_mesh("output_view", 
+                            (X_new).reshape(-1,3).unsqueeze(0), 
+                            global_step=i+1)
+
+            tqdm.write("Epoch %d, Total loss %0.6f, iteration time %0.6f" % (i, total_loss, time.time() - start_time))
             pbar.update(1)
 
     writer.close()
