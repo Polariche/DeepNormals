@@ -21,7 +21,7 @@ from sklearn.neighbors import KDTree
 
 import time
 from tqdm.autonotebook import tqdm
-import knn
+from knn import knn
 
 
 def find_nearest_correspondences_dist(x_hat, x, k=1):
