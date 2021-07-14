@@ -39,7 +39,7 @@ def find_nearest_correspondences_dist(x_hat, x, k=1):
 
         knn_f = knn.apply
         dist_ = knn_f(x_hat_,x_,k)
-        dists.append(dist_.mean().unsqueeze(0) / shp[-3])
+        dists.append(dist_.mean(dim=2).unsqueeze(0) / shp[-3])
 
     dist = torch.cat(dists).sum()
         
@@ -75,7 +75,12 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-    category = CategoryDataset(srn_dir="/data/SRN/cars_train", shapenet_dir="/data/shapenetv2/ShapeNetCore.v2", img_sidelength=512, batch_size=args.batchsize, ray_batch_size=2)
+    category = CategoryDataset(srn_dir="/data/SRN/cars_train", 
+                                shapenet_dir="/data/shapenetv2/ShapeNetCore.v2", 
+                                img_sidelength=512, 
+                                batch_size=args.batchsize, 
+                                ray_batch_size=5)
+                                
     category_loader = DataLoader(category, batch_size=1, shuffle=True)
 
 
@@ -112,7 +117,7 @@ def main():
                 X_ = torch.matmul(X_, P_)                                      # (m, n, 3)
                 x_hat = X_[..., :-1] / X_[..., -2:-1]                         # (m, n, 2)
 
-                L = find_nearest_correspondences_dist(x_hat, x, k=4)
+                L = find_nearest_correspondences_dist(x_hat, x, k=5)
 
                 L.backward(retain_graph=True)
                 tqdm.write("Epoch %d, Total loss %0.6f, iteration time %0.6f" % (i, L, time.time() - start_time))
