@@ -164,7 +164,7 @@ class InstanceDataset(Dataset):
             # TODO fuse intrinsics & pose to create 3D -> pixel transform. shape: (12)
             pose = torch.mm(intrinsics, torch.inverse(pose))[:3].T.reshape(-1)
 
-            color_dir = os.path.join(instance_dir, "rgb")
+            color_dir = os.path.join(self.instance_dir, "rgb")
             color_paths = sorted(utils.glob_imgs(color_dir))
 
             rgb = utils.load_rgb(color_paths[idx], sidelength=img_sidelength)
