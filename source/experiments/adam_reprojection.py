@@ -83,15 +83,16 @@ def main():
             for j in range(10):
                 X_optimizer.zero_grad()
 
-                P = P.view(*P.shape[:-1], 4, 3)                             # (m, 4, 3)
-                X = X.unsqueeze(-3)                                         # (1, n, 3)
-                X = torch.cat([X, torch.ones_like(X)[..., :1]], dim=-1)     # (1, n, 4)
-                X = torch.matmul(X, P)                                      # (m, n, 3)
-                x_hat = X[..., :-1] / X[..., -2:-1]                         # (m, n, 2)
+                P_ = P.view(*P.shape[:-1], 4, 3)                             # (m, 4, 3)
+                X_ = X_.unsqueeze(-3)                                         # (1, n, 3)
+                X_ = torch.cat([X_, torch.ones_like(X_)[..., :1]], dim=-1)     # (1, n, 4)
+                X_ = torch.matmul(X_, P_)                                      # (m, n, 3)
+                x_hat = X_[..., :-1] / X_[..., -2:-1]                         # (m, n, 2)
 
                 L = torch.pow(x_hat - x, 2).sum(dim=-1, keepdim=True).sum()
 
-                L.backward()
+                L.backward(retain_graph=True)
+                tqdm.write("Epoch %d, Total loss %0.6f, iteration time %0.6f" % (i, L, time.time() - start_time))
 
                 X_optimizer.step()
             
@@ -101,7 +102,7 @@ def main():
                             (X_new).reshape(-1,3).unsqueeze(0), 
                             global_step=i+1)
 
-            tqdm.write("Epoch %d, Total loss %0.6f, iteration time %0.6f" % (i, total_loss, time.time() - start_time))
+            
             pbar.update(1)
 
     writer.close()
