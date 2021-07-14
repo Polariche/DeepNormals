@@ -68,7 +68,7 @@ def main():
             start_time = time.time()
 
             samples = next(iter(category_loader))
-            samples = dict_to_device(ins, device)
+            samples = dict_to_device(samples, device)
 
             X = samples['p'].requires_grad_(True) #samples['p']
             x = samples['uv']
