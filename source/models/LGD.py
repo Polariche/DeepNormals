@@ -218,6 +218,8 @@ class Projector(nn.Module):
         for step in range(steps):
             X, grad_targets = self.step(X, x, P)
 
+        [lr, lag] = grad_targets
+        
         X = self.expand_X_shape(X, P.shape[-2])
         rep_res = self.reprojection_loss(X, x, P)
 
