@@ -212,7 +212,7 @@ class CategoryDataset(Dataset):
         scenes_ds = InstanceDataset(instance_dir, 
                           img_sidelength=self.img_sidelength)
         
-        scenes_dl = DataLoader(ds, 
+        scenes_dl = DataLoader(scenes_ds, 
                         batch_size=self.ray_batch_size,
                         shuffle=True)
         
