@@ -21,6 +21,32 @@ from sklearn.neighbors import KDTree
 
 import time
 from tqdm.autonotebook import tqdm
+import knn_cuda
+
+
+def find_nearest_correspondences(self, x_hat, x, k=1):
+    assert x_hat.shape == x.shape
+    shp = x.shape
+
+    x_hat = x_hat.transpose(-2, -3)
+    x = x.transpose(-2, -3)
+
+    # ((batches), n, m*2)
+    x_hat = x_hat.view(-1, shp[-2], (self.input_dim-1) * shp[-3])
+    x = x.view(-1, shp[-2], (self.input_dim-1) * shp[-3])
+
+    inds = []
+    matches = []
+    for x_hat, x_ in zip(x_hat, x):
+        _, ind_ = knn_cuda.forward(x_hat_,x_,k)
+        match_ = x_[ind_]
+        inds.append(ind_.unsqueeze(0))
+        matches.append(match_.unsqueeze(0))
+
+    ind = torch.cat(inds).view(*shp[:-3], shp[-2], k)
+    match = torch.cat(matches).view(*shp[:-3], shp[-2], k, shp[-1])
+
+    return ind, match
 
 def main():
     parser = argparse.ArgumentParser(description='Test',
@@ -89,7 +115,9 @@ def main():
                 X_ = torch.matmul(X_, P_)                                      # (m, n, 3)
                 x_hat = X_[..., :-1] / X_[..., -2:-1]                         # (m, n, 2)
 
-                L = torch.pow(x_hat - x, 2).sum(dim=-1, keepdim=True).sum()
+                _, x_match = find_nearest_correspondences(x_hat, x, k=4)
+
+                L = torch.pow(x_hat.expand_as(x_match) - x_match, 2).sum(dim=-1, keepdim=True).sum()
 
                 L.backward(retain_graph=True)
                 tqdm.write("Epoch %d, Total loss %0.6f, iteration time %0.6f" % (i, L, time.time() - start_time))
