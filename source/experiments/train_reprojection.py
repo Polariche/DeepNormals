@@ -10,11 +10,10 @@ import sys
 import os
 sys.path.append( os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) ) )
 
-from models.models import SingleBVPNet, DeepSDFDecoder, Siren
-from loaders import RayDataset, InstanceDataset, dict_collate_fn, PointTransform, dict_to_device
-from models.LGD import Renderer
-
-from torch.utils.data import  DataLoader, WeightedRandomSampler
+#from models.models import SingleBVPNet, DeepSDFDecoder, Siren
+from loaders import CategoryDataset, dict_collate_fn, PointTransform, dict_to_device
+from models.LGD import Projector
+from torch.utils.data import  DataLoader
 
 import argparse
 
@@ -52,7 +51,7 @@ def main():
     writer = SummaryWriter(args.tb_save_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    
+
     category = CategoryDataset("/data/SRN/cars_train/", img_sidelength=512, batch_size=args.batchsize, ray_batch_size=2)
     category_loader = DataLoader(category, batch_size=1, shuffle=True)
 
