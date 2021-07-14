@@ -68,10 +68,11 @@ def main():
             start_time = time.time()
 
             samples = next(iter(category_loader))
+            samples = dict_to_device(ins, device)
 
-            X = samples['p'].to(device).requires_grad_(True) #samples['p']
-            x = samples['uv'].to(device)
-            P = samples['pose'].to(device)
+            X = samples['p'].requires_grad_(True) #samples['p']
+            x = samples['uv']
+            P = samples['pose']
             
             writer.add_mesh("input_view", 
                             (samples['p']).reshape(-1,3).unsqueeze(0), 
@@ -80,8 +81,6 @@ def main():
             projector_optimizer.zero_grad()
             total_loss, X_new = projector.loss_trajectory_backward(X, x, P)
             projector_optimizer.step()
-
-
             
 
             writer.add_mesh("output_view", 
