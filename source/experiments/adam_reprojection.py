@@ -33,7 +33,7 @@ def find_nearest_correspondences_dist(x_hat, x, k=1):
     x = x.view(-1, shp[-3], shp[-2], shp[-1])
 
     dists = []
-    for x_hat, x_ in zip(x_hat, x):
+    for x_hat_, x_ in zip(x_hat, x):
         x_hat_ = x_hat_.transpose(0,1).view(shp[-2], -1)
         x_ = x_.transpose(0,1).view(shp[-2], -1)
 
