@@ -70,7 +70,7 @@ def main():
             samples = next(iter(category_loader))
             samples = dict_to_device(samples, device)
 
-            X = samples['p'].requires_grad_(True) #samples['p']
+            X = torch.randn_like(samples['X']).requires_grad_(True)
             x = samples['uv']
             P = samples['pose']
             
