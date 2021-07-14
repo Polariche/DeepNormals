@@ -34,8 +34,8 @@ def find_nearest_correspondences_dist(x_hat, x, k=1):
 
     dists = []
     for x_hat_, x_ in zip(x_hat, x):
-        x_hat_ = x_hat_.transpose(0,1).view(shp[-2], -1)
-        x_ = x_.transpose(0,1).view(shp[-2], -1)
+        x_hat_ = x_hat_.transpose(0,1).reshape(shp[-2], -1)
+        x_ = x_.transpose(0,1).reshape(shp[-2], -1)
 
         dist_, ind_ = knn_cuda.forward(x_hat_,x_,k)
         dists.append(dist_.mean().unsqueeze(0) / shp[-3])
