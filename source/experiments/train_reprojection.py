@@ -52,7 +52,7 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-    category = CategoryDataset("/data/SRN/cars_train/", img_sidelength=512, batch_size=args.batchsize, ray_batch_size=2)
+    category = CategoryDataset(srn_dir="/data/SRN/cars_train", shapenet_dir="/data/shapenetv2/ShapeNetCore.v2", img_sidelength=512, batch_size=args.batchsize, ray_batch_size=2)
     category_loader = DataLoader(category, batch_size=1, shuffle=True)
 
 
