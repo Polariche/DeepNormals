@@ -69,7 +69,7 @@ def main():
 
             samples = next(iter(category_loader))
 
-            X = samples['p'] #samples['p']
+            X = samples['p'].requires_grad_(True) #samples['p']
             x = samples['uv']
             P = samples['pose']
             
