@@ -11,7 +11,7 @@ import os
 sys.path.append( os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) ) )
 
 #from models.models import SingleBVPNet, DeepSDFDecoder, Siren
-from loaders import CategoryDataset, dict_collate_fn, PointTransform, dict_to_device
+from loaders import CategoryDataset, dict_collate_fn, dict_to_device
 from models.LGD import Projector
 from torch.utils.data import  DataLoader
 
