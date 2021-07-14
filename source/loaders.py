@@ -167,7 +167,7 @@ class InstanceDataset(Dataset):
             color_dir = os.path.join(self.instance_dir, "rgb")
             color_paths = sorted(utils.glob_imgs(color_dir))
 
-            rgb = utils.load_rgb(color_paths[idx], sidelength=img_sidelength)
+            rgb = utils.load_rgb(color_paths[idx], sidelength=self.img_sidelength)
             rgb = rgb.reshape(3, -1).transpose(1, 0) * 2 - 1
             rgb = torch.from_numpy(rgb)
 
