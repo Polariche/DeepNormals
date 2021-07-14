@@ -79,7 +79,7 @@ def main():
                             global_step=i+1)
 
             
-            X_optimizer = optim.Adam(X, lr=args.lr)
+            X_optimizer = optim.Adam([X], lr=args.lr)
             for j in range(10):
                 X_optimizer.zero_grad()
 
