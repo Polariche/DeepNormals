@@ -108,7 +108,7 @@ class DGCNN(nn.Module):
 
 class Projector(nn.Module):
     def __init__(self, input_dim, include_loss=True, include_grad=True):
-        super(Renderer, self).__init__()
+        super(Projector, self).__init__()
         self.input_dim = input_dim
 
         self.inc = self.input_dim
