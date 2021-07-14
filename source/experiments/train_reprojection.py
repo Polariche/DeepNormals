@@ -69,19 +69,20 @@ def main():
 
             samples = next(iter(category_loader))
 
-            X = samples['p'].requires_grad_(True) #samples['p']
-            x = samples['uv']
-            P = samples['pose']
+            X = samples['p'].to(device).requires_grad_(True) #samples['p']
+            x = samples['uv'].to(device)
+            P = samples['pose'].to(device)
             
+            writer.add_mesh("input_view", 
+                            (samples['p']).reshape(-1,3).unsqueeze(0), 
+                            global_step=i+1)
 
             projector_optimizer.zero_grad()
             total_loss, X_new = projector.loss_trajectory_backward(X, x, P)
             projector_optimizer.step()
 
 
-            writer.add_mesh("input_view", 
-                            (samples['p']).reshape(-1,3).unsqueeze(0), 
-                            global_step=i+1)
+            
 
             writer.add_mesh("output_view", 
                             (X_new).reshape(-1,3).unsqueeze(0), 
