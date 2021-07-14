@@ -37,7 +37,8 @@ def find_nearest_correspondences_dist(x_hat, x, k=1):
         x_hat_ = x_hat_.transpose(0,1).reshape(shp[-2], -1)
         x_ = x_.transpose(0,1).reshape(shp[-2], -1)
 
-        dist_, ind_ = knn(x_hat_,x_,k)
+        knn_f = knn.apply
+        dist_, _ = knn_f(x_hat_,x_,k)
         dists.append(dist_.mean().unsqueeze(0) / shp[-3])
 
     dist = torch.cat(dists).sum()
