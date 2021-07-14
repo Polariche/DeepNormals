@@ -24,7 +24,7 @@ from tqdm.autonotebook import tqdm
 import knn_cuda
 
 
-def find_nearest_correspondences(self, x_hat, x, k=1):
+def find_nearest_correspondences(x_hat, x, k=1):
     assert x_hat.shape == x.shape
     shp = x.shape
 
@@ -32,8 +32,8 @@ def find_nearest_correspondences(self, x_hat, x, k=1):
     x = x.transpose(-2, -3)
 
     # ((batches), n, m*2)
-    x_hat = x_hat.view(-1, shp[-2], (self.input_dim-1) * shp[-3])
-    x = x.view(-1, shp[-2], (self.input_dim-1) * shp[-3])
+    x_hat = x_hat.view(-1, shp[-2], 2 * shp[-3])
+    x = x.view(-1, shp[-2], 2 * shp[-3])
 
     inds = []
     matches = []
