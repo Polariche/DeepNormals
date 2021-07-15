@@ -79,7 +79,7 @@ def main():
                                 shapenet_dir="/data/shapenetv2/ShapeNetCore.v2", 
                                 img_sidelength=512, 
                                 batch_size=args.batchsize, 
-                                ray_batch_size=5)
+                                ray_batch_size=3)
 
     category_loader = DataLoader(category, batch_size=1, shuffle=True)
 
@@ -104,11 +104,12 @@ def main():
             
             writer.add_mesh("input_view", 
                             (samples['p']).reshape(-1,3).unsqueeze(0), 
-                            global_step=i+1)
+                            global_step=i+1,
+                            colors=(samples['n'].reshape(-1,3).unsqueeze(0) * 128 + 128).int())
 
             
             X_optimizer = optim.Adam([X], lr=args.lr)
-            for j in range(10):
+            for j in range(100):
                 X_optimizer.zero_grad()
 
                 P_ = P.view(*P.shape[:-1], 4, 3)                             # (m, 4, 3)
@@ -128,7 +129,8 @@ def main():
 
             writer.add_mesh("output_view", 
                             (X_new).reshape(-1,3).unsqueeze(0), 
-                            global_step=i+1)
+                            global_step=i+1,
+                            colors=(F.normalize(X.grad, dim=-1).reshape(-1,3).unsqueeze(0) * 128 + 128).int())
 
             
             pbar.update(1)
