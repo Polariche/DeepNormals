@@ -195,21 +195,21 @@ class DeepSDFDecoder(nn.Module):
 
     # input: N x (L+3)
     def forward(self, input):
-        xyz = input[:, -3:]
+        xyz = input[..., -3:]
 
         if input.shape[1] > 3 and self.latent_dropout:
-            latent_vecs = input[:, :-3]
+            latent_vecs = input[..., :-3]
             latent_vecs = F.dropout(latent_vecs, p=0.2, training=self.training)
-            x = torch.cat([latent_vecs, xyz], 1)
+            x = torch.cat([latent_vecs, xyz], -1)
         else:
             x = input
 
         for layer in range(0, self.num_layers - 1):
             lin = getattr(self, "lin" + str(layer))
             if layer in self.latent_in:
-                x = torch.cat([x, input], 1)
+                x = torch.cat([x, input], -1)
             elif layer != 0 and self.xyz_in_all:
-                x = torch.cat([x, xyz], 1)
+                x = torch.cat([x, xyz], -1)
             x = lin(x)
             # last layer Tanh
             if layer == self.num_layers - 2 and self.use_tanh:
