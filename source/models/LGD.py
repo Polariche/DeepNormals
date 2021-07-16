@@ -99,7 +99,7 @@ class DGCNN(nn.Module):
         x4 = torch.cat([x1, x2, x3], dim=-1)                 # n x 192
         
         x5 = self.conv4(x4)                                 # n x 1024
-        x5 = x5.max(dim=-2, keepdim=True)[0].repeat(*([1]*(len(x5.shape)-2)), n, 1)     # n x 1024
+        x5 = x5.max(dim=-2, keepdim=True)[0].expand(*x5.shape[:-2], n, x5.shape[-1])     # n x 1024
         x = torch.cat([x1, x2, x3, x5], dim=-1)              # n x (1024 + 64*3)
 
         x = self.linears(x)         # n x co
@@ -123,7 +123,7 @@ class Projector(nn.Module):
 
         self.layers = DGCNN(self.inc, 4)
 
-        self.init_params()
+        #self.init_params()
     
     def init_params(self):
         for m in self.modules():
@@ -166,16 +166,41 @@ class Projector(nn.Module):
             
         X = torch.cat([X, torch.ones_like(X)[..., :1]], dim=-1)
         X = torch.matmul(X, P)
-        x_hat = X[..., :-1] / X[..., -2:-1]
+        x_hat = X[..., :-1] / X[..., -1:]
 
         return x_hat
+    
+    def find_nearest_correspondences(self, x_hat, x, k=1):
+        assert x_hat.shape == x.shape
+        shp = x.shape
+
+        x_hat = x_hat.transpose(-2, -3)
+        x = x.transpose(-2, -3)
+
+        # ((batches), n, m*2)
+        x_hat = x_hat.view(-1, shp[-2], (self.input_dim-1) * shp[-3])
+        x = x.view(-1, shp[-2], (self.input_dim-1) * shp[-3])
+
+        inds = []
+        matches = []
+        for x_hat, x_ in zip(x_hat, x):
+            _, ind_ = knn_cuda.forward(x_hat_,x_,k)
+            match_ = x_[ind_]
+            inds.append(ind_.unsqueeze(0))
+            matches.append(match_.unsqueeze(0))
+
+        ind = torch.cat(inds).view(*shp[:-3], shp[-2], k)
+        match = torch.cat(matches).view(*shp[:-3], shp[-2], k, shp[-1])
+
+        return ind, match
+
 
     def expand_X_shape(self, X, m):
         return X.unsqueeze(-3).expand(*([-1]*(len(X.shape)-2)), m, -1, -1)
 
     def forward(self, X, x, P):
         # X shape : (..., n, 3)         ->  (..., m, n, 3); broadcasted by m on dim -3
-        # x shape : (..., n, m, 2)      ->  (..., m, n, 2)
+        # x shape : (..., m, n, 2)      ->  (..., m, n, 2)
         # P shape : (..., m, 12)        ->  (..., m, 4, 3)
 
         assert X.shape[-2] == x.shape[-2]
@@ -211,6 +236,7 @@ class Projector(nn.Module):
         dX = torch.sum(lr * rep_grad, dim=-3)
         new_X = X + dX
 
+
         return new_X, [lr, lag]
 
     def loss_trajectory_backward(self, X, x, P, steps=10):
@@ -219,7 +245,7 @@ class Projector(nn.Module):
             X, grad_targets = self.step(X, x, P)
 
         [lr, lag] = grad_targets
-        
+
         X = self.expand_X_shape(X, P.shape[-2])
         rep_res = self.reprojection_loss(X, x, P)
 

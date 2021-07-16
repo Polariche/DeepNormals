@@ -229,11 +229,7 @@ class CategoryDataset(Dataset):
         X = mesh_dict['p']
         P = scenes_dict['pose']
 
-        P = P.view(*P.shape[:-1], 4, 3)                             # (m, 4, 3)
-        X = X.unsqueeze(-3)                                         # (1, n, 3)
-        X = torch.cat([X, torch.ones_like(X)[..., :1]], dim=-1)     # (1, n, 4)
-        X = torch.matmul(X, P)                                      # (m, n, 3)
-        x_hat = X[..., :-1] / X[..., -1:]                           # (m, n, 2)
+        x_hat = utils.project(X, P)
 
 
         return dict_collate_fn([scenes_dict, mesh_dict, {'uv': x_hat}])

@@ -220,3 +220,15 @@ def train_val_split(object_dir, train_dir, val_dir):
             else:
                 shutil.copy(item, os.path.join(val_dir, data_name, "%06d" % val_counter + data_ending))
                 val_counter += 1
+
+
+def project(X, P):
+    P = P.view(*P.shape[:-1], 4, 3)                             # (..., m, 4, 3)
+    X = X.unsqueeze(-3)                                         # (..., 1, n, 3)
+    X = torch.cat([X, torch.ones_like(X)[..., :1]], dim=-1)     # (..., 1, n, 4)
+    X = torch.matmul(X, P)                                      # (..., m, n, 3)
+    x_hat = X[..., :-1] / X[..., -1:]                           # (..., m, n, 2)
+
+    return x_hat
+
+
