@@ -273,8 +273,6 @@ def decode_P(P):
 
     decoded_P.view(*shp[:-2], 4, 4)
     
-    print(decoded_P)
-
     return decoded_P
 
 
@@ -292,7 +290,7 @@ def encode_P(P):
     encoded_P = torch.zeros(P.shape[0], 6, device=P.device)
 
     # transform
-    encoded_P[..., 3:] = P[..., 3, :3]
+    encoded_P[..., 3:] = P[..., :3, 3]
     
     if (~singular).sum() > 0:
         encoded_P[~singular, 0] = torch.atan2(P[~singular, 2, 1], P[~singular, 2, 2])
