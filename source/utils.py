@@ -223,12 +223,87 @@ def train_val_split(object_dir, train_dir, val_dir):
 
 
 def project(X, P):
-    P = P.view(*P.shape[:-1], 4, 3)                             # (..., m, 4, 3)
-    X = X.unsqueeze(-3)                                         # (..., 1, n, 3)
+    # P : (..., m, 1, 6)
+    # X : (..., 1, n, 3)
+
+    pshp = P.shape
+    P = decode_P(P).view(pshp[:-2], 4, 4).transpose(-2, -1)     # (..., m, 4, 4)
+
     X = torch.cat([X, torch.ones_like(X)[..., :1]], dim=-1)     # (..., 1, n, 4)
-    X = torch.matmul(X, P)                                      # (..., m, n, 3)
+    X = torch.matmul(X, P)                                      # (..., m, n, 4)
+    X = X[..., :3]                                              # (..., m, n, 3)
     x_hat = X[..., :-1] / X[..., -1:]                           # (..., m, n, 2)
 
     return x_hat
+
+# referenced https://learnopencv.com/rotation-matrix-to-euler-angles/
+def decode_P(P):
+    # euler+trans -> 4x4 mat
+    shp = P.shape
+    P = P.view(-1, 6)
+
+    decoded_P = torch.zeros(P.shape[0], 4, 4, device=P.device)
+    
+
+    c0 = torch.cos(P[..., 0]).unsqueeze(-1)
+    s0 = torch.sin(P[..., 0]).unsqueeze(-1)
+    c1 = torch.cos(P[..., 1]).unsqueeze(-1)
+    s1 = torch.sin(P[..., 1]).unsqueeze(-1)
+    c2 = torch.cos(P[..., 2]).unsqueeze(-1)
+    s2 = torch.sin(P[..., 2]).unsqueeze(-1)
+
+    one = torch.ones_like(P[..., 0]).unsqueeze(-1)
+    zero = torch.zeros_like(P[..., 0]).unsqueeze(-1)
+
+    P_x = torch.cat([one, zero, zero, 
+                    zero, c0, -s0, 
+                    zero, s0, c0], dim=-1).view(-1, 3, 3)
+
+    P_y = torch.cat([c1, zero, s1, 
+                    zero, one, zero, 
+                    -s1, zero, c1], dim=-1).view(-1, 3, 3)
+
+    P_z = torch.cat([c2, -s2, zero, 
+                    s2, c2, zero, 
+                    zero, zero, one], dim=-1).view(-1, 3, 3)
+
+    decoded_P[..., :3, :3] = torch.mm(P_z, torch.mm(P_y, P_x))
+    decoded_P[..., 3, 3] = 1
+    decoded_P[..., :3, 3] = P[..., 3:]
+
+    decoded_P.view(shp[:-1], 4, 4)
+
+    return decoded_P
+
+
+
+def encode_P(P):
+    # 4x4 mat -> euler+trans
+
+    shp = P.shape
+    P = P.view(-1, 4,4)
+
+    sy = torch.sqrt(P[..., 0,0]*P[..., 0,0] + P[..., 1,1]*P[..., 1,1])
+    singular = sy < 1e-6
+    
+    encoded_P = torch.zeros(P.shape[0], 6, device=P.device)
+
+    # transform
+    encoded_P[..., 3:] = P[..., 3, :3]
+    
+    encoded_P[~singular, 0] = torch.atan2(P[~singular, 2, 1], P[~singular, 2, 2])
+    encoded_P[~singular, 1] = torch.atan2(-P[~singular, 2, 0], sy[~singular])
+    encoded_P[~singular, 2] = torch.atan2(P[~singular, 1, 0], P[~singular, 0, 0])
+
+    encoded_P[singular, 0] = torch.atan2(-P[singular, 1, 2], P[singular, 1, 1])
+    encoded_P[singular, 1] = torch.atan2(-P[singular, 2, 0], sy)
+    encoded_P[singular, 2] = 0
+
+    encoded_P = encoded_P.view(shp[:-2], 6)
+    
+    return encoded_P
+
+    
+
 
 

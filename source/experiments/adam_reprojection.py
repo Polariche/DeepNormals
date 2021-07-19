@@ -22,7 +22,7 @@ from sklearn.neighbors import KDTree
 import time
 from tqdm.autonotebook import tqdm
 from knn import knn
-
+import utils
 
 def find_nearest_correspondences_dist(x_hat, x, k=1):
     assert x_hat.shape[-1] == x.shape[-1]
@@ -84,15 +84,8 @@ def main():
                                 ray_batch_size=3)
 
     category_loader = DataLoader(category, batch_size=1, shuffle=True)
-
-
-    projector = Projector(3).to(device)
-    projector_optimizer = optim.Adam(projector.parameters(), lr=args.lr)
-
     
 
-    # train LGD
-    projector.train()
     with tqdm(total=args.epoch) as pbar:
                for i in range(args.epoch):
             start_time = time.time()
@@ -100,8 +93,7 @@ def main():
             samples = next(iter(category_loader))
             samples = dict_to_device(samples, device)
 
-            X = (torch.randn_like(samples['p']) * 5e-1).requires_grad_(True)
-            x = samples['uv']
+            X = (torch.randn_like(samples['p']) * 2e-1).requires_grad_(True)
             P = samples['pose']
 
             writer.add_mesh("input_view",
@@ -114,11 +106,14 @@ def main():
             for j in range(100):
                 X_optimizer.zero_grad()
 
+                """
                 P_ = P.view(*P.shape[:-1], 4, 3)                             # (m, 4, 3)
                 X_ = X.unsqueeze(-3)                                         # (1, n, 3)
                 X_ = torch.cat([X_, torch.ones_like(X_)[..., :1]], dim=-1)     # (1, n, 4)
                 X_ = torch.matmul(X_, P_)                                      # (m, n, 3)
                 x_hat = X_[..., :-1] / X_[..., -1:]                         # (m, n, 2)
+                """
+                x_hat = utils.project(X, P)
 
                 L.backward(retain_graph=True)
                 tqdm.write("Epoch %d, Total loss %0.6f, iteration time %0.6f" % (i, L, time.time() - start_time))

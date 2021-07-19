@@ -161,8 +161,9 @@ class InstanceDataset(Dataset):
             pose = utils.load_pose(pose_paths[idx])
             pose = torch.from_numpy(pose).float()
 
-            # TODO fuse intrinsics & pose to create 3D -> pixel transform. shape: (12)
-            pose = torch.mm(intrinsics, torch.inverse(pose))[:3].T.reshape(-1)
+            # TODO fuse intrinsics & pose to create 3D -> pixel transform. shape: (16)
+            pose = torch.mm(intrinsics, torch.inverse(pose))
+            pose = utils.encode_P(pose)
 
             color_dir = os.path.join(self.instance_dir, "rgb")
             color_paths = sorted(utils.glob_imgs(color_dir))
@@ -225,14 +226,12 @@ class CategoryDataset(Dataset):
         mesh_dl = get_obj_dataloader(mesh_ds, self.batch_size, num_workers=0)
         mesh_dict = next(iter(mesh_dl))
 
-        # projection
-        X = mesh_dict['p']
-        P = scenes_dict['pose']
 
-        x_hat = utils.project(X, P)
+        mesh_dict['p'] = mesh_dict['p'].unsqueeze(-3)
+        mesh_dict['n'] = mesh_dict['n'].unsqueeze(-3)
+        scenes_dict['pose'] = scenes_dict['pose'].unsqueeze(-2)
 
-
-        return dict_collate_fn([scenes_dict, mesh_dict, {'uv': x_hat}])
+        return dict_collate_fn([scenes_dict, mesh_dict])
 
 
 ### Data Augmentation Modules ###
