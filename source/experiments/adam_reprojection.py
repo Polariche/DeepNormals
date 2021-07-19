@@ -96,6 +96,8 @@ def main():
             X = (torch.randn_like(samples['p']) * 2e-1).requires_grad_(True)
             P = samples['pose']
 
+            Y = samples['p']
+
             writer.add_mesh("input_view",
                             (samples['p']).reshape(-1,3).unsqueeze(0),
                             global_step=i+1,
@@ -114,7 +116,9 @@ def main():
                 x_hat = X_[..., :-1] / X_[..., -1:]                         # (m, n, 2)
                 """
                 x_hat = utils.project(X, P)
+                x = utils.project(Y, P)
 
+                L = find_nearest_correspondences_dist(x_hat, x)
                 L.backward(retain_graph=True)
                 tqdm.write("Epoch %d, Total loss %0.6f, iteration time %0.6f" % (i, L, time.time() - start_time))
 
