@@ -87,7 +87,7 @@ def main():
     
 
     with tqdm(total=args.epoch) as pbar:
-               for i in range(args.epoch):
+        for i in range(args.epoch):
             start_time = time.time()
 
             samples = next(iter(category_loader))
