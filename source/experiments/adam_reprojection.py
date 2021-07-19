@@ -118,12 +118,12 @@ def main():
 
             X_new = X.clone()
 
-            """
+            
             writer.add_mesh("output_view",
                             (X_new).reshape(-1,3).unsqueeze(0),
                             global_step=i+1,
                             colors=(F.normalize(X.grad, dim=-1).reshape(-1,3).unsqueeze(0) * 128 + 128).int())
-
+            """
             grid = torch.from_numpy(np.mgrid[:512,:512].T.reshape(-1,2)).float().to(device)
             grid = (grid - 256) / 512
             grid = grid.unsqueeze(0).unsqueeze(0).expand(-1, P.shape[-2], -1, -1).requires_grad_(True)
@@ -142,7 +142,7 @@ def main():
                             global_step=i+1,
                             dataformats="NWHC")
             """
-            
+
             pbar.update(1)
 
     writer.close()
