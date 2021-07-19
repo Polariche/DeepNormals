@@ -118,7 +118,7 @@ def main():
                 x_hat = utils.project(X, P)
                 x = utils.project(Y, P)
 
-                L = find_nearest_correspondences_dist(x_hat, x)
+                L = find_nearest_correspondences_dist(x_hat, x).sum()
                 L.backward(retain_graph=True)
                 tqdm.write("Epoch %d, Total loss %0.6f, iteration time %0.6f" % (i, L, time.time() - start_time))
 

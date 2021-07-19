@@ -163,7 +163,7 @@ class InstanceDataset(Dataset):
 
             # TODO fuse intrinsics & pose to create 3D -> pixel transform. shape: (16)
             pose = torch.mm(intrinsics, torch.inverse(pose))
-            pose = utils.encode_P(pose)
+            
 
             color_dir = os.path.join(self.instance_dir, "rgb")
             color_paths = sorted(utils.glob_imgs(color_dir))
@@ -229,7 +229,7 @@ class CategoryDataset(Dataset):
 
         mesh_dict['p'] = mesh_dict['p'].unsqueeze(-3)
         mesh_dict['n'] = mesh_dict['n'].unsqueeze(-3)
-        scenes_dict['pose'] = scenes_dict['pose'].unsqueeze(-2)
+        scenes_dict['pose'] = utils.encode_P(scenes_dict['pose']).unsqueeze(-2)
 
         return dict_collate_fn([scenes_dict, mesh_dict])
 
