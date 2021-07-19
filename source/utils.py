@@ -267,7 +267,7 @@ def decode_P(P):
                     s2, c2, zero, 
                     zero, zero, one], dim=-1).view(-1, 3, 3)
 
-    decoded_P[..., :3, :3] = torch.mm(P_z, torch.mm(P_y, P_x))
+    decoded_P[..., :3, :3] = torch.matmul(P_z, torch.matmul(P_y, P_x))
     decoded_P[..., 3, 3] = 1
     decoded_P[..., :3, 3] = P[..., 3:]
 
@@ -291,13 +291,15 @@ def encode_P(P):
     # transform
     encoded_P[..., 3:] = P[..., 3, :3]
     
-    encoded_P[~singular, 0] = torch.atan2(P[~singular, 2, 1], P[~singular, 2, 2])
-    encoded_P[~singular, 1] = torch.atan2(-P[~singular, 2, 0], sy[~singular])
-    encoded_P[~singular, 2] = torch.atan2(P[~singular, 1, 0], P[~singular, 0, 0])
+    if (~singular).sum() > 0:
+        encoded_P[~singular, 0] = torch.atan2(P[~singular, 2, 1], P[~singular, 2, 2])
+        encoded_P[~singular, 1] = torch.atan2(-P[~singular, 2, 0], sy[~singular])
+        encoded_P[~singular, 2] = torch.atan2(P[~singular, 1, 0], P[~singular, 0, 0])
 
-    encoded_P[singular, 0] = torch.atan2(-P[singular, 1, 2], P[singular, 1, 1])
-    encoded_P[singular, 1] = torch.atan2(-P[singular, 2, 0], sy)
-    encoded_P[singular, 2] = 0
+    if singular.sum() > 0:
+        encoded_P[singular, 0] = torch.atan2(-P[singular, 1, 2], P[singular, 1, 1])
+        encoded_P[singular, 1] = torch.atan2(-P[singular, 2, 0], sy[singular])
+        encoded_P[singular, 2] = 0
 
     encoded_P = encoded_P.view(*shp[:-2], 6)
     
