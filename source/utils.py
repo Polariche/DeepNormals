@@ -271,13 +271,16 @@ def decode_P(P):
     decoded_P[..., 3, 3] = 1
     decoded_P[..., :3, 3] = P[..., 3:]
 
-    decoded_P.view(*shp[:-1], 4, 4)
+    decoded_P.view(*shp[:-2], 4, 4)
+    
+    print(decoded_P)
 
     return decoded_P
 
 
 
 def encode_P(P):
+    print(P)
     # 4x4 mat -> euler+trans
 
     shp = P.shape
@@ -301,7 +304,7 @@ def encode_P(P):
         encoded_P[singular, 1] = torch.atan2(-P[singular, 2, 0], sy[singular])
         encoded_P[singular, 2] = 0
 
-    encoded_P = encoded_P.view(*shp[:-2], 6)
+    encoded_P = encoded_P.view(*shp[:-2], 1, 6)
     
     return encoded_P
 

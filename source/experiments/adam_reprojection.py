@@ -108,13 +108,6 @@ def main():
             for j in range(100):
                 X_optimizer.zero_grad()
 
-                """
-                P_ = P.view(*P.shape[:-1], 4, 3)                             # (m, 4, 3)
-                X_ = X.unsqueeze(-3)                                         # (1, n, 3)
-                X_ = torch.cat([X_, torch.ones_like(X_)[..., :1]], dim=-1)     # (1, n, 4)
-                X_ = torch.matmul(X_, P_)                                      # (m, n, 3)
-                x_hat = X_[..., :-1] / X_[..., -1:]                         # (m, n, 2)
-                """
                 x_hat = utils.project(X, P)
                 x = utils.project(Y, P)
 

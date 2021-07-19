@@ -229,7 +229,7 @@ class CategoryDataset(Dataset):
 
         mesh_dict['p'] = mesh_dict['p'].unsqueeze(-3)
         mesh_dict['n'] = mesh_dict['n'].unsqueeze(-3)
-        scenes_dict['pose'] = utils.encode_P(scenes_dict['pose']).unsqueeze(-2)
+        scenes_dict['pose'] = utils.encode_P(scenes_dict['pose'])
 
         return dict_collate_fn([scenes_dict, mesh_dict])
 
