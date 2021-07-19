@@ -227,7 +227,7 @@ def project(X, P):
     # X : (..., 1, n, 3)
 
     pshp = P.shape
-    P = decode_P(P).view(pshp[:-2], 4, 4).transpose(-2, -1)     # (..., m, 4, 4)
+    P = decode_P(P).view(*pshp[:-2], 4, 4).transpose(-2, -1)     # (..., m, 4, 4)
 
     X = torch.cat([X, torch.ones_like(X)[..., :1]], dim=-1)     # (..., 1, n, 4)
     X = torch.matmul(X, P)                                      # (..., m, n, 4)
@@ -271,7 +271,7 @@ def decode_P(P):
     decoded_P[..., 3, 3] = 1
     decoded_P[..., :3, 3] = P[..., 3:]
 
-    decoded_P.view(shp[:-1], 4, 4)
+    decoded_P.view(*shp[:-1], 4, 4)
 
     return decoded_P
 
@@ -299,7 +299,7 @@ def encode_P(P):
     encoded_P[singular, 1] = torch.atan2(-P[singular, 2, 0], sy)
     encoded_P[singular, 2] = 0
 
-    encoded_P = encoded_P.view(shp[:-2], 6)
+    encoded_P = encoded_P.view(*shp[:-2], 6)
     
     return encoded_P
 
