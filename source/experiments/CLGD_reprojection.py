@@ -85,7 +85,7 @@ def main():
             clgd.Y = Y
 
             clgd_optimizer.zero_grad()
-            X_new, X_new_grad = clgd.backward(X, H, P, G)
+            X_new, X_new_grad, [L1,L2,L3,L4] = clgd.backward(X, H, P, G)
             clgd_optimizer.step()
 
             writer.add_mesh("input_view",
@@ -97,6 +97,9 @@ def main():
                             (X_new).reshape(-1,3).unsqueeze(0),
                             global_step=i+1,
                             colors=(F.normalize(X_new_grad, dim=-1).reshape(-1,3).unsqueeze(0) * 128 + 128).int())
+
+            writer.add_scalars("L1", {"L1": L1}, global_step=i+1)
+            writer.add_scalars("L3", {"L3": L3}, global_step=i+1)
 
             pbar.update(1)
 
