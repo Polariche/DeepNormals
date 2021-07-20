@@ -139,12 +139,12 @@ class CLGD(nn.Module):
         forward_inputs = self(X, H, P, G)
         [s, dsx, dsh,  G,  dx, dh,  lc, lp] = forward_inputs
 
-        X = X + dx * dsx
-        H = H + dh * dsh
+        X = X + 1e-3*dsx*s#dx * dsx
+        H = H + 1e-3*dsh*s#dh * dsh
 
         return X, H, G, forward_inputs
 
-    def backward(self, X, H, P, G, steps=5):
+    def backward(self, X, H, P, G, steps=50):
         for i in range(steps):
             X, H, G, forward_inputs = self.step(X,H,P,G)
 
@@ -153,7 +153,8 @@ class CLGD(nn.Module):
 
 
         L1, L2, L3, L4 = self.total_loss(X,H, P, s, dsx, lc, lp)
-        L = L1 + L2 + L3 + L4
+        L = L1+L3 #L1 + L2 + L3 + L4
+        L = L.mean()
 
         L_grad_targets = [s, dsx, dsh, dx, dh, lc, lp]
 
@@ -171,7 +172,7 @@ class CLGD(nn.Module):
                 else:
                     t.backward(g, retain_graph=True)
 
-        return X, dsx_
+        return X, dsx_, [L1, L2, L3, L4]
 
         
 
@@ -191,10 +192,10 @@ class CLGD(nn.Module):
     def projection_loss(self, X, P, lc):
         Y = self.Y
 
-        lc = torch.sqrt(lc)
+        #lc = torch.sqrt(lc)
 
-        x = utils.project(X, P) * lc
-        y = utils.project(Y, P) * lc
+        x = utils.project(X, P) #* lc
+        y = utils.project(Y, P) #* lc
 
         return self.find_nearest_correspondences_dist(x,y)
 
@@ -204,17 +205,18 @@ class CLGD(nn.Module):
 
     def sdf_loss(self, X, P, s):
         shp = s.shape
-        bce = nn.BCELoss(reduce=False)
+        #bce = nn.BCELoss(reduce=False)
 
         Y = self.Y
         x = utils.project(X, P)
         y = utils.project(Y, P)
 
+        s2 = torch.pow(s,2)
         with torch.no_grad():
             true_s2 = self.find_nearest_correspondences_dist(x,y) / P.shape[-3]
             true_s2 = torch.clamp(true_s2, 0, 1)
 
-        return bce(torch.pow(s,2), true_s2)
+        return torch.pow(s2 - true_s2, 2) #bce(torch.pow(s,2), true_s2)
 
     def H_loss(self, H):
         return torch.pow(H, 2).sum(dim=-1, keepdim=True)

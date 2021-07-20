@@ -76,8 +76,8 @@ def main():
             samples = dict_to_device(samples, device)
 
             X = (torch.randn_like(samples['p']) * 2e-1).requires_grad_(True)
-            H = torch.randn(*samples['p'].shape[:-2], 1, 256, device=device).requires_grad_(True)
-            G = torch.randn(*samples['p'].shape[:-1], 256, device=device).requires_grad_(True)
+            H = torch.zeros(*samples['p'].shape[:-2], 1, 256, device=device).requires_grad_(True)
+            G = torch.zeros(*samples['p'].shape[:-1], 256, device=device).requires_grad_(True)
             P = samples['pose']
 
             Y = samples['p']
