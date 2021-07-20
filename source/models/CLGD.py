@@ -139,8 +139,8 @@ class CLGD(nn.Module):
         forward_inputs = self(X, H, P, G)
         [s, dsx, dsh,  G,  dx, dh,  lc, lp] = forward_inputs
 
-        X = X + 1e-3*dsx*s#dx * dsx
-        H = H + 1e-3*dsh*s#dh * dsh
+        X = X - 1e-3*dsx*s#dx * dsx
+        H = H - 1e-3*dsh*s#dh * dsh
 
         return X, H, G, forward_inputs
 
