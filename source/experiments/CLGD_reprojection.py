@@ -63,7 +63,7 @@ def main():
     category_loader = DataLoader(category, batch_size=1, shuffle=True)
 
 
-    clgd = CLGD.to(device)
+    clgd = CLGD().to(device)
     clgd_optimizer = optim.Adam(clgd.parameters(), lr=args.lr)
 
     # train LGD
@@ -77,7 +77,7 @@ def main():
 
             X = (torch.randn_like(samples['p']) * 2e-1).requires_grad_(True)
             H = torch.randn(*samples['p'].shape[:-2], 1, 256, device=device).requires_grad_(True)
-            G = torch.randn(*samples['p'].shape[:-3], 256, device=device).requires_grad_(True)
+            G = torch.randn(*samples['p'].shape[:-1], 256, device=device).requires_grad_(True)
             P = samples['pose']
 
             Y = samples['p']
@@ -85,7 +85,7 @@ def main():
             clgd.Y = Y
 
             clgd_optimizer.zero_grad()
-            X_new, X_new_grad = clgd_optimizer.backward(X, H, P, G)
+            X_new, X_new_grad = clgd.backward(X, H, P, G)
             clgd_optimizer.step()
 
             writer.add_mesh("input_view",

@@ -143,7 +143,7 @@ class DeepSDFDecoder(nn.Module):
         use_tanh=False,
         latent_dropout=False,
     ):
-        super(Decoder, self).__init__()
+        super(DeepSDFDecoder, self).__init__()
 
         def make_sequence():
             return []

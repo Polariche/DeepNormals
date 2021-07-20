@@ -8,7 +8,7 @@ from torch.autograd import Variable
 import numpy as np
 import knn_cuda
 
-from models import DeepSDFDecoder
+from models.models import DeepSDFDecoder
 
 import numpy as np
 from knn import knn
@@ -23,21 +23,23 @@ class CLGD(nn.Module):
     """
 
     def __init__(self):
-        self._sdf = DeepSDFDecoder(latent_size=256, dims=[512]*8, latent_in=(4), use_tanh=True)
+        super(CLGD, self).__init__()
 
-        self._r_layers = nn.Sequential(nn.Linear(256*3 + 13, 256, bias=False), nn.ReLU())
-        self._z_layers = nn.Sequential(nn.Linear(256*3 + 13, 256, bias=False), nn.ReLU())
+        self._sdf = DeepSDFDecoder(latent_size=256, dims=[512]*8, latent_in=[4], use_tanh=True)
 
-        self._g_layers = nn.Sequential(nn.Linear(256*3 + 13, 256, bias=False), nn.ReLU())
+        self._r_layers = nn.Sequential(nn.Linear(256*2 + 16, 256, bias=False), nn.ReLU())
+        self._z_layers = nn.Sequential(nn.Linear(256*2 + 16, 256, bias=False), nn.ReLU())
 
-        self._dx_layers = nn.Sequential(nn.Linear(256*3 + 13, 1, bias=False), nn.ReLU())
-        self._dh_layers = nn.Sequential(nn.Linear(256*3 + 13, 1, bias=False), nn.ReLU())
-        self._lc_layers = nn.Sequential(nn.Linear(256*3 + 13, 1, bias=False), nn.ReLU())
+        self._g_layers = nn.Sequential(nn.Linear(256*2 + 16, 256, bias=False), nn.ReLU())
+
+        self._dx_layers = nn.Sequential(nn.Linear(256*2 + 16, 1, bias=False), nn.ReLU())
+        self._dh_layers = nn.Sequential(nn.Linear(256*2 + 16, 1, bias=False), nn.ReLU())
+        self._lc_layers = nn.Sequential(nn.Linear(256*2 + 16, 1, bias=False), nn.ReLU())
         self._lp_layers = nn.Sequential(nn.Linear(256*3 + 13, 1, bias=False), nn.ReLU())
 
 
     def expand(self, X, dim, target):
-        targets = {-1, -1, -1}
+        targets = [-1]*3
 
         for d, t in zip(dim, target):
             targets[d+3] = t
@@ -45,21 +47,23 @@ class CLGD(nn.Module):
         return X.expand(*([-1]*(len(X.shape)-3)), *[targets[i] for i in range(3)])
 
     def expand_all(self, X, H, P, s, dsx, dsh, G):
-        X_expand = self.expand(X, (-3), (m))
-        H_expand = self.expand(H, (-3, -2), (m, n))
-        P_expand = self.expand(P, (-2), (n))
+        m = P.shape[-3]
+        n = X.shape[-2]
+        X_expand = self.expand(X, [-3], [m])
+        H_expand = self.expand(H, [-3, -2], [m, n])
+        P_expand = self.expand(P, [-2], [n])
         
-        s_expand = self.expand(s, (-3), (m))
-        dsx_expand = self.expand(dsx, (-3), (m))
-        dsh_expand = self.expand(dsx, (-3, -2), (m, n))
+        s_expand = self.expand(s, [-3], [m])
+        dsx_expand = self.expand(dsx, [-3], [m])
+        dsh_expand = self.expand(dsx, [-3, -2], [m, n])
 
-        G_expand = self.expand(G, (-3), (m))
+        G_expand = self.expand(G, [-3], [m])
 
         return [X_expand, H_expand, P_expand, s_expand, dsx_expand, dsh_expand, G_expand]
 
 
     def sdf(self, X, H, return_grad=True):
-        H_expand = self.expand(H, (-2), (X.shape[-2]))
+        H_expand = self.expand(H, [-2], [X.shape[-2]])
 
         # deepsdf decoder requires [h, x] input
         _input = torch.cat([H_expand, X], dim=-1)
@@ -74,9 +78,9 @@ class CLGD(nn.Module):
                                         [X, H], 
                                         grad_outputs=torch.ones_like(_output_sum), 
                                         create_graph=False,
-                                        retain_graph=True)[0]
-            dX = dX.view(X.shape)
-            dH = dH.view(H.shape)
+                                        retain_graph=True)
+            dX = dX.view(X.shape).requires_grad_(True)
+            dH = dH.view(H.shape).requires_grad_(True)
 
             return _output, dX, dH
         else:
@@ -95,6 +99,7 @@ class CLGD(nn.Module):
         r = self._r_layers(_input)                          # coefficient of old G into new G network
         z = self._z_layers(_input)                          # interpolation variable (old G : new G)
 
+        G_expand = expands[-1]
         _input = torch.cat([_input[..., :-G.shape[-1]], 
                             r * G_expand], dim=-1)
 
@@ -102,7 +107,7 @@ class CLGD(nn.Module):
         new_G = torch.max(new_G, dim=-3, keepdim=True)[0]      # pooling w.r.t cam dimension
 
         G = z * new_G + (1-z) * G
-        G_expand = self.expand(G, (-3), (m))
+        G_expand = self.expand(G, [-3], [m])
 
         return G
 
@@ -122,7 +127,8 @@ class CLGD(nn.Module):
         lp = self._lp_layers(_input)
 
         dx = torch.max(dx, dim=-3, keepdim=True)[0]
-        dh = torch.max(dx, dim=(-3, -2), keepdim=True)[0]
+        dh = torch.max(dx, dim=-2, keepdim=True)[0]
+        dh = torch.max(dx, dim=-3, keepdim=True)[0]
         lc = torch.max(lc, dim=-2, keepdim=True)[0]
 
         # s, dsx, dsh : output from SDF
@@ -155,7 +161,8 @@ class CLGD(nn.Module):
                                       L_grad_targets, 
                                       grad_outputs=torch.ones_like(L), 
                                       create_graph=False,
-                                      retain_graph=True)
+                                      retain_graph=True,
+                                      allow_unused=True)
 
         for i, (t, g) in enumerate(zip(L_grad_targets, L_grads)):
             if g is not None:
@@ -174,7 +181,7 @@ class CLGD(nn.Module):
 
         L2 = self.grad_loss(dsx, lp)            # |dsx| = 1 loss
 
-        L3 = self.sdf_loss(X, X, P, s)          # BCE(s, repr(X,P))
+        L3 = self.sdf_loss(X, P, s)          # BCE(s, repr(X,P))
 
         L4 = self.H_loss(H)                     # regularization on |H|
 
@@ -189,7 +196,7 @@ class CLGD(nn.Module):
         x = utils.project(X, P) * lc
         y = utils.project(Y, P) * lc
 
-        return find_nearest_correspondences_dist(x,y)
+        return self.find_nearest_correspondences_dist(x,y)
 
     
     def grad_loss(self, dsx, lp):
@@ -197,14 +204,15 @@ class CLGD(nn.Module):
 
     def sdf_loss(self, X, P, s):
         shp = s.shape
-        bce = nn.BCELoss(reduction=False)
+        bce = nn.BCELoss(reduce=False)
 
         Y = self.Y
-        x = self.project(X, P)
-        y = self.project(Y, P)
+        x = utils.project(X, P)
+        y = utils.project(Y, P)
 
-        true_s2 = find_nearest_correspondences_dist(x,y) / P.shape[-3]
-        true_s2 = torch.clamp(true_s2, 0, 1)
+        with torch.no_grad():
+            true_s2 = self.find_nearest_correspondences_dist(x,y) / P.shape[-3]
+            true_s2 = torch.clamp(true_s2, 0, 1)
 
         return bce(torch.pow(s,2), true_s2)
 
@@ -234,7 +242,7 @@ class CLGD(nn.Module):
             dists.append(dist_.mean(dim=1).unsqueeze(0))
 
         # ((batches), n)
-        dist = torch.cat(dists).view(shp[:-3], x_hat.shape[-2]).unsqueeze(-1).unsqueeze(-3)
+        dist = torch.cat(dists).view(*shp1[:-3], x_hat.shape[-2]).unsqueeze(-1).unsqueeze(-3)
 
         return dist
     
