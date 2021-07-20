@@ -35,7 +35,7 @@ class CLGD(nn.Module):
         self._dx_layers = nn.Sequential(nn.Linear(256*2 + 16, 1, bias=False), nn.ReLU())
         self._dh_layers = nn.Sequential(nn.Linear(256*2 + 16, 1, bias=False), nn.ReLU())
         self._lc_layers = nn.Sequential(nn.Linear(256*2 + 16, 1, bias=False), nn.ReLU())
-        self._lp_layers = nn.Sequential(nn.Linear(256*3 + 13, 1, bias=False), nn.ReLU())
+        self._lp_layers = nn.Sequential(nn.Linear(256*2 + 16, 1, bias=False), nn.ReLU())
 
 
     def expand(self, X, dim, target):
