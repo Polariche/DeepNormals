@@ -98,8 +98,8 @@ def main():
                             global_step=i+1,
                             colors=(F.normalize(X_new_grad, dim=-1).reshape(-1,3).unsqueeze(0) * 128 + 128).int())
 
-            writer.add_scalars("L1", {"L1": L1}, global_step=i+1)
-            writer.add_scalars("L3", {"L3": L3}, global_step=i+1)
+            writer.add_scalars("L1", {"L1": L1.mean()}, global_step=i+1)
+            writer.add_scalars("L3", {"L3": L3.mean()}, global_step=i+1)
 
             pbar.update(1)
 
