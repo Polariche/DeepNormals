@@ -160,7 +160,7 @@ class CLGD(nn.Module):
         L_grads = torch.autograd.grad(L, 
                                       L_grad_targets, 
                                       grad_outputs=torch.ones_like(L), 
-                                      create_graph=False,
+                                      create_graph=True,
                                       retain_graph=True,
                                       allow_unused=True)
 
