@@ -148,29 +148,30 @@ class CLGD(nn.Module):
         for i in range(steps):
             X, H, G, forward_inputs = self.step(X,H,P,G)
 
-        [s, dsx, dsh,  G,  dx, dh,  lc, lp] = forward_inputs
-        s, dsx_, dsh_ = self.sdf(X, H, return_grad=True)
+            if i%5 == 0:
+                [s, dsx, dsh,  G,  dx, dh,  lc, lp] = forward_inputs
+                s, dsx_, dsh_ = self.sdf(X, H, return_grad=True)
 
 
-        L1, L2, L3, L4 = self.total_loss(X,H, P, s, dsx, lc, lp)
-        L = L1+L3 #L1 + L2 + L3 + L4
-        L = L.mean()
+                L1, L2, L3, L4 = self.total_loss(X,H, P, s, dsx, lc, lp)
+                L = L1+L3 #L1 + L2 + L3 + L4
+                L = L.mean()
 
-        L_grad_targets = [s, dsx, dsh, dx, dh, lc, lp]
+                L_grad_targets = [s, dsx, dsh, dx, dh, lc, lp]
 
-        L_grads = torch.autograd.grad(L, 
-                                      L_grad_targets, 
-                                      grad_outputs=torch.ones_like(L), 
-                                      create_graph=True,
-                                      retain_graph=True,
-                                      allow_unused=True)
+                L_grads = torch.autograd.grad(L, 
+                                            L_grad_targets, 
+                                            grad_outputs=torch.ones_like(L), 
+                                            create_graph=False,
+                                            retain_graph=True,
+                                            allow_unused=True)
 
-        for i, (t, g) in enumerate(zip(L_grad_targets, L_grads)):
-            if g is not None:
-                if i >= 5:
-                    t.backward(- g, retain_graph=True)
-                else:
-                    t.backward(g, retain_graph=True)
+                for i, (t, g) in enumerate(zip(L_grad_targets, L_grads)):
+                    if g is not None:
+                        if i >= 5:
+                            t.backward(- g, retain_graph=True)
+                        else:
+                            t.backward(g, retain_graph=True)
 
         return X, dsx_, [L1, L2, L3, L4]
 
