@@ -153,7 +153,9 @@ def main():
 
             X = _input[..., :X.shape[-1]]
 
-            ((X - Y_corr)**2).sum(dim=-1).mean().backward(retain_graph=True)    
+            L = ((X - Y_corr)**2).sum(dim=-1).mean()
+            print(L)
+            L.backward(retain_graph=True)    
 
             net_optimizer.step()
 
