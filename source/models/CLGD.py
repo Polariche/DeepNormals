@@ -46,7 +46,7 @@ def lm(x, y, dx, lamb = 1.1):
     return x + delta
 
 
-def find_nearest_correspondences_dist(self, x_hat, x, k=1):
+def find_nearest_correspondences_dist(x_hat, x, k=1):
     assert x_hat.shape[-1] == x.shape[-1]
     assert x_hat.shape[-3] == x.shape[-3]
     shp1 = x_hat.shape
