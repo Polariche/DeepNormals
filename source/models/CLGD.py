@@ -8,7 +8,7 @@ from torch.autograd import Variable
 import numpy as np
 import knn_cuda
 
-from models.models import DeepSDFDecoder
+from models.models import DeepSDFNet
 
 import numpy as np
 from knn import knn
@@ -83,7 +83,7 @@ class CLGD(nn.Module):
     def __init__(self):
         super(CLGD, self).__init__()
 
-        self._sdf = DeepSDFDecoder(latent_size=256, dims=[512]*8, latent_in=[4], use_leaky=True)
+        self._sdf = DeepSDFNet(8)
 
         self._r_layers = nn.Sequential(nn.Linear(256*2 + 16, 256, bias=False), nn.ReLU())
         self._z_layers = nn.Sequential(nn.Linear(256*2 + 16, 256, bias=False), nn.ReLU())
