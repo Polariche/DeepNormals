@@ -153,7 +153,7 @@ def main():
 
             X = _input[..., :X.shape[-1]]
 
-            L = ((X - Y_corr)**2).sum(dim=-1).mean()
+            L = ((X - Y_corr)**2).sum(dim=-1).mean() + (net(Y)**2).sum(dim=-1).mean()
             print(L)
             L.backward(retain_graph=True)    
 
