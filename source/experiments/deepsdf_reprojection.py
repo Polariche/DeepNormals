@@ -150,7 +150,7 @@ def main():
 
             for j in range(5):
                 _input = lm(_input, net)
-                
+
             X = _input[..., :X.shape[-1]]
 
             ((X - Y_corr)**2).sum(dim=-1).mean().backward(retain_graph=True)    
@@ -164,9 +164,9 @@ def main():
                             colors=(torch.clamp((F.normalize(samples['n'], dim=-1).reshape(-1,3).unsqueeze(0)), -1, 1) * 128 + 128).int())
 
             writer.add_mesh("output_view",
-                            (X_new).reshape(-1,3).unsqueeze(0),
-                            global_step=i+1,
-                            colors=(F.normalize(X_new_grad, dim=-1).reshape(-1,3).unsqueeze(0) * 128 + 128).int())
+                            (X).reshape(-1,3).unsqueeze(0),
+                            global_step=i+1)
+                            #colors=(F.normalize(X_new_grad, dim=-1).reshape(-1,3).unsqueeze(0) * 128 + 128).int())
 
 
             pbar.update(1)
