@@ -242,11 +242,11 @@ class DeepSDFNet(nn.Module):
             out_dim = 512
 
             if i == 0:
-                in_dim = 3  #259
+                in_dim = 3+256  #259
             elif i == num_layers-1:
                 out_dim = 1
             elif i == int(num_layers/2)-1:
-                out_dim = 512 - 3 #259
+                out_dim = 512 - (3+256) #259
 
             # weight-normalized linear FC
             setattr(self, "fc" + str(i), nn.utils.weight_norm(nn.Linear(in_dim, out_dim)))
