@@ -250,7 +250,7 @@ class CLGD(nn.Module):
 
         L2 = self.grad_loss(dsx, lp)            # |dsx| = 1 loss
 
-        L3 = self.sdf_loss()          # BCE(s, repr(X,P))
+        L3 = self.sdf_loss(H)          # BCE(s, repr(X,P))
 
         L4 = self.H_loss(H)                     # regularization on |H|
 
@@ -271,10 +271,10 @@ class CLGD(nn.Module):
     def grad_loss(self, dsx, lp):
         return torch.pow(torch.sqrt(torch.pow(dsx, 2).sum(dim=-1, keepdim=True)) - 1, 2) * lp
 
-    def sdf_loss(self):
+    def sdf_loss(self, H):
         Y = self.Y
 
-        return (self.sdf(Y) ** 2).mean()
+        return (self.sdf(Y, H) ** 2).mean()
 
     def H_loss(self, H):
         return (H ** 2).sum(dim=-1, keepdim=True)
