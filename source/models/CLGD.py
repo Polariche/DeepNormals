@@ -196,8 +196,8 @@ class CLGD(nn.Module):
         #X = X - 1e-3*dsx*s#dx * dsx
         #H = H - 1e-3*dsh*s#dh * dsh
 
-        H_expand = self.expand(H, dim=[-2], target=X.shape[-2])
-        dsh_expand = self.expand(dsh, dim=[-2], target=X.shape[-2])
+        H_expand = self.expand(H, dim=[-2], target=[X.shape[-2]])
+        dsh_expand = self.expand(dsh, dim=[-2], target=[X.shape[-2]])
 
 
         optim_x = torch.cat([X, H_expand], dim=-1)
