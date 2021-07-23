@@ -269,7 +269,7 @@ class DeepSDFNet(nn.Module):
             bn = getattr(self, "bn" + str(i))
 
             if i == int(num_layers/2):
-                x = torch.cat([x, x_origin], 1)
+                x = torch.cat([x, x_origin], dim=-1)
 
             x = fc(x)
 
