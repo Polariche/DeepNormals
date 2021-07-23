@@ -250,7 +250,7 @@ class CLGD(nn.Module):
 
         L2 = self.grad_loss(dsx, lp)            # |dsx| = 1 loss
 
-        L3 = self.sdf_loss(X)          # BCE(s, repr(X,P))
+        L3 = self.sdf_loss()          # BCE(s, repr(X,P))
 
         L4 = self.H_loss(H)                     # regularization on |H|
 
