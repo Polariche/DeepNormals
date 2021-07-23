@@ -83,7 +83,7 @@ class CLGD(nn.Module):
     def __init__(self):
         super(CLGD, self).__init__()
 
-        self._sdf = DeepSDFDecoder(latent_size=256, dims=[512]*8, latent_in=[4], use_tanh=True)
+        self._sdf = DeepSDFDecoder(latent_size=256, dims=[512]*8, latent_in=[4], use_leaky=True)
 
         self._r_layers = nn.Sequential(nn.Linear(256*2 + 16, 256, bias=False), nn.ReLU())
         self._z_layers = nn.Sequential(nn.Linear(256*2 + 16, 256, bias=False), nn.ReLU())
@@ -196,14 +196,18 @@ class CLGD(nn.Module):
         #X = X - 1e-3*dsx*s#dx * dsx
         #H = H - 1e-3*dsh*s#dh * dsh
 
-        optim_x = torch.cat([X, H], dim=-1)
+        H_expand = self.expand(H, dim=[-2], target=X.shape[-2])
+        dsh_expand = self.expand(dsh, dim=[-2], target=X.shape[-2])
+
+
+        optim_x = torch.cat([X, H_expand], dim=-1)
         optim_y = s
-        optim_dx = torch.cat([dsx, dsh], dim=-1)
+        optim_dx = torch.cat([dsx, dsh_expand], dim=-1)
 
         optim_x = lm(optim_x, optim_y, optim_dx, lamb=dx)
 
         X = optim_x[..., :X.shape[-1]]
-        H = optim_x[..., X.shape[-1]:]
+        H = H + (optim_x[..., X.shape[-1]:] - H_expand).sum(dim=-2, keepdim=True)
 
         return X, H, G, forward_inputs
 
