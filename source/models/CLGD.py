@@ -72,7 +72,7 @@ def find_nearest_correspondences_pos(x_hat, x, k=1):
     # ((batches), n)
     #dist = torch.cat(dists).view(*shp1[:-3], x_hat.shape[-2]).unsqueeze(-1).unsqueeze(-3)
 
-    pos = torch.cat(poss).view(*shp1[:-2], k, shp1[-1])
+    pos = torch.cat(poss).view(*shp1[:-1], k, shp1[-1])
     return pos
     
 
