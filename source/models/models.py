@@ -140,7 +140,7 @@ class DeepSDFDecoder(nn.Module):
         latent_in=(),
         weight_norm=False,
         xyz_in_all=None,
-        use_tanh=False,
+        use_leaky=False,
         latent_dropout=False,
     ):
         super(DeepSDFDecoder, self).__init__()
@@ -184,14 +184,14 @@ class DeepSDFDecoder(nn.Module):
             ):
                 setattr(self, "bn" + str(layer), nn.LayerNorm(out_dim))
 
-        self.use_tanh = use_tanh
-        if use_tanh:
-            self.tanh = nn.Tanh()
+        self.use_leaky = use_leaky
+        if use_leaky:
+            self.leaky = nn.LeakyReLU()
         self.relu = nn.ReLU()
 
         self.dropout_prob = dropout_prob
         self.dropout = dropout
-        self.th = nn.Tanh()
+        self.lk = nn.LeakyReLU()
 
     # input: N x (L+3)
     def forward(self, input):
@@ -212,8 +212,8 @@ class DeepSDFDecoder(nn.Module):
                 x = torch.cat([x, xyz], -1)
             x = lin(x)
             # last layer Tanh
-            if layer == self.num_layers - 2 and self.use_tanh:
-                x = self.tanh(x)
+            if layer == self.num_layers - 2 and self.use_leaky:
+                x = self.leaky(x)
             if layer < self.num_layers - 2:
                 if (
                     self.norm_layers is not None
@@ -226,8 +226,8 @@ class DeepSDFDecoder(nn.Module):
                 if self.dropout is not None and layer in self.dropout:
                     x = F.dropout(x, p=self.dropout_prob, training=self.training)
 
-        if hasattr(self, "th"):
-            x = self.th(x)
+        if hasattr(self, "lk"):
+            x = self.lk(x)
 
         return x
 

@@ -14,6 +14,64 @@ import numpy as np
 from knn import knn
 import utils
 
+def gauss_newton(x, y, dx):
+    #y = f(x)
+    #dx = torch.autograd.grad(y, [x], grad_outputs=torch.ones_like(y), retain_graph=True, create_graph=True)[0]
+    dx_pinv = torch.pinverse(dx.unsqueeze(-2) + 1e-9)[..., 0]
+
+
+    return x - y*dx_pinv
+
+
+def lm(x, y, dx, lamb = 1.1):
+    #y = f(x)
+    #dx = torch.autograd.grad(y, [x], grad_outputs=torch.ones_like(y), retain_graph=True, create_graph=True)[0]
+
+    J = dx.unsqueeze(-1)
+    Jt = J.transpose(-2, -1)
+    JtJ = torch.matmul(Jt, J)
+
+
+    k = JtJ.shape[-1]
+
+    diag_JtJ = torch.cat([JtJ[..., i, i] for i in range(k)])
+    diag_JtJ = diag_JtJ.view(-1, k, 1)
+    diag_JtJ = torch.eye(k, device=x.device).unsqueeze(0).expand(diag_JtJ.shape[0], -1, -1) * diag_JtJ
+
+    pinv = torch.matmul(torch.inverse(JtJ + lamb * diag_JtJ), Jt)
+
+    delta = - pinv * y.unsqueeze(-1)
+    delta = delta[..., 0, :]
+
+    return x + delta
+
+
+def find_nearest_correspondences_dist(self, x_hat, x, k=1):
+    assert x_hat.shape[-1] == x.shape[-1]
+    assert x_hat.shape[-3] == x.shape[-3]
+    shp1 = x_hat.shape
+    shp2 = x.shape
+
+    # ((batches), m, n, 2)
+    x_hat = x_hat.view(-1, shp1[-3], shp1[-2], shp1[-1])
+    x = x.view(-1, shp2[-3], shp2[-2], shp2[-1])
+
+    dists = []
+    for x_hat_, x_ in zip(x_hat, x):
+        # ((batches), n, m*2)
+        x_hat_ = x_hat_.transpose(0,1).reshape(shp1[-2], -1)    
+        x_ = x_.transpose(0,1).reshape(shp2[-2], -1)
+
+        knn_f = knn.apply
+        dist_  = knn_f(x_hat_,x_,k)
+        dists.append(dist_.mean(dim=1).unsqueeze(0))
+
+    # ((batches), n)
+    dist = torch.cat(dists).view(*shp1[:-3], x_hat.shape[-2]).unsqueeze(-1).unsqueeze(-3)
+
+    return dist
+    
+
 class CLGD(nn.Module):
     """
     X : (b, 1, n, 3)
@@ -122,25 +180,30 @@ class CLGD(nn.Module):
         _input = torch.cat(expands, dim=-1)
 
         dx = self._dx_layers(_input)
-        dh = self._dh_layers(_input)
-        lc = self._lc_layers(_input)
         lp = self._lp_layers(_input)
 
         dx = torch.max(dx, dim=-3, keepdim=True)[0]
-        dh = torch.max(dx, dim=-2, keepdim=True)[0]
-        dh = torch.max(dx, dim=-3, keepdim=True)[0]
-        lc = torch.max(lc, dim=-2, keepdim=True)[0]
+        dx = torch.max(dx, dim=-2, keepdim=True)[0]
 
         # s, dsx, dsh : output from SDF
         # dx, dh,  lc, lp : output from 
-        return [s, dsx, dsh, G,  dx, dh,  lc, lp] 
+        return [s, dsx, dsh, G,  dx, lp] 
 
     def step(self, X, H, P, G):
         forward_inputs = self(X, H, P, G)
-        [s, dsx, dsh,  G,  dx, dh,  lc, lp] = forward_inputs
+        [s, dsx, dsh,  G,  dx, lp] = forward_inputs
 
-        X = X - 1e-3*dsx*s#dx * dsx
-        H = H - 1e-3*dsh*s#dh * dsh
+        #X = X - 1e-3*dsx*s#dx * dsx
+        #H = H - 1e-3*dsh*s#dh * dsh
+
+        optim_x = torch.cat([X, H], dim=-1)
+        optim_y = s
+        optim_dx = torch.cat([dsx, dsh], dim=-1)
+
+        optim_x = lm(optim_x, optim_y, optim_dx, lamb=dx)
+
+        X = optim_x[..., :X.shape[-1]]
+        H = optim_x[..., X.shape[-1]:]
 
         return X, H, G, forward_inputs
 
@@ -149,15 +212,15 @@ class CLGD(nn.Module):
             X, H, G, forward_inputs = self.step(X,H,P,G)
 
             if i%5 == 0:
-                [s, dsx, dsh,  G,  dx, dh,  lc, lp] = forward_inputs
+                [s, dsx, dsh,  G,  dx, lp] = forward_inputs
                 s, dsx_, dsh_ = self.sdf(X, H, return_grad=True)
 
 
-                L1, L2, L3, L4 = self.total_loss(X,H, P, s, dsx, lc, lp)
+                L1, L2, L3, L4 = self.total_loss(X,H, P, s, dsx, lp)
                 L = L1+L3 #L1 + L2 + L3 + L4
                 L = L.mean()
 
-                L_grad_targets = [s, dsx, dsh, dx, dh, lc, lp]
+                L_grad_targets = [s, dsx, dsh, dx, lp]
 
                 L_grads = torch.autograd.grad(L, 
                                             L_grad_targets, 
@@ -178,8 +241,8 @@ class CLGD(nn.Module):
         
 
 
-    def total_loss(self, X,H,P,s,dsx, lc, lp):
-        L1 = self.projection_loss(X, P, lc)     # weighted reprojection loss
+    def total_loss(self, X,H,P,s,dsx, lp):
+        L1 = self.projection_loss(X, P)     # weighted reprojection loss
 
         L2 = self.grad_loss(dsx, lp)            # |dsx| = 1 loss
 
@@ -190,7 +253,7 @@ class CLGD(nn.Module):
         return L1, L2, L3, L4
 
     
-    def projection_loss(self, X, P, lc):
+    def projection_loss(self, X, P):
         Y = self.Y
 
         #lc = torch.sqrt(lc)
@@ -198,54 +261,21 @@ class CLGD(nn.Module):
         x = utils.project(X, P) #* lc
         y = utils.project(Y, P) #* lc
 
-        return self.find_nearest_correspondences_dist(x,y)
+        return find_nearest_correspondences_dist(x,y)
 
     
     def grad_loss(self, dsx, lp):
         return torch.pow(torch.sqrt(torch.pow(dsx, 2).sum(dim=-1, keepdim=True)) - 1, 2) * lp
 
-    def sdf_loss(self, X, P, s):
-        shp = s.shape
-        #bce = nn.BCELoss(reduce=False)
-
+    def sdf_loss(self):
         Y = self.Y
-        x = utils.project(X, P)
-        y = utils.project(Y, P)
 
-        s2 = torch.pow(s,2)
-        with torch.no_grad():
-            true_s2 = self.find_nearest_correspondences_dist(x,y) / P.shape[-3]
-            true_s2 = torch.clamp(true_s2, 0, 1)
-
-        return torch.pow(s2 - true_s2, 2) #bce(torch.pow(s,2), true_s2)
+        return (self.sdf(Y) ** 2).mean()
 
     def H_loss(self, H):
-        return torch.pow(H, 2).sum(dim=-1, keepdim=True)
+        return (H ** 2).sum(dim=-1, keepdim=True)
 
 
 
-    def find_nearest_correspondences_dist(self, x_hat, x, k=1):
-        assert x_hat.shape[-1] == x.shape[-1]
-        assert x_hat.shape[-3] == x.shape[-3]
-        shp1 = x_hat.shape
-        shp2 = x.shape
-
-        # ((batches), m, n, 2)
-        x_hat = x_hat.view(-1, shp1[-3], shp1[-2], shp1[-1])
-        x = x.view(-1, shp2[-3], shp2[-2], shp2[-1])
-
-        dists = []
-        for x_hat_, x_ in zip(x_hat, x):
-            # ((batches), n, m*2)
-            x_hat_ = x_hat_.transpose(0,1).reshape(shp1[-2], -1)    
-            x_ = x_.transpose(0,1).reshape(shp2[-2], -1)
-
-            knn_f = knn.apply
-            dist_  = knn_f(x_hat_,x_,k)
-            dists.append(dist_.mean(dim=1).unsqueeze(0))
-
-        # ((batches), n)
-        dist = torch.cat(dists).view(*shp1[:-3], x_hat.shape[-2]).unsqueeze(-1).unsqueeze(-3)
-
-        return dist
+    
     
