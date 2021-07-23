@@ -64,7 +64,7 @@ def find_nearest_correspondences_pos(x_hat, x, k=1):
         x_ = x_.transpose(0,1).reshape(shp2[-2], -1)
 
         knn_f = knn.apply
-        _, ind  = knn_f(x_hat_,x_,k, return_ind=True)
+        _, ind  = knn_f(x_hat_,x_,k, True)
         poss.append(x_[ind].unsqueeze(0))
         #dists.append(dist_.mean(dim=1).unsqueeze(0))
 
