@@ -274,7 +274,7 @@ class CLGD(nn.Module):
     def sdf_loss(self, H):
         Y = self.Y.requires_grad_(True)
 
-        return (self.sdf(Y, H) ** 2).mean()
+        return (self.sdf(Y, H, return_grad=False) ** 2).mean()
 
     def H_loss(self, H):
         return (H ** 2).sum(dim=-1, keepdim=True)
