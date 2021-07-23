@@ -272,7 +272,7 @@ class CLGD(nn.Module):
         return torch.pow(torch.sqrt(torch.pow(dsx, 2).sum(dim=-1, keepdim=True)) - 1, 2) * lp
 
     def sdf_loss(self, H):
-        Y = self.Y
+        Y = self.Y.requires_grad_(True)
 
         return (self.sdf(Y, H) ** 2).mean()
 
