@@ -46,7 +46,7 @@ def lm(x, y, dx, lamb = 1.1):
     return x + delta
 
 
-def find_nearest_correspondences_dist(x_hat, x, k=1):
+def find_nearest_correspondences_pos(x_hat, x, k=1):
     assert x_hat.shape[-1] == x.shape[-1]
     assert x_hat.shape[-3] == x.shape[-3]
     shp1 = x_hat.shape
@@ -56,20 +56,23 @@ def find_nearest_correspondences_dist(x_hat, x, k=1):
     x_hat = x_hat.view(-1, shp1[-3], shp1[-2], shp1[-1])
     x = x.view(-1, shp2[-3], shp2[-2], shp2[-1])
 
-    dists = []
+    #dists = []
+    poss = []
     for x_hat_, x_ in zip(x_hat, x):
         # ((batches), n, m*2)
         x_hat_ = x_hat_.transpose(0,1).reshape(shp1[-2], -1)    
         x_ = x_.transpose(0,1).reshape(shp2[-2], -1)
 
         knn_f = knn.apply
-        dist_  = knn_f(x_hat_,x_,k)
-        dists.append(dist_.mean(dim=1).unsqueeze(0))
+        _, ind  = knn_f(x_hat_,x_,k, return_ind=True)
+        poss.append(x_[ind].unsqueeze(0))
+        #dists.append(dist_.mean(dim=1).unsqueeze(0))
 
     # ((batches), n)
-    dist = torch.cat(dists).view(*shp1[:-3], x_hat.shape[-2]).unsqueeze(-1).unsqueeze(-3)
+    #dist = torch.cat(dists).view(*shp1[:-3], x_hat.shape[-2]).unsqueeze(-1).unsqueeze(-3)
 
-    return dist
+    pos = torch.cat(poss).view(*shp1[:-2], k, shp1[-1])
+    return pos
     
 
 class CLGD(nn.Module):
@@ -212,6 +215,7 @@ class CLGD(nn.Module):
         return X, H, G, forward_inputs
 
     def backward(self, X, H, P, G, steps=50):
+        X_original = X.clone().detach()
         for i in range(steps):
             X, H, G, forward_inputs = self.step(X,H,P,G)
 
@@ -220,7 +224,7 @@ class CLGD(nn.Module):
                 s, dsx_, dsh_ = self.sdf(X, H, return_grad=True)
 
 
-                L1, L2, L3, L4 = self.total_loss(X,H, P, s, dsx, lp)
+                L1, L2, L3, L4 = self.total_loss(X,H, P, s, dsx, lp, X_original)
                 L = L1+L3 #L1 + L2 + L3 + L4
                 L = L.mean()
 
@@ -245,8 +249,8 @@ class CLGD(nn.Module):
         
 
 
-    def total_loss(self, X,H,P,s,dsx, lp):
-        L1 = self.projection_loss(X, P)     # weighted reprojection loss
+    def total_loss(self, X,H,P,s,dsx, lp, X_original):
+        L1 = self.projection_loss(X, X_original, P)     # weighted reprojection loss
 
         L2 = self.grad_loss(dsx, lp)            # |dsx| = 1 loss
 
@@ -257,15 +261,17 @@ class CLGD(nn.Module):
         return L1, L2, L3, L4
 
     
-    def projection_loss(self, X, P):
+    def projection_loss(self, X, X_original, P):
         Y = self.Y
 
-        #lc = torch.sqrt(lc)
+        x = utils.project(X, P)
+        x_original = utils.project(X_original, P)
+        y = utils.project(Y, P)
 
-        x = utils.project(X, P) #* lc
-        y = utils.project(Y, P) #* lc
+        y_nearest = find_nearest_correspondences_pos(x_original,y)
 
-        return find_nearest_correspondences_dist(x,y)
+
+        return ((x.unsqueeze(-2) - y_nearest)**2).sum(dim=-1, keepdim=True).mean(dim=-2)
 
     
     def grad_loss(self, dsx, lp):
