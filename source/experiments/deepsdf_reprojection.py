@@ -145,8 +145,14 @@ def main():
 
             net_optimizer.zero_grad()
             
+            H = H.expand(*[-1]*(len(H.shape)-2), X.shape[-2], -1)
+            _input = torch.cat([X, H], dim=-1)
+
             for j in range(5):
-                X = lm(X, net)
+                _input = lm(_input, net)
+                
+            X = _input[..., :X.shape[-1]]
+
             ((X - Y_corr)**2).sum(dim=-1).mean().backward(retain_graph=True)    
 
             net_optimizer.step()
