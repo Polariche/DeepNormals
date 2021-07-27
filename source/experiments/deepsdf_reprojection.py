@@ -151,6 +151,7 @@ def main():
             for j in range(5):
                 _input = lm(_input, net)
 
+            H = _input[..., :-X.shape[-1]]
             X = _input[..., -X.shape[-1]:]
 
             L1 = ((X.unsqueeze(-2) - Y_corr)**2).sum(dim=-1).mean()
