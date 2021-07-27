@@ -125,13 +125,13 @@ def main():
     net = DeepSDFNet(8).to(device)
     net_optimizer = optim.Adam(net.parameters(), lr=args.lr)
 
-    samples = next(iter(category_loader))
-    samples = dict_to_device(samples, device)
-
     net.eval()
     with tqdm(total=args.epoch) as pbar:
         for i in range(args.epoch):
             start_time = time.time()
+
+            samples = next(iter(category_loader))
+            samples = dict_to_device(samples, device)
 
             X = (torch.randn_like(samples['p']) * 2e-1).requires_grad_(True)
             H = torch.zeros(*samples['p'].shape[:-2], 1, 256, device=device).requires_grad_(True)
