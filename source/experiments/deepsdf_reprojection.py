@@ -48,6 +48,7 @@ def lm(x, f, lamb = 1.1):
     diag_JtJ = torch.cat([JtJ[..., i, i] for i in range(k)])
     diag_JtJ = diag_JtJ.view(-1, k, 1)
     diag_JtJ = torch.eye(k, device=x.device).unsqueeze(0).expand(diag_JtJ.shape[0], -1, -1) * diag_JtJ
+    diag_JtJ = diag_JtJ.view(*JtJ.shape)
 
     pinv = torch.matmul(torch.inverse(JtJ + lamb * diag_JtJ), Jt)
 
@@ -119,7 +120,7 @@ def main():
                                 batch_size=args.batchsize, 
                                 ray_batch_size=3)
 
-    category_loader = DataLoader(category, batch_size=1, shuffle=True)
+    category_loader = DataLoader(category, batch_size=4, shuffle=True)
 
 
     net = DeepSDFNet(8).to(device)
@@ -178,6 +179,8 @@ def main():
 
             writer.add_scalars("L1", {"L1": L1}, global_step=i+1)
             writer.add_scalars("L2", {"L2": L2}, global_step=i+1)
+
+            torch.save(net.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
 
             pbar.update(1)
 
