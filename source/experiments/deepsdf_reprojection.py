@@ -163,7 +163,7 @@ def main():
 
 
             dsdf_X = net(_input)
-            dX = torch.autograd.grad(dsdf_X, [X], grad_outputs=torch.ones_like(dsdf_X), retain_graph=False, create_graph=False)[0]
+            dX = torch.autograd.grad(dsdf_X, _input, grad_outputs=torch.ones_like(dsdf_X), retain_graph=False, create_graph=False)[0][..., -X.shape[-1]:]
 
             
             writer.add_mesh("input_view",
