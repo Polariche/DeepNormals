@@ -153,8 +153,10 @@ def main():
 
             X = _input[..., :X.shape[-1]]
 
-            L = ((X - Y_corr)**2).sum(dim=-1).mean() + (net(torch.cat([Y, H], dim=-1))**2).sum(dim=-1).mean()
-            print(L)
+            L1 = ((X - Y_corr)**2).sum(dim=-1).mean()
+            L2 = (net(torch.cat([Y, H], dim=-1))**2).sum(dim=-1).mean()
+            L = L1 + L2
+
             L.backward(retain_graph=True)    
 
             net_optimizer.step()
@@ -168,8 +170,9 @@ def main():
             writer.add_mesh("output_view",
                             (X).reshape(-1,3).unsqueeze(0),
                             global_step=i+1)
-                            #colors=(F.normalize(X_new_grad, dim=-1).reshape(-1,3).unsqueeze(0) * 128 + 128).int())
 
+            writer.add_scalars("L1", {"L1": L1}, global_step=i+1)
+            writer.add_scalars("L2", {"L2": L2}, global_step=i+1)
 
             pbar.update(1)
 
