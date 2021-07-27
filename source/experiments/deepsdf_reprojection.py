@@ -159,10 +159,13 @@ def main():
             L = L1 + L2
 
             L.backward(retain_graph=True)    
-
             net_optimizer.step()
 
 
+            dsdf_X = net(_input)
+            dX = torch.autograd.grad(dsdf_X, [X], grad_outputs=torch.ones_like(dsdf_X), retain_graph=False, create_graph=False)[0]
+
+            
             writer.add_mesh("input_view",
                             (samples['p']).reshape(-1,3).unsqueeze(0),
                             global_step=i+1,
@@ -170,7 +173,8 @@ def main():
 
             writer.add_mesh("output_view",
                             (X).reshape(-1,3).unsqueeze(0),
-                            global_step=i+1)
+                            global_step=i+1,
+                            colors=(torch.clamp((F.normalize(dX, dim=-1).reshape(-1,3).unsqueeze(0)), -1, 1) * 128 + 128).int())
 
             writer.add_scalars("L1", {"L1": L1}, global_step=i+1)
             writer.add_scalars("L2", {"L2": L2}, global_step=i+1)
