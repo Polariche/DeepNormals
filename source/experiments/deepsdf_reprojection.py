@@ -122,7 +122,7 @@ def main():
     category_loader = DataLoader(category, batch_size=1, shuffle=True)
 
 
-    net = DeepSDFDecoder(8).to(device)
+    net = DeepSDFNet(8).to(device)
     net_optimizer = optim.Adam(net.parameters(), lr=args.lr)
 
     samples = next(iter(category_loader))
