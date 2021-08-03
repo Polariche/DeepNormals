@@ -151,13 +151,11 @@ def main():
 
     category_loader = DataLoader(category, batch_size=4, shuffle=True)
 
-
-    net = DeepSDFNet(8).to(device)
-    net_optimizer = optim.Adam(net.parameters(), lr=args.lr)
-
     lags = torch.zeros(2).to(device)
     sfm = nn.Softmax(dim=0)
     
+    net = DeepSDFNet(8).to(device)
+    net_optimizer = optim.Adam([*net.parameters(), lags], lr=args.lr)
 
     net.eval()
     with tqdm(total=args.epoch) as pbar:
