@@ -151,7 +151,7 @@ def main():
 
     category_loader = DataLoader(category, batch_size=4, shuffle=True)
 
-    lags = torch.zeros(2).to(device)
+    lags = torch.zeros(2).to(device).requires_grad_(True)
     sfm = nn.Softmax(dim=0)
     
     net = DeepSDFNet(8).to(device)
