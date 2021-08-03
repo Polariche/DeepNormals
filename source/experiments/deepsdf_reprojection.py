@@ -60,7 +60,7 @@ def lm(x, f, lamb = 1.1):
 def lm_h(x, h, f, lamb = 1.1):
     shp = x.shape
     n = shp[-2]
-    h_ = torch.expand(*[-1]*len(shp[:-2]), n, -1)
+    h_ = h.expand(*[-1]*len(shp[:-2]), n, -1)
     hx = torch.cat([h_, x], dim=-1)
 
     r = f(hx)
@@ -166,7 +166,7 @@ def main():
             samples = dict_to_device(samples, device)
             
             X = (torch.randn_like(samples['p']) * 2e-1).requires_grad_(True)
-            H = torch.zeros(*samples['p'].shape[:-2], 1, 256, device=device).requires_grad_(True)
+            H = (torch.randn(*samples['p'].shape[:-2], 1, 256, device=device) * 1e-2).requires_grad_(True)
             G = torch.zeros(*samples['p'].shape[:-1], 256, device=device).requires_grad_(True)
             P = samples['pose']
 
