@@ -155,6 +155,8 @@ def main():
     net = DeepSDFNet(8).to(device)
     net_optimizer = optim.Adam(net.parameters(), lr=args.lr)
 
+    lags = torch.zeros(2).to(device)
+    sfm = nn.Softmax(dim=0)
     
 
     net.eval()
@@ -177,26 +179,28 @@ def main():
 
             net_optimizer.zero_grad()
             
+            H = H.expand(*[-1]*(len(H.shape)-2), X.shape[-2], -1)
+            _input = torch.cat([H, X], dim=-1)
+
+            for j in range(5):
+                _input = lm(_input, net)
+                #X, H = lm_h(X, H, net)
+
+            H = _input[..., :-X.shape[-1]]
+            X = _input[..., -X.shape[-1]:]
+
             #H = H.expand(*[-1]*(len(H.shape)-2), X.shape[-2], -1)
             #_input = torch.cat([H, X], dim=-1)
 
-            for j in range(5):
-                #_input = lm(_input, net)
-                X, H = lm_h(X, H, net)
-
-            #H = _input[..., :-X.shape[-1]]
-            #X = _input[..., -X.shape[-1]:]
-
-            H = H.expand(*[-1]*(len(H.shape)-2), X.shape[-2], -1)
-            _input = torch.cat([H, X], dim=-1)
-            
             L1 = ((X.unsqueeze(-2) - Y_corr)**2).sum(dim=-1).mean()
             L2 = (net(torch.cat([H, Y], dim=-1))**2).sum(dim=-1).mean()
-            L = L1 + L2
 
-            L.backward(retain_graph=True)    
+            coeffs = sfm(lags)
+            L = coeffs[0]*L1 + coeffs[1]*L2
+
+            L.backward(retain_graph=True)
+            lags.grad *= -1    
             net_optimizer.step()
-
 
             dsdf_X = net(_input)
             dX = torch.autograd.grad(dsdf_X, _input, grad_outputs=torch.ones_like(dsdf_X), retain_graph=False, create_graph=False)[0][..., -X.shape[-1]:]
