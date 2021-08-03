@@ -69,7 +69,7 @@ def lm_h(x, h, f, lamb = 1.1):
     Jh = dhx[..., :-shp[-1]]     # (..., n, h)
     Jx = dhx[..., -shp[-1]:]     # (..., n, c)
 
-    eyes_like = torch.eye(n).unsqueeze(0).expand(int(np.prod(shp[:-2])), -1, -1).view(*shp[:-2], n, n)
+    eyes_like = torch.eye(n).unsqueeze(0).expand(int(np.prod(shp[:-2])), -1, -1).view(*shp[:-2], n, n).to(x.device)
 
     Hx = (Jx**2).sum(dim=-1, keepdim=True) * eyes_like
     Hh = torch.matmul(Jh, Jh.transpose(-1, -2))
