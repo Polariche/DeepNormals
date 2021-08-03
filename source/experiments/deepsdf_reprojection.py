@@ -186,6 +186,8 @@ def main():
 
             #H = _input[..., :-X.shape[-1]]
             #X = _input[..., -X.shape[-1]:]
+            
+            H = H.expand(*[-1]*(len(H.shape)-2), X.shape[-2], -1)
 
             L1 = ((X.unsqueeze(-2) - Y_corr)**2).sum(dim=-1).mean()
             L2 = (net(torch.cat([H, Y], dim=-1))**2).sum(dim=-1).mean()
