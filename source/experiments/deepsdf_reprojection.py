@@ -217,6 +217,8 @@ def main():
             writer.add_scalars("L1", {"L1": L1}, global_step=i+1)
             writer.add_scalars("L2", {"L2": L2}, global_step=i+1)
 
+            writer.add_scalars("Lags", {"L1": coeffs[0], "L2": coeffs[1]}, global_step=i+1)
+
             torch.save(net.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
 
             pbar.update(1)
