@@ -57,6 +57,35 @@ def lm(x, f, lamb = 1.1):
 
     return x + delta
 
+def lm_h(x, h, f, lamb = 1.1):
+    shp = x.shape
+    n = shp[-2]
+    h_ = torch.expand(*[-1]*len(shp[:-2]), n, -1)
+    hx = torch.cat([h_, x], dim=-1)
+
+    r = f(hx)
+    dhx = torch.autograd.grad(r, [hx], grad_outputs=torch.ones_like(r), retain_graph=True, create_graph=True)[0]
+
+    Jh = dhx[..., :-shp[-1]]     # (..., n, h)
+    Jx = dhx[..., -shp[-1]:]     # (..., n, c)
+
+    eyes_like = torch.eye(n).unsqueeze(0).expand(int(np.prod(shp[:-2])), -1, -1).view(*shp[:-2], n, n)
+
+    Hx = (Jx**2).sum(dim=-1, keepdim=True) * eyes_like
+    Hh = torch.matmul(Jh, Jh.transpose(-1, -2))
+
+    H = Hx + Hh
+
+    H_diag = torch.cat([H[..., i, i].unsqueeze(-1) for i in range(n)], dim=-1).unsqueeze(-1) * eyes_like
+
+    pinv = torch.pinverse(H + lamb*H_diag)
+    pinv_r = torch.matmul(pinv, -r)
+
+    dh = (Jh * pinv_r).sum(dim=-2, keepdim=True)
+    dx = Jx * pinv_r
+
+    return x+dx, h+dh
+
 
 def find_nearest_correspondences_pos(x_hat, x, k=1):
     assert x_hat.shape[-1] == x.shape[-1]
@@ -126,16 +155,16 @@ def main():
     net = DeepSDFNet(8).to(device)
     net_optimizer = optim.Adam(net.parameters(), lr=args.lr)
 
-    samples = next(iter(category_loader))
-    samples = dict_to_device(samples, device)
+    
 
     net.eval()
     with tqdm(total=args.epoch) as pbar:
         for i in range(args.epoch):
             start_time = time.time()
 
+            samples = next(iter(category_loader))
+            samples = dict_to_device(samples, device)
             
-
             X = (torch.randn_like(samples['p']) * 2e-1).requires_grad_(True)
             H = torch.zeros(*samples['p'].shape[:-2], 1, 256, device=device).requires_grad_(True)
             G = torch.zeros(*samples['p'].shape[:-1], 256, device=device).requires_grad_(True)
@@ -148,14 +177,15 @@ def main():
 
             net_optimizer.zero_grad()
             
-            H = H.expand(*[-1]*(len(H.shape)-2), X.shape[-2], -1)
-            _input = torch.cat([H, X], dim=-1)
+            #H = H.expand(*[-1]*(len(H.shape)-2), X.shape[-2], -1)
+            #_input = torch.cat([H, X], dim=-1)
 
             for j in range(5):
-                _input = lm(_input, net)
+                #_input = lm(_input, net)
+                X, H = lm_h(X, H, net)
 
-            H = _input[..., :-X.shape[-1]]
-            X = _input[..., -X.shape[-1]:]
+            #H = _input[..., :-X.shape[-1]]
+            #X = _input[..., -X.shape[-1]:]
 
             L1 = ((X.unsqueeze(-2) - Y_corr)**2).sum(dim=-1).mean()
             L2 = (net(torch.cat([H, Y], dim=-1))**2).sum(dim=-1).mean()
