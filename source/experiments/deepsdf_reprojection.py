@@ -151,24 +151,25 @@ def main():
 
     category_loader = DataLoader(category, batch_size=4, shuffle=True)
 
-    lags = torch.zeros(2).to(device).requires_grad_(True)
+    lags = torch.zeros(3).to(device).requires_grad_(True)
     sfm = nn.Softmax(dim=0)
     
     net = DeepSDFNet(8).to(device)
     net_optimizer = optim.Adam([*net.parameters(), lags], lr=args.lr)
 
+    samples = next(iter(category_loader))
+    samples = dict_to_device(samples, device)
+
     net.eval()
     with tqdm(total=args.epoch) as pbar:
         for i in range(args.epoch):
             start_time = time.time()
-
-            samples = next(iter(category_loader))
-            samples = dict_to_device(samples, device)
             
             X = (torch.randn_like(samples['p']) * 2e-1).requires_grad_(True)
             H = (torch.randn(*samples['p'].shape[:-2], 1, 256, device=device) * 1e-2).requires_grad_(True)
             G = torch.zeros(*samples['p'].shape[:-1], 256, device=device).requires_grad_(True)
             P = samples['pose']
+            N = samples['n']
 
             Y = samples['p']
 
@@ -182,19 +183,20 @@ def main():
 
             for j in range(5):
                 _input = lm(_input, net)
-                #X, H = lm_h(X, H, net)
 
             H = _input[..., :-X.shape[-1]]
             X = _input[..., -X.shape[-1]:]
 
-            #H = H.expand(*[-1]*(len(H.shape)-2), X.shape[-2], -1)
-            #_input = torch.cat([H, X], dim=-1)
+            dsdf_y = net(torch.cat([H, Y], dim=-1))
+            dY = torch.autograd.grad(dsdf_y, Y, grad_outputs=torch.ones_like(dsdf_y), retain_graph=False, create_graph=False)[0]
+            dY = F.normalize(dY, dim=-1)
 
             L1 = ((X.unsqueeze(-2) - Y_corr)**2).sum(dim=-1).mean()
-            L2 = (net(torch.cat([H, Y], dim=-1))**2).sum(dim=-1).mean()
+            L2 = (dsdf_y**2).mean()
+            L3 = torch.abs((dY * N).sum(dim=-1)).mean()
 
             coeffs = sfm(lags)
-            L = coeffs[0]*L1 + coeffs[1]*L2
+            L = coeffs[0]*L1 + coeffs[1]*L2 + coeffs[2]*L3
 
             L.backward(retain_graph=True)
             lags.grad *= -1    
