@@ -188,7 +188,7 @@ def main():
             X = _input[..., -X.shape[-1]:]
 
             dsdf_y = net(torch.cat([H, Y], dim=-1))
-            dY = torch.autograd.grad(dsdf_y, Y, grad_outputs=torch.ones_like(dsdf_y), retain_graph=False, create_graph=False)[0]
+            dY = torch.autograd.grad(dsdf_y, Y, grad_outputs=torch.ones_like(dsdf_y), retain_graph=True, create_graph=True)[0]
             dY = F.normalize(dY, dim=-1)
 
             L1 = ((X.unsqueeze(-2) - Y_corr)**2).sum(dim=-1).mean()
