@@ -100,11 +100,12 @@ def main():
 
     net.eval()
 
+    h = torch.zeros((1,256)).to(device)
     dir = torch.tensor([[0,0,1]]).to(device)
     d = torch.zeros((1000,1)).to(device).requires_grad_(True)
     pos = torch.tensor([[0,0, -1e-2]]).to(device)
 
-    sdf = lambda d: net(d*dir + pos)
+    sdf = lambda d: net(torch.cat([h, d*dir + pos], dim=-1))
 
     for i in range(10):
         d = lm(d, sdf)
