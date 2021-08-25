@@ -58,7 +58,7 @@ def lm(x, f, lamb = 1.1):
     return x + delta
 
 
-def project(pos, dir, writer, device, step):
+def project(pos, dir, net, writer, device, step):
     h = torch.zeros((4096,256)).to(device)
     d = torch.zeros((4096,1)).to(device).requires_grad_(True)
 
@@ -72,7 +72,7 @@ def project(pos, dir, writer, device, step):
                     global_step=0)
 
     writer.add_image("render",
-                    d.reshape(64,64,1), dataformats='WHC'
+                    d.reshape(64,64,1), dataformats='WHC',
                     global_step=0)
 
 
@@ -120,25 +120,25 @@ def main():
     dir = torch.tensor([[0,0,1]]).to(device)
     pos = torch.cat([torch.from_numpy(np.mgrid[:64,63:-1:-1].T.reshape(-1,2)/128-0.25).float(), torch.ones((4096,1))*(-1.5)], dim=-1).to(device)
     
-    project(pos, dir, writer, device, step=0)
+    project(pos, dir, net, writer, device, step=0)
 
     # back
     dir = torch.tensor([[0,0,-1]]).to(device)
     pos = torch.cat([torch.from_numpy(np.mgrid[:64,63:-1:-1].T.reshape(-1,2)/128-0.25).float(), torch.ones((4096,1))*(1.5)], dim=-1).to(device)
     
-    project(pos, dir, writer, device, step=1)
+    project(pos, dir, net, writer, device, step=1)
 
     # right
     dir = torch.tensor([[1,0,0]]).to(device)
     pos = torch.cat([torch.ones((4096,1))*(-1.5), torch.from_numpy(np.mgrid[:64,63:-1:-1].T.reshape(-1,2)/128-0.25).float()], dim=-1).to(device)
     
-    project(pos, dir, writer, device, step=2)
+    project(pos, dir, net, writer, device, step=2)
 
     # left
     dir = torch.tensor([[-1,0,0]]).to(device)
     pos = torch.cat([torch.ones((4096,1))*(1.5), torch.from_numpy(np.mgrid[:64,63:-1:-1].T.reshape(-1,2)/128-0.25).float()], dim=-1).to(device)
     
-    project(pos, dir, writer, device, step=3)
+    project(pos, dir, net, writer, device, step=3)
 
 
     writer.close()
