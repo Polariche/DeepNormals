@@ -100,7 +100,7 @@ def main():
 
     net.eval()
 
-    h = torch.zeros((1,256)).to(device)
+    h = torch.zeros((1,256)).to(device).expand(1000, -1)
     dir = torch.tensor([[0,0,1]]).to(device)
     d = torch.zeros((1000,1)).to(device).requires_grad_(True)
     pos = torch.tensor([[0,0, -1e-2]]).to(device)
