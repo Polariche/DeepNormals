@@ -149,7 +149,7 @@ def main():
                                 batch_size=args.batchsize, 
                                 ray_batch_size=3)
 
-    category_loader = DataLoader(category, batch_size=4, shuffle=True)
+    category_loader = DataLoader(category, batch_size=1, shuffle=True)
 
     lags = torch.zeros(3).to(device).requires_grad_(True)
     sfm = nn.Softmax(dim=0)
@@ -169,9 +169,9 @@ def main():
             H = (torch.randn(*samples['p'].shape[:-2], 1, 256, device=device) * 1e-2).requires_grad_(True)
             G = torch.zeros(*samples['p'].shape[:-1], 256, device=device).requires_grad_(True)
             P = samples['pose']
-            N = samples['n']
+            N = F.normalize(samples['n'], dim=-1)
 
-            Y = samples['p']
+            Y = samples['p'].requires_grad_(True)
 
             X_original = X.clone().detach()
             Y_corr = find_nearest_correspondences_pos(X_original, Y)
@@ -193,28 +193,28 @@ def main():
 
             L1 = ((X.unsqueeze(-2) - Y_corr)**2).sum(dim=-1).mean()
             L2 = (dsdf_y**2).mean()
-            L3 = torch.abs((dY * N).sum(dim=-1)).mean()
+            L3 = 1-torch.abs((dY * N).sum(dim=-1)).mean()
 
             coeffs = sfm(lags)
-            L = coeffs[0]*L1 + coeffs[1]*L2 + coeffs[2]*L3
+            L = coeffs[0]*L1 + coeffs[1]*L2 #+ coeffs[2]*L3
 
             L.backward(retain_graph=True)
-            lags.grad *= -1    
+            #lags.grad *= -1    
             net_optimizer.step()
 
             dsdf_X = net(_input)
             dX = torch.autograd.grad(dsdf_X, _input, grad_outputs=torch.ones_like(dsdf_X), retain_graph=False, create_graph=False)[0][..., -X.shape[-1]:]
 
-            
-            writer.add_mesh("input_view",
-                            (samples['p']).reshape(-1,3).unsqueeze(0),
-                            global_step=i+1,
-                            colors=(torch.clamp((F.normalize(samples['n'], dim=-1).reshape(-1,3).unsqueeze(0)), -1, 1) * 128 + 128).int())
+            if i%10 ==0:
+                writer.add_mesh("input_view",
+                                (samples['p']).reshape(-1,3).unsqueeze(0),
+                                global_step=i+1,
+                                colors=(torch.clamp((F.normalize(samples['n'], dim=-1).reshape(-1,3).unsqueeze(0)), -1, 1) * 128 + 128).int())
 
-            writer.add_mesh("output_view",
-                            (X).reshape(-1,3).unsqueeze(0),
-                            global_step=i+1,
-                            colors=(torch.clamp((F.normalize(dX, dim=-1).reshape(-1,3).unsqueeze(0)), -1, 1) * 128 + 128).int())
+                writer.add_mesh("output_view",
+                                (X).reshape(-1,3).unsqueeze(0),
+                                global_step=i+1,
+                                colors=(torch.clamp((F.normalize(dX, dim=-1).reshape(-1,3).unsqueeze(0)), -1, 1) * 128 + 128).int())
 
             writer.add_scalars("L1", {"L1": L1}, global_step=i+1)
             writer.add_scalars("L2", {"L2": L2}, global_step=i+1)
