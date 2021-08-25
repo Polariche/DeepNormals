@@ -177,17 +177,12 @@ def main():
             Y_corr = find_nearest_correspondences_pos(X_original, Y)
 
             net_optimizer.zero_grad()
-            
-            H = H.expand(*[-1]*(len(H.shape)-2), X.shape[-2], -1)
-            _input = torch.cat([H, X], dim=-1)
-
+        
+            sdf = lambda X: net(torch.cat([H.expand(*[-1]*(len(H.shape)-2), X.shape[-2], -1), X], dim=-1))
             for j in range(5):
-                _input = lm(_input, net)
+                X = lm(X, sdf)
 
-            H = _input[..., :-X.shape[-1]]
-            X = _input[..., -X.shape[-1]:]
-
-            dsdf_y = net(torch.cat([H, Y], dim=-1))
+            dsdf_y = sdf(Y)
             dY = torch.autograd.grad(dsdf_y, Y, grad_outputs=torch.ones_like(dsdf_y), retain_graph=True, create_graph=True)[0]
             dY = F.normalize(dY, dim=-1)
 
@@ -202,8 +197,8 @@ def main():
             #lags.grad *= -1    
             net_optimizer.step()
 
-            dsdf_X = net(_input)
-            dX = torch.autograd.grad(dsdf_X, _input, grad_outputs=torch.ones_like(dsdf_X), retain_graph=False, create_graph=False)[0][..., -X.shape[-1]:]
+            dsdf_X = sdf(X)
+            dX = torch.autograd.grad(dsdf_X, X, grad_outputs=torch.ones_like(dsdf_X), retain_graph=False, create_graph=False)[0][..., -X.shape[-1]:]
 
             if i%10 ==0:
                 writer.add_mesh("input_view",

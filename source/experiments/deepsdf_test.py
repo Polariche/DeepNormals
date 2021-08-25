@@ -58,6 +58,22 @@ def lm(x, f, lamb = 1.1):
     return x + delta
 
 
+def project(pos, dir, writer, device, step):
+    h = torch.zeros((4096,256)).to(device)
+    d = torch.zeros((4096,1)).to(device).requires_grad_(True)
+
+    sdf = lambda d: net(torch.cat([h, d*dir + pos], dim=-1))
+
+    for i in range(5):
+        d = lm(d, sdf)
+
+    writer.add_mesh("render",
+                    ((d*dir + pos)).reshape(-1,3).unsqueeze(0),
+                    global_step=0)
+
+    writer.add_image("render",
+                    d.reshape(64,64,1), dataformats='WHC'
+                    global_step=0)
 
 
 
@@ -100,21 +116,34 @@ def main():
 
     net.eval()
 
-    h = torch.zeros((1,256)).to(device).expand(1000, -1)
+    # frontal
     dir = torch.tensor([[0,0,1]]).to(device)
-    d = torch.zeros((1000,1)).to(device).requires_grad_(True)
-    pos = torch.tensor([[0,0, -1e-2]]).to(device)
+    pos = torch.cat([torch.from_numpy(np.mgrid[:64,63:-1:-1].T.reshape(-1,2)/128-0.25).float(), torch.ones((4096,1))*(-1.5)], dim=-1).to(device)
+    
+    project(pos, dir, writer, device, step=0)
 
-    sdf = lambda d: net(torch.cat([h, d*dir + pos], dim=-1))
+    # back
+    dir = torch.tensor([[0,0,-1]]).to(device)
+    pos = torch.cat([torch.from_numpy(np.mgrid[:64,63:-1:-1].T.reshape(-1,2)/128-0.25).float(), torch.ones((4096,1))*(1.5)], dim=-1).to(device)
+    
+    project(pos, dir, writer, device, step=1)
 
-    for i in range(10):
-        d = lm(d, sdf)
+    # right
+    dir = torch.tensor([[1,0,0]]).to(device)
+    pos = torch.cat([torch.ones((4096,1))*(-1.5), torch.from_numpy(np.mgrid[:64,63:-1:-1].T.reshape(-1,2)/128-0.25).float()], dim=-1).to(device)
+    
+    project(pos, dir, writer, device, step=2)
 
-    writer.add_mesh("input_view",
-                    ((d*dir + pos)).reshape(-1,3).unsqueeze(0),
-                    global_step=0)
+    # left
+    dir = torch.tensor([[-1,0,0]]).to(device)
+    pos = torch.cat([torch.ones((4096,1))*(1.5), torch.from_numpy(np.mgrid[:64,63:-1:-1].T.reshape(-1,2)/128-0.25).float()], dim=-1).to(device)
+    
+    project(pos, dir, writer, device, step=3)
+
 
     writer.close()
+
+
 
 if __name__ == "__main__":
     main()
