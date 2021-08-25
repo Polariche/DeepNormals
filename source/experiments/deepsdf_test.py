@@ -69,11 +69,11 @@ def project(pos, dir, net, writer, device, step):
 
     writer.add_mesh("render",
                     ((d*dir + pos)).reshape(-1,3).unsqueeze(0),
-                    global_step=0)
+                    global_step=step)
 
     writer.add_image("render",
                     d.reshape(64,64,1), dataformats='WHC',
-                    global_step=0)
+                    global_step=step)
 
 
 
