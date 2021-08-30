@@ -117,28 +117,10 @@ def main():
     net.eval()
 
     # frontal
-    dir = torch.tensor([[0,0,1]]).to(device)
-    pos = torch.cat([torch.from_numpy(np.mgrid[:64,63:-1:-1].T.reshape(-1,2)/128-0.25).float(), torch.ones((4096,1))*(-1.5)], dim=-1).to(device)
+    pos = torch.tensor([[0,0,-1]]).to(device)
+    dir = torch.cat([torch.from_numpy(np.mgrid[:64,63:-1:-1].T.reshape(-1,2)/128-0.25).float(), torch.ones((4096,1))*0.5], dim=-1).to(device)
     
     project(pos, dir, net, writer, device, step=0)
-
-    # back
-    dir = torch.tensor([[0,0,-1]]).to(device)
-    pos = torch.cat([torch.from_numpy(np.mgrid[:64,63:-1:-1].T.reshape(-1,2)/128-0.25).float(), torch.ones((4096,1))*(1.5)], dim=-1).to(device)
-    
-    project(pos, dir, net, writer, device, step=1)
-
-    # right
-    dir = torch.tensor([[1,0,0]]).to(device)
-    pos = torch.cat([torch.ones((4096,1))*(-1.5), torch.from_numpy(np.mgrid[:64,63:-1:-1].T.reshape(-1,2)/128-0.25).float()], dim=-1).to(device)
-    
-    project(pos, dir, net, writer, device, step=2)
-
-    # left
-    dir = torch.tensor([[-1,0,0]]).to(device)
-    pos = torch.cat([torch.ones((4096,1))*(1.5), torch.from_numpy(np.mgrid[:64,63:-1:-1].T.reshape(-1,2)/128-0.25).float()], dim=-1).to(device)
-    
-    project(pos, dir, net, writer, device, step=3)
 
 
     writer.close()
