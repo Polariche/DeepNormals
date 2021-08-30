@@ -143,6 +143,7 @@ def main():
                                 global_step=i+1,
                                 colors=(rgb.reshape(-1,3).unsqueeze(0).expand(2,-1,-1) * 128 + 128).int())
 
+            writer.add_scalars("L2", {"L2": L2}, global_step=i+1)
             torch.save(net.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
 
             pbar.update(1)
