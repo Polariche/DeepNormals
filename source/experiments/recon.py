@@ -139,9 +139,9 @@ def main():
 
             if i%10 ==0:
                 writer.add_mesh("2D recon",
-                                torch.cat([campos(0).reshape(-1,3).unsqueeze(0), campos(d).reshape(-1,3).unsqueeze(0)]),
+                                torch.cat([campos(0.5).reshape(-1,3).unsqueeze(0), campos(d).reshape(-1,3).unsqueeze(0)]),
                                 global_step=i+1,
-                                colors=(rgb.reshape(-1,3).unsqueeze(0).expand(2,-1,-1) * 128).int())
+                                colors=(rgb.reshape(-1,3).unsqueeze(0).expand(2,-1,-1) * 128 + 128).int())
 
             torch.save(net.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
 
