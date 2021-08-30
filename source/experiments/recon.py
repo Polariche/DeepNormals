@@ -13,7 +13,7 @@ import os
 sys.path.append( os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) ) )
 
 #from models.models import SingleBVPNet, DeepSDFDecoder, Siren
-from loaders import CategoryDataset, dict_collate_fn, dict_to_device
+from loaders import InstanceDataset, dict_collate_fn, dict_to_device
 from models.models import DeepSDFNet
 from torch.utils.data import  DataLoader
 
