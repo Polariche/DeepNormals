@@ -117,14 +117,14 @@ def main():
             dir = dir.unsqueeze(0).expand(*rgb.shape)
             
             d = torch.zeros_like(dir)[:,:1].requires_grad_(True)
-            h = torch.zeros(1,1,256).to(device)
+            h = torch.zeros(*rgb.shape[:-1],256).to(device)
 
-            campos = lambda d: torch.matmul(pose[...,:3,:3], d*dir) + pose[...,0,:3]
+            campos = lambda d: torch.matmul(d*dir, pose[...,:3,:3].transpose(-1,-2)) + pose[...,:3,3].unsqueeze(-2)
             sdf = lambda d: net(torch.cat([h, campos(d)], dim=-1))
 
 
             # find zero-set by levenberg-marquardt
-            for i in range(5):
+            for j in range(5):
                 d = lm(d, sdf)
             
             
@@ -132,13 +132,16 @@ def main():
 
             # mask loss; BCE(mask, sigmoid(-a*d))
             bce = nn.BCELoss()
-            L2 = bce(mask, F.sigmoid(-1e-1*sdf(d)))
+            L2 = bce(torch.sigmoid(-1e+3*sdf(d)), mask)
+            L2.backward(retain_graph=True)
+
+            net_optimizer.update()
 
             if i%10 ==0:
                 writer.add_mesh("2D recon",
                                 torch.cat([campos(0).reshape(-1,3).unsqueeze(0), campos(d).reshape(-1,3).unsqueeze(0)]),
                                 global_step=i+1,
-                                colors=rgb.reshape(-1,3).unsqueeze(0).expand(2,-1,-1))
+                                colors=(rgb.reshape(-1,3).unsqueeze(0).expand(2,-1,-1) * 128).int())
 
             torch.save(net.state_dict(), args.weight_save_path+'model_%03d.pth' % i)
 
