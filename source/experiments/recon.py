@@ -95,7 +95,7 @@ def main():
 
     with torch.no_grad():
         # load an InstanceDataset
-        instance = InstanceDataset("/data/SRN/cars_train/88c884dd867d221984ae8a5736280c", img_sidelength=args.img_length, ray_batch_size=args.batchsize)
+        instance = InstanceDataset("/data/SRN/cars_train/88c884dd867d221984ae8a5736280c", img_sidelength=args.img_length)
         instance_loader = DataLoader(instance, batch_size=2, shuffle=True)
     
 
