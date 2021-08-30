@@ -135,7 +135,7 @@ def main():
             L2 = bce(torch.sigmoid(-1e+3*sdf(d)), mask)
             L2.backward(retain_graph=True)
 
-            net_optimizer.update()
+            net_optimizer.step()
 
             if i%10 ==0:
                 writer.add_mesh("2D recon",
