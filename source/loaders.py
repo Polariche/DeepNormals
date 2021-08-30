@@ -169,10 +169,14 @@ class InstanceDataset(Dataset):
             color_paths = sorted(utils.glob_imgs(color_dir))
 
             rgb = utils.load_rgb(color_paths[idx], sidelength=self.img_sidelength)
-            rgb = rgb.reshape(3, -1).transpose(1, 0) * 2 - 1
+            rgb = rgb.reshape(3, -1).transpose(1, 0)
             rgb = torch.from_numpy(rgb)
 
-            return {'pose': pose, 'rgb': rgb}
+            mask = (rgb.sum(dim=-1) != 3.).float().unsqueeze(-1)
+
+            rgb = rgb * 2 - 1
+
+            return {'pose': pose, 'rgb': rgb, 'mask': mask}
 
 class CategoryDataset(Dataset):
     def __init__(self, srn_dir, shapenet_dir, img_sidelength, batch_size, ray_batch_size):
