@@ -119,7 +119,7 @@ def main():
             d = torch.zeros_like(dir)[:,:1].requires_grad_(True)
             h = torch.zeros(1,1,256).to(device)
 
-            campos = lambda d: torch.mm(pose[...,:3,:3], d*dir) + pose[...,0,:3]
+            campos = lambda d: torch.matmul(pose[...,:3,:3], d*dir) + pose[...,0,:3]
             sdf = lambda d: net(torch.cat([h, campos(d)], dim=-1))
 
 
