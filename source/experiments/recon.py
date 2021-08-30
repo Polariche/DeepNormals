@@ -90,7 +90,7 @@ def main():
 
 
     net = DeepSDFNet(8).to(device)
-    net_optimizer = optim.Adam([*net.parameters(), lags], lr=args.lr)
+    net_optimizer = optim.Adam([*net.parameters()], lr=args.lr)
     net.eval()
 
     with torch.no_grad():
