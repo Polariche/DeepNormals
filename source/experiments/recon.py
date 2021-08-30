@@ -105,6 +105,7 @@ def main():
 
             # load views
             samples = next(iter(instance_loader))
+            samples = dict_to_device(samples, device)
 
             rgb = samples['rgb']            # rgb; (b, l*l, 3)
             pose = samples['pose']          # pose; (b, 4, 4)
